@@ -1,92 +1,39 @@
-document.addEventListener("DOMContentLoaded", function () {
+import { validateContact } from "./validaciones.js";
 
-    const formulario = document.getElementById("formularioContacto");
+const form = document.querySelector("#formularioContacto");
+const successMessage = document.querySelector("#mensajeExito");
 
-    const nombre = document.getElementById("nombre");
-    const correo = document.getElementById("correo");
-    const asunto = document.getElementById("asunto");
-    const mensaje = document.getElementById("mensaje");
+const errorElements = {
+    nombre: document.querySelector("#errorNombre"),
+    correo: document.querySelector("#errorCorreo"),
+    asunto: document.querySelector("#errorAsunto"),
+    mensaje: document.querySelector("#errorMensaje")
+};
 
-    const errorNombre = document.getElementById("errorNombre");
-    const errorCorreo = document.getElementById("errorCorreo");
-    const errorAsunto = document.getElementById("errorAsunto");
-    const errorMensaje = document.getElementById("errorMensaje");
-
-    const mensajeExito = document.getElementById("mensajeExito");
-
-
-    formulario.addEventListener("submit", function (event) {
-
-        event.preventDefault();
-
-        let formularioValido = true;
-
-
-        errorNombre.textContent = "";
-        errorCorreo.textContent = "";
-        errorAsunto.textContent = "";
-        errorMensaje.textContent = "";
-
-        mensajeExito.querySelector("p").textContent = "";
-
-
-        if (nombre.value.trim() === "") {
-
-            errorNombre.textContent =
-                "El nombre es obligatorio.";
-
-            formularioValido = false;
-        }
-
-
-        if (correo.value.trim() === "") {
-
-            errorCorreo.textContent =
-                "El correo electrónico es obligatorio.";
-
-            formularioValido = false;
-
-        } else {
-
-            const formatoCorreo =
-                /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-            if (!formatoCorreo.test(correo.value.trim())) {
-
-                errorCorreo.textContent =
-                    "Ingresa un correo electrónico válido.";
-
-                formularioValido = false;
-            }
-        }
-
-
-        if (asunto.value.trim() === "") {
-
-            errorAsunto.textContent =
-                "El asunto es obligatorio.";
-
-            formularioValido = false;
-        }
-
-
-        if (mensaje.value.trim() === "") {
-
-            errorMensaje.textContent =
-                "El mensaje es obligatorio.";
-
-            formularioValido = false;
-        }
-
-
-        if (formularioValido) {
-
-            mensajeExito.querySelector("p").textContent =
-                "El mensaje fue enviado correctamente.";
-
-            formulario.reset();
-        }
-
+function clearFeedback() {
+    Object.values(errorElements).forEach((element) => {
+        element.textContent = "";
     });
+    successMessage.classList.add("hidden");
+    successMessage.querySelector("p").textContent = "";
+}
 
+form?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    clearFeedback();
+
+    const data = new FormData(form);
+    const values = Object.fromEntries(data.entries());
+    const errors = validateContact(values);
+
+    if (Object.keys(errors).length > 0) {
+        Object.entries(errors).forEach(([field, message]) => {
+            errorElements[field].textContent = message;
+        });
+        return;
+    }
+
+    successMessage.querySelector("p").textContent = "El mensaje fue enviado correctamente.";
+    successMessage.classList.remove("hidden");
+    form.reset();
 });

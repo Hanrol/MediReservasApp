@@ -19,6 +19,7 @@ import {
     isValidRun,
     normalizeRun
 } from "./validaciones.js";
+import {createActiveStatusButton, createActiveStatusCell, createTableCell, setFieldError} from "./ui-utils.js";
 
 const dialog = document.querySelector("#doctor-dialog");
 const form = document.querySelector("#doctor-form");
@@ -48,15 +49,17 @@ function getFormValues() {
 
     return {
         doctorId: Number(formData.get("doctorId") ?? 0),
-        userId: String(formData.get("userId") ?? ""),
+        userId: Number(formData.get("userId") ?? 0),
         firstName: String(formData.get("firstName") ?? "").trim(),
         lastName: String(formData.get("lastName") ?? "").trim(),
         run: normalizeRun(String(formData.get("run") ?? "").trim()),
         email: String(formData.get("email") ?? "").trim().toLowerCase(),
         phone: String(formData.get("phone") ?? "").trim(),
         medicalLicenseNumber: String(formData.get("medicalLicenseNumber") ?? "").trim().toUpperCase(),
-        specialtyId: Number(formData.get("specialtyId") ?? 0),
-        extraSpecialtyIds: formData.getAll("extraSpecialtyIds").map(Number),
+        specialtyIds: [
+            Number(formData.get("specialtyId") ?? 0),
+            ...formData.getAll("extraSpecialtyIds").map(Number)
+        ].filter((specialtyId, index, values) => specialtyId && values.indexOf(specialtyId) === index),
         admissionDate: String(formData.get("admissionDate") ?? ""),
         active: getInput("active").checked
     };
@@ -77,10 +80,7 @@ function showFieldError(fieldName, error = "") {
     }[fieldName];
     const errorElement = document.querySelector(`#${errorElementId}`);
 
-    if (!input || !errorElement) return;
-    input.setAttribute("aria-invalid", String(Boolean(error)));
-    input.classList.toggle("border-red-500", Boolean(error));
-    errorElement.textContent = error;
+    setFieldError(input, errorElement, error);
 }
 
 function validateDoctor(values) {
@@ -112,7 +112,7 @@ function validateDoctor(values) {
         errors.medicalLicenseNumber = "Usa entre 5 y 20 letras, números o guiones.";
     }
 
-    if (!values.specialtyId) errors.specialtyId = "Selecciona la especialidad principal.";
+    if (!values.specialtyIds.length) errors.specialtyId = "Selecciona la especialidad principal.";
 
     if (values.admissionDate && values.admissionDate > getLocalDateString()) {
         errors.admissionDate = "La fecha de ingreso no puede ser futura.";
@@ -122,7 +122,7 @@ function validateDoctor(values) {
 }
 
 function getSpecialtyNames(doctor) {
-    const names = [doctor.specialtyId, ...(doctor.extraSpecialtyIds ?? [])]
+    const names = doctor.specialtyIds
         .map((specialtyId) => getSpecialtyById(specialtyId)?.specialtyName)
         .filter(Boolean);
 
@@ -141,25 +141,6 @@ function getFilteredDoctors() {
     });
 }
 
-function createCell(text, className = "px-5 py-4") {
-    const cell = document.createElement("td");
-    cell.className = className;
-    cell.textContent = text;
-    return cell;
-}
-
-function createStatusCell(isActive) {
-    const cell = document.createElement("td");
-    cell.className = "px-5 py-4";
-    const badge = document.createElement("span");
-    badge.className = isActive
-        ? "inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-primary-dark"
-        : "inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700";
-    badge.textContent = isActive ? "Activo" : "Inactivo";
-    cell.append(badge);
-    return cell;
-}
-
 function renderDoctors() {
     const doctors = getFilteredDoctors();
     const rows = doctors.map((doctor) => {
@@ -168,13 +149,13 @@ function renderDoctors() {
         const fullName = `${doctor.firstName ?? ""} ${doctor.lastName ?? ""}`.trim() || "Sin nombre";
 
         row.append(
-            createCell(fullName, "px-5 py-4 font-semibold"),
-            createCell(doctor.run ?? "Sin información"),
-            createCell(doctor.email),
-            createCell(doctor.medicalLicenseNumber),
-            createCell(getSpecialtyNames(doctor)),
-            createCell(doctor.admissionDate || "Sin información"),
-            createStatusCell(doctor.active)
+            createTableCell(fullName, "px-5 py-4 font-semibold"),
+            createTableCell(doctor.run ?? "Sin información"),
+            createTableCell(doctor.email),
+            createTableCell(doctor.medicalLicenseNumber),
+            createTableCell(getSpecialtyNames(doctor)),
+            createTableCell(doctor.admissionDate || "Sin información"),
+            createActiveStatusCell(doctor.active)
         );
 
         const actionsCell = document.createElement("td");
@@ -186,13 +167,7 @@ function renderDoctors() {
         editButton.type = "button";
         editButton.dataset.editDoctor = doctor.doctorId;
         editButton.textContent = "Editar";
-        const statusButton = document.createElement("button");
-        statusButton.className = doctor.active
-            ? "rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-            : "rounded-lg border border-emerald-200 px-3 py-2 text-sm font-semibold text-primary-dark transition hover:bg-emerald-50";
-        statusButton.type = "button";
-        statusButton.dataset.changeStatus = doctor.doctorId;
-        statusButton.textContent = doctor.active ? "Desactivar" : "Activar";
+        const statusButton = createActiveStatusButton(doctor.active, doctor.doctorId);
         actions.append(editButton, statusButton);
         actionsCell.append(actions);
         row.append(actionsCell);
@@ -223,22 +198,22 @@ function fillSelect(select, options, placeholder) {
 }
 
 function fillDoctorSelects() {
-    const doctorUsers = getUsers().filter((user) => user.role === "MEDICO" && user.active);
+    const doctorUsers = getUsers().filter((user) => user.role === "DOCTOR" && user.active);
     fillSelect(
         getInput("userId"),
-        doctorUsers.map((user) => ({value: user.id, label: `${user.firstName} ${user.lastName} — ${user.email}`})),
+        doctorUsers.map((user) => ({value: user.userId, label: `${user.firstName} ${user.lastName} — ${user.email}`})),
         "Selecciona un usuario con rol médico"
     );
 
     const activeSpecialties = getSpecialties().filter((specialty) => specialty.active);
     fillSelect(
         getInput("specialtyId"),
-        activeSpecialties.map((specialty) => ({value: specialty.id, label: specialty.specialtyName})),
+        activeSpecialties.map((specialty) => ({value: specialty.specialtyId, label: specialty.specialtyName})),
         "Selecciona una especialidad"
     );
     fillSelect(
         getInput("extraSpecialtyIds"),
-        activeSpecialties.map((specialty) => ({value: specialty.id, label: specialty.specialtyName}))
+        activeSpecialties.map((specialty) => ({value: specialty.specialtyId, label: specialty.specialtyName}))
     );
 }
 
@@ -270,14 +245,14 @@ function openEditDialog(doctorId) {
     getInput("email").value = doctor.email ?? "";
     getInput("phone").value = doctor.phone ?? "";
     getInput("medicalLicenseNumber").value = doctor.medicalLicenseNumber ?? "";
-    getInput("specialtyId").value = doctor.specialtyId ?? "";
+    getInput("specialtyId").value = doctor.specialtyIds[0] ?? "";
     getInput("admissionDate").value = doctor.admissionDate ?? "";
     getInput("admissionDate").max = getLocalDateString();
     getInput("active").checked = Boolean(doctor.active);
 
     const extraSpecialties = getInput("extraSpecialtyIds");
     [...extraSpecialties.options].forEach((option) => {
-        option.selected = (doctor.extraSpecialtyIds ?? []).includes(Number(option.value));
+        option.selected = doctor.specialtyIds.slice(1).includes(Number(option.value));
     });
 
     document.querySelector("#doctor-dialog-title").textContent = "Editar médico";

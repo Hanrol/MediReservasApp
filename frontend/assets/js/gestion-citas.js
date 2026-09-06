@@ -4,13 +4,16 @@ import {
     initializeBaseAppointments,
     updateAppointment
 } from "./storage.js";
-import {getLocalDateString} from "./validaciones.js";
+import {createTableCell, setFieldError} from "./ui-utils.js";
+import {canCancelAppointment, formatAppointmentDate, getAppointmentStatusBadgeClass, getAppointmentStatusLabel, matchesAppointmentFilters} from "./citas-utils.js";
+import {getAvailableScheduleSlots, initializeBaseScheduleSlots, releaseScheduleSlot, rescheduleScheduleSlot} from "./schedule-storage.js";
 
 const tableBody = document.querySelector("#appointments-table-body");
 const emptyMessage = document.querySelector("#appointments-empty-message");
 const resultCount = document.querySelector("#appointments-result-count");
 const searchInput = document.querySelector("#appointment-search");
 const statusFilter = document.querySelector("#appointment-status-filter");
+const dateFilter = document.querySelector("#appointment-date-filter");
 const feedback = document.querySelector("#appointments-feedback");
 const rescheduleDialog = document.querySelector("#reschedule-dialog");
 const rescheduleForm = document.querySelector("#reschedule-form");
@@ -18,22 +21,23 @@ const rescheduleSummary = document.querySelector("#reschedule-summary");
 const cancelDialog = document.querySelector("#cancel-dialog");
 const cancelDialogDescription = document.querySelector("#cancel-dialog-description");
 const cancelAppointmentId = document.querySelector("#cancel-appointment-id");
-
-const STATUS_LABELS = {
-    PENDIENTE: "Pendiente",
-    CONFIRMADA: "Confirmada",
-    REAGENDADA: "Reagendada",
-    CANCELADA: "Cancelada"
-};
-
-const STATUS_BADGE_CLASSES = {
-    PENDIENTE: "inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700",
-    CONFIRMADA: "inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-primary-dark",
-    REAGENDADA: "inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-secondary",
-    CANCELADA: "inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700"
-};
+const rescheduleDate = document.querySelector("#reschedule-date");
+const rescheduleTime = document.querySelector("#reschedule-time");
 
 initializeBaseAppointments();
+initializeBaseScheduleSlots();
+
+function resetSelect(select, placeholder) {
+    select.replaceChildren(new Option(placeholder, ""));
+}
+
+function fillRescheduleTimes(doctorId) {
+    resetSelect(rescheduleTime, "Selecciona una hora");
+    getAvailableScheduleSlots(doctorId)
+        .filter(({slotDate}) => slotDate === rescheduleDate.value)
+        .sort((first, second) => first.startTime.localeCompare(second.startTime))
+        .forEach((slot) => rescheduleTime.add(new Option(slot.startTime.slice(0, 5), slot.scheduleSlotId)));
+}
 
 function showFeedback(message, isError = false) {
     feedback.hidden = !message;
@@ -44,30 +48,19 @@ function showFeedback(message, isError = false) {
 }
 
 function getFilteredAppointments() {
-    const query = searchInput.value.trim().toLowerCase();
-    const status = statusFilter.value;
-
-    return getAppointments().filter((appointment) => {
-        const searchableText = `${appointment.patientName} ${appointment.patientRun} ${appointment.doctorName}`.toLowerCase();
-        const matchesQuery = searchableText.includes(query);
-        const matchesStatus = status === "all" || appointment.status === status;
-        return matchesQuery && matchesStatus;
-    });
-}
-
-function createCell(text, className = "px-5 py-4") {
-    const cell = document.createElement("td");
-    cell.className = className;
-    cell.textContent = text;
-    return cell;
+    return getAppointments().filter((appointment) => matchesAppointmentFilters(appointment, {
+        query: searchInput.value,
+        status: statusFilter.value,
+        date: dateFilter.value
+    }));
 }
 
 function createStatusCell(status) {
     const cell = document.createElement("td");
     cell.className = "px-5 py-4";
     const badge = document.createElement("span");
-    badge.className = STATUS_BADGE_CLASSES[status] ?? STATUS_BADGE_CLASSES.PENDIENTE;
-    badge.textContent = STATUS_LABELS[status] ?? status;
+    badge.className = getAppointmentStatusBadgeClass(status);
+    badge.textContent = getAppointmentStatusLabel(status);
     cell.append(badge);
     return cell;
 }
@@ -76,35 +69,34 @@ function createActionButtons(appointment) {
     const actions = document.createElement("div");
     actions.className = "flex flex-wrap justify-end gap-2";
 
-    if (appointment.status === "PENDIENTE" || appointment.status === "REAGENDADA") {
+    if (appointment.appointmentStatus === "PENDING") {
         const confirmButton = document.createElement("button");
         confirmButton.className = "rounded-lg border border-emerald-200 px-3 py-2 text-sm font-semibold text-primary-dark transition hover:bg-emerald-50";
         confirmButton.type = "button";
-        confirmButton.dataset.confirmAppointment = appointment.id;
+        confirmButton.dataset.confirmAppointment = appointment.appointmentId;
         confirmButton.textContent = "Confirmar";
         actions.append(confirmButton);
     }
 
-    if (appointment.status === "PENDIENTE" || appointment.status === "REAGENDADA") {
+    if (appointment.appointmentStatus === "PENDING") {
         const rescheduleButton = document.createElement("button");
         rescheduleButton.className = "rounded-lg border border-line px-3 py-2 text-sm font-semibold text-primary-dark transition hover:bg-primary-light";
         rescheduleButton.type = "button";
-        rescheduleButton.dataset.rescheduleAppointment = appointment.id;
+        rescheduleButton.dataset.rescheduleAppointment = appointment.appointmentId;
         rescheduleButton.textContent = "Reagendar";
         actions.append(rescheduleButton);
     }
 
-    if (appointment.status !== "CANCELADA") {
+    if (canCancelAppointment(appointment.appointmentStatus)) {
         const cancelButton = document.createElement("button");
         cancelButton.className = "rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50";
         cancelButton.type = "button";
-        cancelButton.dataset.cancelAppointment = appointment.id;
+        cancelButton.dataset.cancelAppointment = appointment.appointmentId;
         cancelButton.textContent = "Cancelar";
         actions.append(cancelButton);
     }
 
     if (!actions.children.length) {
-        actions.append(createCell("—", "text-sm text-muted"));
         const emptyLabel = document.createElement("span");
         emptyLabel.className = "text-sm text-muted";
         emptyLabel.textContent = "Sin acciones";
@@ -121,13 +113,13 @@ function renderAppointments() {
         row.className = "border-b border-line last:border-0";
 
         row.append(
-            createCell(appointment.patientName, "px-5 py-4 font-semibold"),
-            createCell(appointment.patientRun),
-            createCell(appointment.specialtyName),
-            createCell(appointment.doctorName),
-            createCell(appointment.date),
-            createCell(appointment.time),
-            createStatusCell(appointment.status)
+            createTableCell(appointment.patientName, "px-5 py-4 font-semibold"),
+            createTableCell(appointment.patientRun),
+            createTableCell(appointment.specialtyName),
+            createTableCell(appointment.doctorName),
+            createTableCell(appointment.date),
+            createTableCell(appointment.time),
+            createStatusCell(appointment.appointmentStatus)
         );
 
         const actionsCell = document.createElement("td");
@@ -146,7 +138,7 @@ function confirmAppointment(appointmentId) {
     const appointment = getAppointmentById(appointmentId);
     if (!appointment) return;
 
-    updateAppointment(appointmentId, {status: "CONFIRMADA"});
+    updateAppointment(appointmentId, {appointmentStatus: "CONFIRMED"});
     renderAppointments();
     showFeedback(`La cita de ${appointment.patientName} del ${appointment.date} a las ${appointment.time} fue confirmada.`);
 }
@@ -156,11 +148,14 @@ function openRescheduleDialog(appointmentId) {
     if (!appointment) return;
 
     rescheduleForm.reset();
-    document.querySelector("#reschedule-appointment-id").value = appointment.id;
+    document.querySelector("#reschedule-appointment-id").value = appointment.appointmentId;
     rescheduleSummary.textContent = `Cita de ${appointment.patientName} — ${appointment.specialtyName} con ${appointment.doctorName}.`;
-    document.querySelector("#reschedule-date").value = appointment.date;
-    document.querySelector("#reschedule-date").min = getLocalDateString();
-    document.querySelector("#reschedule-time").value = appointment.time;
+    resetSelect(rescheduleDate, "Selecciona una fecha");
+    resetSelect(rescheduleTime, "Selecciona una hora");
+    [...new Set(getAvailableScheduleSlots(appointment.doctorId).map(({slotDate}) => slotDate))]
+        .sort()
+        .forEach((date) => rescheduleDate.add(new Option(formatAppointmentDate(date), date)));
+    rescheduleDate.dataset.doctorId = appointment.doctorId;
     showRescheduleError("date");
     showRescheduleError("time");
     rescheduleDialog.showModal();
@@ -170,23 +165,22 @@ function showRescheduleError(fieldName, error = "") {
     const errorElement = document.querySelector(`#reschedule-${fieldName}-error`);
     const input = rescheduleForm?.elements.namedItem(fieldName);
 
-    if (!input || !errorElement) return;
-    input.setAttribute("aria-invalid", String(Boolean(error)));
-    input.classList.toggle("border-red-500", Boolean(error));
-    errorElement.textContent = error;
+    setFieldError(input, errorElement, error);
 }
 
 function openCancelDialog(appointmentId) {
     const appointment = getAppointmentById(appointmentId);
     if (!appointment) return;
 
-    cancelAppointmentId.value = appointment.id;
+    cancelAppointmentId.value = appointment.appointmentId;
     cancelDialogDescription.textContent = `¿Confirmas que deseas cancelar la cita de ${appointment.patientName} del ${appointment.date} a las ${appointment.time}?`;
     cancelDialog.showModal();
 }
 
 searchInput?.addEventListener("input", renderAppointments);
 statusFilter?.addEventListener("change", renderAppointments);
+dateFilter?.addEventListener("change", renderAppointments);
+rescheduleDate?.addEventListener("change", () => fillRescheduleTimes(rescheduleDate.dataset.doctorId));
 
 tableBody?.addEventListener("click", (event) => {
     const confirmButton = event.target.closest("[data-confirm-appointment]");
@@ -207,7 +201,7 @@ rescheduleForm?.addEventListener("submit", (event) => {
     event.preventDefault();
     const appointmentId = document.querySelector("#reschedule-appointment-id").value;
     const date = rescheduleForm.elements.namedItem("date").value;
-    const time = rescheduleForm.elements.namedItem("time").value;
+    const scheduleSlotId = Number(rescheduleForm.elements.namedItem("time").value);
 
     showRescheduleError("date");
     showRescheduleError("time");
@@ -216,17 +210,28 @@ rescheduleForm?.addEventListener("submit", (event) => {
     if (!date) {
         showRescheduleError("date", "Selecciona la nueva fecha.");
         hasErrors = true;
-    } else if (date < getLocalDateString()) {
-        showRescheduleError("date", "La nueva fecha no puede ser pasada.");
-        hasErrors = true;
     }
-    if (!time) {
+    if (!scheduleSlotId) {
         showRescheduleError("time", "Selecciona la nueva hora.");
         hasErrors = true;
     }
     if (hasErrors) return;
 
-    const appointment = updateAppointment(appointmentId, {date, time, status: "REAGENDADA"});
+    const currentAppointment = getAppointmentById(appointmentId);
+    const newSlot = currentAppointment
+        ? rescheduleScheduleSlot(currentAppointment.scheduleSlotId, scheduleSlotId, appointmentId)
+        : null;
+    if (!newSlot) {
+        showRescheduleError("time", "El bloque seleccionado ya no está disponible.");
+        return;
+    }
+    const time = newSlot.startTime.slice(0, 5);
+    const appointment = updateAppointment(appointmentId, {
+        date: newSlot.slotDate,
+        time,
+        scheduleSlotId: newSlot.scheduleSlotId,
+        appointmentStatus: "PENDING"
+    });
     rescheduleDialog.close();
     renderAppointments();
     if (appointment) {
@@ -236,7 +241,9 @@ rescheduleForm?.addEventListener("submit", (event) => {
 
 document.querySelector("#confirm-cancel-button")?.addEventListener("click", () => {
     const appointmentId = cancelAppointmentId.value;
-    const appointment = updateAppointment(appointmentId, {status: "CANCELADA"});
+    const currentAppointment = getAppointmentById(appointmentId);
+    const appointment = updateAppointment(appointmentId, {appointmentStatus: "CANCELLED"});
+    if (currentAppointment) releaseScheduleSlot(currentAppointment.scheduleSlotId);
 
     cancelDialog.close();
     renderAppointments();
@@ -247,7 +254,7 @@ document.querySelector("#confirm-cancel-button")?.addEventListener("click", () =
 
 const urlParams = new URLSearchParams(window.location.search);
 if (urlParams.get("estado") === "pendiente" || urlParams.get("accion") === "reagendar") {
-    statusFilter.value = "PENDIENTE";
+    statusFilter.value = "PENDING";
 }
 
 feedback.hidden = true;

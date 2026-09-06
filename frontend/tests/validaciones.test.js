@@ -6,6 +6,7 @@ import {
     isValidName,
     isValidRun,
     normalizeRun,
+    validateContact,
     validateRegistration
 } from "../assets/js/validaciones.js";
 
@@ -66,4 +67,18 @@ test("rechaza una fecha de nacimiento futura", () => {
 
 test("genera fechas locales en formato ISO", () => {
     assert.equal(getLocalDateString(new Date(2026, 8, 3)), "2026-09-03");
+});
+
+test("valida los campos del formulario de contacto", () => {
+    assert.deepEqual(validateContact({nombre: "", correo: "correo-invalido", asunto: "", mensaje: ""}), {
+        nombre: "El nombre es obligatorio.",
+        correo: "Ingresa un correo electrónico válido.",
+        asunto: "El asunto es obligatorio.",
+        mensaje: "El mensaje es obligatorio."
+    });
+
+    assert.deepEqual(
+        validateContact({nombre: "Paula", correo: "paula@example.com", asunto: "Consulta", mensaje: "Necesito información."}),
+        {}
+    );
 });

@@ -1,20 +1,16 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import {existsSync, readFileSync, readdirSync} from "node:fs";
+import {fileURLToPath} from "node:url";
 
-const pagePaths = [
-    "../index.html",
-    "../pages/acceso-denegado.html",
-    "../pages/dashboard.html",
-    "../pages/login.html",
-    "../pages/perfil.html",
-    "../pages/registro.html",
-    "../pages/roles.html",
-    "../pages/usuarios.html",
-];
+const pageDirectoryUrl = new URL("../pages/", import.meta.url);
+const pagePaths = ["../index.html", ...readdirSync(pageDirectoryUrl)
+    .filter((fileName) => fileName.endsWith(".html"))
+    .map((fileName) => `../pages/${fileName}`)];
 
 const pages = pagePaths.map((path) => ({
     path,
+    url: new URL(path, import.meta.url),
     html: readFileSync(new URL(path, import.meta.url), "utf8"),
 }));
 
@@ -40,5 +36,33 @@ test("cada vista contiene un único destino principal", () => {
     pages.forEach(({ path, html }) => {
         const destinations = html.match(/id="main-content"/g) ?? [];
         assert.equal(destinations.length, 1, `${path} debe tener un solo main-content`);
+    });
+});
+
+test("el logo de las vistas internas siempre dirige al inicio público", () => {
+    pages
+        .filter(({html}) => html.includes("data-auth-required"))
+        .forEach(({path, html}) => {
+            assert.match(
+                html,
+                /<a(?=[^>]*href="\.\.\/index\.html")(?=[^>]*aria-label="Ir al inicio de MediReservas")[^>]*>/,
+                `${path} no dirige su logo al inicio`
+            );
+        });
+});
+
+test("todos los enlaces y recursos locales apuntan a archivos existentes", () => {
+    pages.forEach(({path, url, html}) => {
+        const references = [...html.matchAll(/(?:href|src)="([^"]+)"/g)].map((match) => match[1]);
+
+        references
+            .filter((reference) => !reference.startsWith("#"))
+            .filter((reference) => !/^(?:https?:|mailto:|tel:)/.test(reference))
+            .forEach((reference) => {
+                const targetUrl = new URL(reference, url);
+                targetUrl.search = "";
+                targetUrl.hash = "";
+                assert.ok(existsSync(fileURLToPath(targetUrl)), `${path} contiene una ruta inexistente: ${reference}`);
+            });
     });
 });

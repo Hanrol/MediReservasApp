@@ -1,102 +1,204 @@
-const formulario = document.getElementById("formularioCita");
-const mensajeSolicitud = document.getElementById("mensajeSolicitud");
+import {
+    getDoctors,
+    getNextAppointmentId,
+    getSession,
+    getSpecialties,
+    getUserById,
+    initializeBaseAppointments,
+    initializeBaseDoctors,
+    initializeBaseSpecialties,
+    saveAppointment
+} from "./storage.js";
+import { getLocalDateString } from "./validaciones.js";
+import {formatAppointmentDate} from "./citas-utils.js";
+import {getAvailableScheduleSlots, initializeBaseScheduleSlots, reserveScheduleSlot} from "./schedule-storage.js";
 
-const especialidad = document.getElementById("especialidad");
-const medico = document.getElementById("medico");
-const fecha = document.getElementById("fecha");
-const hora = document.getElementById("hora");
-const motivo = document.getElementById("motivo");
+const form = document.querySelector("#formularioCita");
+const successMessage = document.querySelector("#mensajeSolicitud");
+const specialtySelect = document.querySelector("#especialidad");
+const doctorSelect = document.querySelector("#medico");
+const dateInput = document.querySelector("#fecha");
+const timeSelect = document.querySelector("#hora");
 
-const errorEspecialidad = document.getElementById("errorEspecialidad");
-const errorMedico = document.getElementById("errorMedico");
-const errorFecha = document.getElementById("errorFecha");
-const errorHora = document.getElementById("errorHora");
-const errorMotivo = document.getElementById("errorMotivo");
-const errorModalidad = document.getElementById("errorModalidad");
-
-const medicosPorEspecialidad = {
-    "Cardiología": ["Dr. Juan Pérez"],
-    "Pediatría": ["Dra. Laura Gómez"],
-    "Dermatología": ["Dr. Carlos Rodríguez"],
-    "Neurología": ["Dra. Ana Martínez"],
-    "Traumatología": ["Dr. Andrés López"],
-    "Ginecología": ["Dra. María Torres"]
+const errorElements = {
+    especialidad: document.querySelector("#errorEspecialidad"),
+    medico: document.querySelector("#errorMedico"),
+    fecha: document.querySelector("#errorFecha"),
+    hora: document.querySelector("#errorHora"),
+    motivo: document.querySelector("#errorMotivo"),
+    modalidad: document.querySelector("#errorModalidad")
 };
 
-especialidad.addEventListener("change", function () {
+function resetSelect(select, placeholder) {
+    select.replaceChildren(new Option(placeholder, ""));
+}
 
-    medico.innerHTML = '<option value="">Seleccione un médico</option>';
+function fillSpecialties() {
+    resetSelect(specialtySelect, "Seleccione una especialidad");
 
-    if (this.value !== "") {
-
-        medicosPorEspecialidad[this.value].forEach((nombre) => {
-
-            const opcion = document.createElement("option");
-            opcion.value = nombre;
-            opcion.textContent = nombre;
-
-            medico.appendChild(opcion);
-
+    getSpecialties()
+        .filter((specialty) => specialty.active)
+        .forEach((specialty) => {
+            specialtySelect.add(new Option(specialty.specialtyName, specialty.specialtyId));
         });
+}
 
-    }
+function fillDoctors() {
+    const specialtyId = Number(specialtySelect.value);
+    resetSelect(doctorSelect, "Seleccione un médico");
+    resetSelect(dateInput, "Seleccione una fecha");
+    resetSelect(timeSelect, "Seleccione una hora");
 
-});
+    if (!specialtyId) return;
 
-formulario.addEventListener("submit", function (event) {
+    getDoctors()
+        .filter(
+            (doctor) =>
+                doctor.active &&
+                doctor.specialtyIds.includes(specialtyId)
+        )
+        .forEach((doctor) => {
+            doctorSelect.add(new Option(`${doctor.firstName} ${doctor.lastName}`, doctor.doctorId));
+        });
+}
 
+function fillAvailableDates() {
+    resetSelect(dateInput, "Seleccione una fecha");
+    resetSelect(timeSelect, "Seleccione una hora");
+
+    const dates = [...new Set(
+        getAvailableScheduleSlots(doctorSelect.value).map(({slotDate}) => slotDate)
+    )].sort();
+    dates.forEach((date) => dateInput.add(new Option(formatAppointmentDate(date), date)));
+}
+
+function fillAvailableTimes() {
+    resetSelect(timeSelect, "Seleccione una hora");
+
+    getAvailableScheduleSlots(doctorSelect.value)
+        .filter(({slotDate}) => slotDate === dateInput.value)
+        .sort((first, second) => first.startTime.localeCompare(second.startTime))
+        .forEach((slot) => {
+            timeSelect.add(new Option(slot.startTime.slice(0, 5), slot.scheduleSlotId));
+        });
+}
+
+function preselectDoctorFromUrl() {
+    const doctorId = Number(new URLSearchParams(window.location.search).get("medico"));
+    const doctor = getDoctors().find((item) => item.doctorId === doctorId && item.active);
+    const specialtyId = doctor?.specialtyIds.find((id) => getSpecialties().some((specialty) => specialty.specialtyId === id && specialty.active));
+    if (!doctor || !specialtyId) return;
+
+    specialtySelect.value = String(specialtyId);
+    fillDoctors();
+    doctorSelect.value = String(doctorId);
+    fillAvailableDates();
+}
+
+function clearErrors() {
+    Object.values(errorElements).forEach((element) => {
+        element.textContent = "";
+    });
+}
+
+function getFormValues() {
+    const data = new FormData(form);
+
+    return {
+        specialtyId: Number(data.get("especialidad")),
+        doctorId: Number(data.get("medico")),
+        date: String(data.get("fecha") ?? ""),
+        scheduleSlotId: Number(data.get("hora") ?? 0),
+        reason: String(data.get("motivo") ?? "").trim(),
+        modality: String(data.get("modalidad") ?? "")
+    };
+}
+
+function validateAppointment(values) {
+    const errors = {};
+
+    if (!values.specialtyId) errors.especialidad = "Seleccione una especialidad.";
+    if (!values.doctorId) errors.medico = "Seleccione un médico.";
+    if (!values.date) errors.fecha = "Seleccione una fecha.";
+    else if (values.date < getLocalDateString()) errors.fecha = "Seleccione una fecha desde hoy en adelante.";
+    if (!values.scheduleSlotId) errors.hora = "Seleccione una hora disponible.";
+    if (!values.reason) errors.motivo = "Ingrese el motivo de la consulta.";
+    if (!values.modality) errors.modalidad = "Seleccione una modalidad.";
+
+    return errors;
+}
+
+function showErrors(errors) {
+    Object.entries(errors).forEach(([field, message]) => {
+        errorElements[field].textContent = message;
+    });
+}
+
+specialtySelect?.addEventListener("change", fillDoctors);
+doctorSelect?.addEventListener("change", fillAvailableDates);
+dateInput?.addEventListener("change", fillAvailableTimes);
+
+form?.addEventListener("submit", (event) => {
     event.preventDefault();
+    clearErrors();
+    successMessage.classList.add("hidden");
 
-    errorEspecialidad.textContent = "";
-    errorMedico.textContent = "";
-    errorFecha.textContent = "";
-    errorHora.textContent = "";
-    errorMotivo.textContent = "";
-    errorModalidad.textContent = "";
+    const values = getFormValues();
+    const errors = validateAppointment(values);
 
-    mensajeSolicitud.classList.add("hidden");
-
-    let formularioValido = true;
-
-    if (especialidad.value === "") {
-        errorEspecialidad.textContent = "Seleccione una especialidad.";
-        formularioValido = false;
-    }
-
-    if (medico.value === "") {
-        errorMedico.textContent = "Seleccione un médico.";
-        formularioValido = false;
-    }
-
-    if (fecha.value === "") {
-        errorFecha.textContent = "Seleccione una fecha.";
-        formularioValido = false;
-    }
-
-    if (hora.value === "") {
-        errorHora.textContent = "Seleccione una hora.";
-        formularioValido = false;
-    }
-
-    if (motivo.value.trim() === "") {
-        errorMotivo.textContent = "Ingrese el motivo de la consulta.";
-        formularioValido = false;
-    }
-
-    const modalidad = document.querySelector('input[name="modalidad"]:checked');
-
-    if (!modalidad) {
-        errorModalidad.textContent = "Seleccione una modalidad.";
-        formularioValido = false;
-    }
-
-    if (!formularioValido) {
+    if (Object.keys(errors).length > 0) {
+        showErrors(errors);
         return;
     }
 
-    mensajeSolicitud.classList.remove("hidden");
+    const session = getSession();
+    const patient = getUserById(session?.userId);
+    const specialty = getSpecialties().find((item) => item.specialtyId === values.specialtyId);
+    const doctor = getDoctors().find((item) => item.doctorId === values.doctorId);
+    const slot = getAvailableScheduleSlots(values.doctorId).find(
+        (item) => item.scheduleSlotId === values.scheduleSlotId && item.slotDate === values.date
+    );
 
-    formulario.reset();
-    medico.innerHTML = '<option value="">Seleccione un médico</option>';
+    if (!patient || !specialty || !doctor || !slot) {
+        errorElements.medico.textContent = "No fue posible registrar la cita. Actualice la página e intente nuevamente.";
+        return;
+    }
 
+    const appointmentId = getNextAppointmentId();
+    const reservedSlot = reserveScheduleSlot(slot.scheduleSlotId, appointmentId);
+    if (!reservedSlot) {
+        errorElements.hora.textContent = "El horario seleccionado ya no está disponible.";
+        fillAvailableTimes();
+        return;
+    }
+
+    saveAppointment({
+        appointmentId,
+        patientUserId: patient.userId,
+        patientName: `${patient.firstName} ${patient.lastName}`,
+        patientRun: patient.run,
+        doctorId: doctor.doctorId,
+        doctorName: `${doctor.firstName} ${doctor.lastName}`,
+        specialtyId: specialty.specialtyId,
+        scheduleSlotId: reservedSlot.scheduleSlotId,
+        specialtyName: specialty.specialtyName,
+        date: values.date,
+        time: reservedSlot.startTime.slice(0, 5),
+        reason: values.reason,
+        modality: values.modality,
+        appointmentStatus: "PENDING"
+    });
+
+    successMessage.classList.remove("hidden");
+    form.reset();
+    resetSelect(doctorSelect, "Seleccione un médico");
+    resetSelect(dateInput, "Seleccione una fecha");
+    resetSelect(timeSelect, "Seleccione una hora");
 });
+
+initializeBaseSpecialties();
+initializeBaseDoctors();
+initializeBaseAppointments();
+initializeBaseScheduleSlots();
+fillSpecialties();
+preselectDoctorFromUrl();

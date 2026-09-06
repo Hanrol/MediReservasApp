@@ -1,5 +1,6 @@
 import { getLocalDateString, normalizeRun, validateRegistration } from "./validaciones.js";
-import { saveUser, userExists } from "./storage.js";
+import {getNextUserId, saveUser, userExists} from "./storage.js";
+import {setFieldError} from "./ui-utils.js";
 
 const form = document.querySelector("#register-form");
 const message = document.querySelector("#register-message");
@@ -45,11 +46,7 @@ function showFieldError(fieldName, error = "") {
         `#${fieldName.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}-error`
     );
 
-    if (!input || !errorElement) return;
-
-    errorElement.textContent = error;
-    input.setAttribute("aria-invalid", String(Boolean(error)));
-    input.classList.toggle("border-red-500", Boolean(error));
+    setFieldError(input, errorElement, error);
 }
 
 function validateField(fieldName) {
@@ -94,7 +91,8 @@ form?.addEventListener("submit", (event) => {
 
     submitButton.disabled = true;
     saveUser({
-        id: crypto.randomUUID?.() ?? `patient-${Date.now()}`,
+        userId: getNextUserId(),
+        authUserId: getNextUserId(),
         run: values.run,
         firstName: values.firstName,
         lastName: values.lastName,
@@ -103,7 +101,7 @@ form?.addEventListener("submit", (event) => {
         address: values.address,
         email: values.email,
         password: values.password,
-        role: "PACIENTE",
+        role: "PATIENT",
         active: true
     });
 
@@ -111,5 +109,8 @@ form?.addEventListener("submit", (event) => {
     fieldNames.forEach((fieldName) => showFieldError(fieldName));
     message.className = "text-center text-sm font-medium text-primary-dark";
     message.textContent = "Cuenta creada correctamente. Ya puedes iniciar sesión.";
-    submitButton.disabled = false;
+
+    window.setTimeout(() => {
+        window.location.href = "login.html";
+    }, 800);
 });

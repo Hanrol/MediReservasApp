@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
     authenticate,
     createSession,
+    getPostLoginDestination,
     getRoleDestination,
     logout
 } from "../assets/js/auth.js";
@@ -41,30 +42,47 @@ test.beforeEach(() => {
     initializeBaseUsers();
 });
 
-test("inicializa una sola cuenta por cada rol", () => {
+test("inicializa cuentas para todos los roles del sistema", () => {
     initializeBaseUsers();
 
-    assert.equal(getUsers().length, 4);
+    assert.equal(getUsers().length, 6);
     assert.deepEqual(
         new Set(getUsers().map((user) => user.role)),
-        new Set(["ADMINISTRADOR", "RECEPCIONISTA", "MEDICO", "PACIENTE"])
+        new Set(["ADMIN", "RECEPTIONIST", "DOCTOR", "PATIENT"])
     );
+});
+
+test("adapta roles antiguos guardados al contrato del backend", () => {
+    localStorage.setItem("medireservas_users", JSON.stringify([
+        {id: "legacy-1", email: "legacy@medireservas.cl", role: "PACIENTE", active: true}
+    ]));
+    localStorage.setItem("medireservas_session", JSON.stringify({
+        token: "legacy-token",
+        userId: "legacy-1",
+        role: "PACIENTE"
+    }));
+
+    assert.equal(getUsers()[0].role, "PATIENT");
+    assert.equal(getUsers()[0].userId, 1);
+    assert.equal(getSession().role, "PATIENT");
+    assert.equal(getSession().userId, 1);
 });
 
 test("autentica credenciales válidas sin distinguir mayúsculas del correo", () => {
     const user = authenticate("ADMINISTRADOR@MEDIRESERVAS.CL", "Admin123");
 
-    assert.equal(user?.role, "ADMINISTRADOR");
+    assert.equal(user?.role, "ADMIN");
 });
 
 test("rechaza una contraseña incorrecta y una cuenta inactiva", () => {
     assert.equal(authenticate("medico@medireservas.cl", "incorrecta"), undefined);
 
     saveUser({
-        id: "inactive-1",
+        userId: 7,
+        authUserId: 7,
         email: "inactivo@medireservas.cl",
         password: "Inactivo123",
-        role: "PACIENTE",
+        role: "PATIENT",
         active: false
     });
 
@@ -75,7 +93,7 @@ test("crea una sesión sin incluir la contraseña", () => {
     const user = authenticate("paciente@medireservas.cl", "Paciente123");
     const session = createSession(user);
 
-    assert.equal(session.role, "PACIENTE");
+    assert.equal(session.role, "PATIENT");
     assert.equal(getSession().email, "paciente@medireservas.cl");
     assert.equal("password" in getSession(), false);
 });
@@ -92,11 +110,20 @@ test("cierra la sesión sin eliminar las cuentas almacenadas", () => {
 });
 
 test("dirige los roles reconocidos al dashboard compartido", () => {
-    assert.equal(getRoleDestination("ADMINISTRADOR"), "dashboard.html");
-    assert.equal(getRoleDestination("RECEPCIONISTA"), "dashboard.html");
-    assert.equal(getRoleDestination("MEDICO"), "dashboard.html");
-    assert.equal(getRoleDestination("PACIENTE"), "dashboard.html");
+    assert.equal(getRoleDestination("ADMIN"), "dashboard.html");
+    assert.equal(getRoleDestination("RECEPTIONIST"), "dashboard.html");
+    assert.equal(getRoleDestination("DOCTOR"), "dashboard.html");
+    assert.equal(getRoleDestination("PATIENT"), "dashboard.html");
     assert.equal(getRoleDestination("ROL_DESCONOCIDO"), "login.html");
+});
+
+test("recupera una ruta protegida solo cuando corresponde al rol autenticado", () => {
+    assert.equal(
+        getPostLoginDestination("PATIENT", "solicitar-cita.html?medico=2"),
+        "solicitar-cita.html?medico=2"
+    );
+    assert.equal(getPostLoginDestination("DOCTOR", "solicitar-cita.html?medico=2"), "dashboard.html");
+    assert.equal(getPostLoginDestination("PATIENT", "https://sitio-malicioso.cl"), "dashboard.html");
 });
 
 test("valida los campos del formulario antes de autenticar", () => {

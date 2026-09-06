@@ -1,127 +1,127 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Asignación de roles y permisos para usuarios de MediReservas.">
-    <title>Roles y permisos | MediReservas</title>
-    <link rel="stylesheet" href="../assets/css/style.css">
-    <script type="module" src="../assets/js/route-guard.js"></script>
-</head>
-<body class="flex min-h-screen flex-col bg-page text-ink antialiased" data-page-name="Roles y permisos" data-auth-required>
-    <a class="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0" href="#main-content">Saltar al contenido principal</a>
-    <header class="relative z-30 border-b border-line bg-white">
-        <nav class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8" aria-label="Barra superior de MediReservas">
-            <div class="flex items-center gap-3">
-                <button class="grid size-10 place-items-center rounded-xl border border-line bg-white text-xl text-primary-dark transition hover:bg-primary-light lg:hidden" id="mobile-menu-button" type="button" aria-controls="shared-mobile-sidebar" aria-expanded="false" aria-label="Abrir menú de navegación">
-                    <span class="leading-none" aria-hidden="true">☰</span>
-                </button>
-                <a class="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl" href="dashboard.html" aria-label="Ir al panel principal de MediReservas">
-                    <span class="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white" aria-hidden="true">+</span>
-                    <span class="hidden sm:inline">MediReservas</span>
-                </a>
-            </div>
-
-            <div class="flex items-center gap-3 sm:gap-5">
-                <a class="text-right" href="perfil.html" aria-label="Ver mi perfil">
-                    <p class="text-sm font-semibold" id="header-user-name">Usuario</p>
-                    <p class="text-xs text-muted" id="header-user-role">Perfil</p>
-                </a>
-                <button class="inline-flex items-center justify-center rounded-xl border border-line bg-white px-3 py-2.5 text-sm font-semibold text-primary-dark transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 sm:px-4" id="logout-button" type="button">
-                    <span class="sm:hidden">Salir</span>
-                    <span class="hidden sm:inline">Cerrar sesión</span>
-                </button>
-            </div>
-        </nav>
-    </header>
-
-    <main class="flex-1 px-4 py-8 sm:px-6 sm:py-12 lg:px-8" id="main-content" tabindex="-1">
-        <section class="mx-auto max-w-7xl" aria-labelledby="roles-title">
-            <header>
-                <p class="text-sm font-bold uppercase tracking-widest text-primary">Administración</p>
-                <h1 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl" id="roles-title">Roles y permisos</h1>
-                <p class="mt-3 text-muted">Asigna a cada usuario el perfil que corresponda a sus funciones.</p>
-            </header>
-
-            <aside class="mt-8 rounded-2xl border border-emerald-200 bg-primary-light p-5 sm:p-6" aria-labelledby="roles-information-title">
-                <h2 class="font-bold text-primary-dark" id="roles-information-title">Perfiles disponibles</h2>
-                <ul class="mt-4 grid gap-3 text-sm text-muted sm:grid-cols-2">
-                    <li><strong class="text-ink">Administrador:</strong> acceso a la configuración y gestión completa.</li>
-                    <li><strong class="text-ink">Recepcionista:</strong> gestión de solicitudes y estados de citas.</li>
-                    <li><strong class="text-ink">Médico:</strong> acceso a agenda, pacientes y observaciones clínicas.</li>
-                    <li><strong class="text-ink">Paciente:</strong> reserva y consulta de sus propias atenciones.</li>
-                </ul>
-            </aside>
-
-            <form class="mt-8 rounded-2xl border border-line bg-white p-5 shadow-sm" id="role-search-form" role="search">
-                <label class="mb-2 block text-sm font-semibold" for="role-user-search">Buscar usuario</label>
-                <input class="w-full rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="role-user-search" name="search" type="search" placeholder="Nombre, RUN o correo">
-            </form>
-
-            <div class="mt-6" aria-live="polite">
-                <p class="text-sm font-medium text-muted" id="roles-result-count">Cargando usuarios...</p>
-            </div>
-
-            <div class="mt-3 overflow-x-auto rounded-2xl border border-line bg-white shadow-sm">
-                <table class="w-full min-w-3xl border-collapse text-left">
-                    <caption class="sr-only">Roles asignados a usuarios de MediReservas</caption>
-                    <thead class="border-b border-line bg-page text-xs uppercase tracking-wider text-muted">
-                        <tr>
-                            <th class="px-5 py-4 font-semibold" scope="col">Usuario</th>
-                            <th class="px-5 py-4 font-semibold" scope="col">RUN</th>
-                            <th class="px-5 py-4 font-semibold" scope="col">Correo</th>
-                            <th class="px-5 py-4 font-semibold" scope="col">Rol actual</th>
-                            <th class="px-5 py-4 text-right font-semibold" scope="col">Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody id="roles-table-body">
-                        <tr><td class="px-5 py-8 text-center text-muted" colspan="5">Cargando información...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <p class="mt-6 rounded-2xl border border-line bg-white p-8 text-center text-muted" id="roles-empty-message" hidden>No se encontraron usuarios con ese criterio.</p>
-        </section>
-    </main>
-
-    <dialog class="m-auto w-[calc(100%-2rem)] max-w-lg rounded-3xl border border-line bg-white p-0 shadow-xl" id="role-dialog" aria-labelledby="role-dialog-title">
-        <form class="p-5 sm:p-8" id="role-form" method="dialog" novalidate>
-            <header class="flex items-start justify-between gap-4">
-                <div>
-                    <p class="text-sm font-bold uppercase tracking-widest text-primary">Permisos del usuario</p>
-                    <h2 class="mt-2 text-2xl font-bold" id="role-dialog-title">Asignar rol</h2>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="Asignación de roles y permisos para usuarios de MediReservas.">
+        <title>Roles y permisos | MediReservas</title>
+        <link rel="stylesheet" href="../assets/css/style.css">
+        <script type="module" src="../assets/js/route-guard.js"></script>
+    </head>
+    <body class="flex min-h-screen flex-col bg-page text-ink antialiased" data-page-name="Roles y permisos" data-auth-required>
+        <a class="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0" href="#main-content">Saltar al contenido principal</a>
+        <header class="relative z-30 border-b border-line bg-white">
+            <nav class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8" aria-label="Barra superior de MediReservas">
+                <div class="flex items-center gap-3">
+                    <button class="grid size-10 place-items-center rounded-xl border border-line bg-white text-xl text-primary-dark transition hover:bg-primary-light lg:hidden" id="mobile-menu-button" type="button" aria-controls="shared-mobile-sidebar" aria-expanded="false" aria-label="Abrir menú de navegación">
+                        <span class="leading-none" aria-hidden="true">☰</span>
+                    </button>
+                    <a class="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl" href="../index.html" aria-label="Ir al inicio de MediReservas">
+                        <span class="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white" aria-hidden="true">+</span>
+                        <span class="hidden sm:inline">MediReservas</span>
+                    </a>
                 </div>
-                <button class="grid size-10 shrink-0 place-items-center rounded-xl border border-line text-xl text-muted transition hover:bg-page hover:text-ink" id="close-role-dialog" type="button" aria-label="Cerrar formulario">×</button>
-            </header>
-            <input id="role-user-id" name="userId" type="hidden">
-            <dl class="mt-6 grid gap-4 rounded-xl bg-page p-4 sm:grid-cols-2">
-                <div><dt class="text-xs font-medium uppercase tracking-wider text-muted">Usuario</dt><dd class="mt-1 font-semibold" id="role-user-name">Sin información</dd></div>
-                <div><dt class="text-xs font-medium uppercase tracking-wider text-muted">Correo</dt><dd class="mt-1 break-words text-sm font-semibold" id="role-user-email">Sin información</dd></div>
-            </dl>
-            <div class="mt-6">
-                <label class="mb-2 block text-sm font-semibold" for="role-select">Nuevo rol</label>
-                <select class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="role-select" name="role">
-                    <option value="">Selecciona un rol</option>
-                    <option value="ADMINISTRADOR">Administrador</option>
-                    <option value="RECEPCIONISTA">Recepcionista</option>
-                    <option value="MEDICO">Médico</option>
-                    <option value="PACIENTE">Paciente</option>
-                </select>
-                <p class="mt-1.5 min-h-5 text-sm text-red-600" id="role-error" role="alert"></p>
-            </div>
-            <p class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">El cambio modificará las funciones disponibles para este usuario.</p>
-            <footer class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button class="rounded-xl border border-line px-5 py-3 font-semibold text-muted transition hover:bg-page" id="cancel-role-button" type="button">Cancelar</button>
-                <button class="rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark" type="submit">Guardar rol</button>
-            </footer>
-            <p class="mt-4 text-center text-sm font-medium" id="role-form-message" role="status"></p>
-        </form>
-    </dialog>
 
-    <footer class="border-t border-line bg-white px-4 py-5 text-center text-sm text-muted">
-        <p>&copy; 2026 MediReservas. Todos los derechos reservados.</p>
-    </footer>
-    <script type="module" src="../assets/js/roles-admin.js"></script>
-    <script type="module" src="../assets/js/navigation.js"></script>
-    <script type="module" src="../assets/js/logout.js"></script>
-</body>
+                <div class="flex items-center gap-3 sm:gap-5">
+                    <a class="text-right" href="perfil.html" aria-label="Ver mi perfil">
+                        <p class="text-sm font-semibold" id="header-user-name">Usuario</p>
+                        <p class="text-xs text-muted" id="header-user-role">Perfil</p>
+                    </a>
+                    <button class="inline-flex items-center justify-center rounded-xl border border-line bg-white px-3 py-2.5 text-sm font-semibold text-primary-dark transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 sm:px-4" id="logout-button" type="button">
+                        <span class="sm:hidden">Salir</span>
+                        <span class="hidden sm:inline">Cerrar sesión</span>
+                    </button>
+                </div>
+            </nav>
+        </header>
+
+        <main class="flex-1 px-4 py-8 sm:px-6 sm:py-12 lg:px-8" id="main-content" tabindex="-1">
+            <section class="mx-auto max-w-7xl" aria-labelledby="roles-title">
+                <header>
+                    <p class="text-sm font-bold uppercase tracking-widest text-primary">Administración</p>
+                    <h1 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl" id="roles-title">Roles y permisos</h1>
+                    <p class="mt-3 text-muted">Asigna a cada usuario el perfil que corresponda a sus funciones.</p>
+                </header>
+
+                <aside class="mt-8 rounded-2xl border border-emerald-200 bg-primary-light p-5 sm:p-6" aria-labelledby="roles-information-title">
+                    <h2 class="font-bold text-primary-dark" id="roles-information-title">Perfiles disponibles</h2>
+                    <ul class="mt-4 grid gap-3 text-sm text-muted sm:grid-cols-2">
+                        <li><strong class="text-ink">Administrador:</strong> acceso a la configuración y gestión completa.</li>
+                        <li><strong class="text-ink">Recepcionista:</strong> gestión de solicitudes y estados de citas.</li>
+                        <li><strong class="text-ink">Médico:</strong> acceso a agenda, pacientes y observaciones clínicas.</li>
+                        <li><strong class="text-ink">Paciente:</strong> reserva y consulta de sus propias atenciones.</li>
+                    </ul>
+                </aside>
+
+                <form class="mt-8 rounded-2xl border border-line bg-white p-5 shadow-sm" id="role-search-form" role="search">
+                    <label class="mb-2 block text-sm font-semibold" for="role-user-search">Buscar usuario</label>
+                    <input class="w-full rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="role-user-search" name="search" type="search" placeholder="Nombre, RUN o correo">
+                </form>
+
+                <div class="mt-6" aria-live="polite">
+                    <p class="text-sm font-medium text-muted" id="roles-result-count">Cargando usuarios...</p>
+                </div>
+
+                <div class="mt-3 overflow-x-auto rounded-2xl border border-line bg-white shadow-sm">
+                    <table class="w-full min-w-3xl border-collapse text-left">
+                        <caption class="sr-only">Roles asignados a usuarios de MediReservas</caption>
+                        <thead class="border-b border-line bg-page text-xs uppercase tracking-wider text-muted">
+                            <tr>
+                                <th class="px-5 py-4 font-semibold" scope="col">Usuario</th>
+                                <th class="px-5 py-4 font-semibold" scope="col">RUN</th>
+                                <th class="px-5 py-4 font-semibold" scope="col">Correo</th>
+                                <th class="px-5 py-4 font-semibold" scope="col">Rol actual</th>
+                                <th class="px-5 py-4 text-right font-semibold" scope="col">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="roles-table-body">
+                            <tr><td class="px-5 py-8 text-center text-muted" colspan="5">Cargando información...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="mt-6 rounded-2xl border border-line bg-white p-8 text-center text-muted" id="roles-empty-message" hidden>No se encontraron usuarios con ese criterio.</p>
+            </section>
+        </main>
+
+        <dialog class="m-auto w-[calc(100%-2rem)] max-w-lg rounded-3xl border border-line bg-white p-0 shadow-xl" id="role-dialog" aria-labelledby="role-dialog-title">
+            <form class="p-5 sm:p-8" id="role-form" method="dialog" novalidate>
+                <header class="flex items-start justify-between gap-4">
+                    <div>
+                        <p class="text-sm font-bold uppercase tracking-widest text-primary">Permisos del usuario</p>
+                        <h2 class="mt-2 text-2xl font-bold" id="role-dialog-title">Asignar rol</h2>
+                    </div>
+                    <button class="grid size-10 shrink-0 place-items-center rounded-xl border border-line text-xl text-muted transition hover:bg-page hover:text-ink" id="close-role-dialog" type="button" aria-label="Cerrar formulario">×</button>
+                </header>
+                <input id="role-user-id" name="userId" type="hidden">
+                <dl class="mt-6 grid gap-4 rounded-xl bg-page p-4 sm:grid-cols-2">
+                    <div><dt class="text-xs font-medium uppercase tracking-wider text-muted">Usuario</dt><dd class="mt-1 font-semibold" id="role-user-name">Sin información</dd></div>
+                    <div><dt class="text-xs font-medium uppercase tracking-wider text-muted">Correo</dt><dd class="mt-1 break-words text-sm font-semibold" id="role-user-email">Sin información</dd></div>
+                </dl>
+                <div class="mt-6">
+                    <label class="mb-2 block text-sm font-semibold" for="role-select">Nuevo rol</label>
+                    <select class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="role-select" name="role">
+                        <option value="">Selecciona un rol</option>
+                        <option value="ADMIN">Administrador</option>
+                        <option value="RECEPTIONIST">Recepcionista</option>
+                        <option value="DOCTOR">Médico</option>
+                        <option value="PATIENT">Paciente</option>
+                    </select>
+                    <p class="mt-1.5 min-h-5 text-sm text-red-600" id="role-error" role="alert"></p>
+                </div>
+                <p class="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">El cambio modificará las funciones disponibles para este usuario.</p>
+                <footer class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                    <button class="rounded-xl border border-line px-5 py-3 font-semibold text-muted transition hover:bg-page" id="cancel-role-button" type="button">Cancelar</button>
+                    <button class="rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark" type="submit">Guardar rol</button>
+                </footer>
+                <p class="mt-4 text-center text-sm font-medium" id="role-form-message" role="status"></p>
+            </form>
+        </dialog>
+
+        <footer class="border-t border-line bg-white px-4 py-5 text-center text-sm text-muted">
+            <p>&copy; 2026 MediReservas. Todos los derechos reservados.</p>
+        </footer>
+        <script type="module" src="../assets/js/roles-admin.js"></script>
+        <script type="module" src="../assets/js/navigation.js"></script>
+        <script type="module" src="../assets/js/logout.js"></script>
+    </body>
 </html>

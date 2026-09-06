@@ -1,31 +1,19 @@
-import {getAppointments, getSession, initializeBaseAppointments} from "./storage.js";
+import {getAppointments, getDoctorForUser, getSession, getUserById, initializeBaseAppointments, initializeBaseDoctors} from "./storage.js";
 import {getLocalDateString} from "./validaciones.js";
+import {getAppointmentStatusBadgeClass, getAppointmentStatusLabel, getFirstPendingObservationDate} from "./citas-utils.js";
 
 const dateInput = document.querySelector("#agenda-date");
 const agendaList = document.querySelector("#agenda-list");
 const emptyMessage = document.querySelector("#agenda-empty-message");
 const resultCount = document.querySelector("#agenda-result-count");
 
-const STATUS_LABELS = {
-    PENDIENTE: "Pendiente",
-    CONFIRMADA: "Confirmada",
-    REAGENDADA: "Reagendada",
-    CANCELADA: "Cancelada"
-};
-
-const STATUS_BADGE_CLASSES = {
-    PENDIENTE: "inline-flex rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700",
-    CONFIRMADA: "inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-primary-dark",
-    REAGENDADA: "inline-flex rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-secondary",
-    CANCELADA: "inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700"
-};
-
 initializeBaseAppointments();
+initializeBaseDoctors();
 
 function createStatusBadge(status) {
     const badge = document.createElement("span");
-    badge.className = STATUS_BADGE_CLASSES[status] ?? STATUS_BADGE_CLASSES.PENDIENTE;
-    badge.textContent = STATUS_LABELS[status] ?? status;
+    badge.className = getAppointmentStatusBadgeClass(status);
+    badge.textContent = getAppointmentStatusLabel(status);
     return badge;
 }
 
@@ -45,7 +33,7 @@ function createAppointmentCard(appointment) {
     specialty.textContent = appointment.specialtyName;
     timeBlock.append(time, specialty);
 
-    topRow.append(timeBlock, createStatusBadge(appointment.status));
+    topRow.append(timeBlock, createStatusBadge(appointment.appointmentStatus));
 
     const patientName = document.createElement("p");
     patientName.className = "mt-4 font-semibold";
@@ -57,10 +45,10 @@ function createAppointmentCard(appointment) {
 
     item.append(topRow, patientName, reason);
 
-    if (appointment.status === "CONFIRMADA" && appointment.date <= getLocalDateString()) {
+    if (appointment.appointmentStatus === "CONFIRMED" && appointment.date <= getLocalDateString()) {
         const observationLink = document.createElement("a");
         observationLink.className = "mt-4 inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-dark";
-        observationLink.href = `observacion-clinica.html?id=${appointment.id}`;
+        observationLink.href = `observacion-clinica.html?id=${appointment.appointmentId}`;
         observationLink.textContent = "Registrar observación";
         item.append(observationLink);
     }
@@ -70,9 +58,10 @@ function createAppointmentCard(appointment) {
 
 function renderAgenda() {
     const session = getSession();
+    const doctor = getDoctorForUser(getUserById(session?.userId) ?? session);
     const selectedDate = dateInput.value;
     const appointments = getAppointments()
-        .filter((appointment) => appointment.date === selectedDate && appointment.doctorId === session?.userId)
+        .filter((appointment) => appointment.date === selectedDate && appointment.doctorId === doctor?.doctorId)
         .sort((first, second) => first.time.localeCompare(second.time));
 
     agendaList.replaceChildren(...appointments.map(createAppointmentCard));
@@ -84,5 +73,12 @@ function renderAgenda() {
 
 dateInput?.addEventListener("change", renderAgenda);
 
-dateInput.value = getLocalDateString();
+const today = getLocalDateString();
+const session = getSession();
+const doctor = getDoctorForUser(getUserById(session?.userId) ?? session);
+const showPendingObservation = new URLSearchParams(window.location.search).get("accion") === "observacion";
+
+dateInput.value = showPendingObservation
+    ? getFirstPendingObservationDate(getAppointments(), doctor?.doctorId, today)
+    : today;
 renderAgenda();

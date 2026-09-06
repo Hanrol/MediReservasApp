@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Solicitar cita médica | MediReservas</title>
+
+        <link rel="stylesheet" href="../assets/css/style.css" />
+        <script type="module" src="../assets/js/route-guard.js"></script>
+    </head>
+
+    <body class="flex min-h-screen flex-col bg-page text-ink antialiased" data-page-name="Solicitar cita médica" data-auth-required>
+        <a
+            class="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0"
+            href="#main-content"
+        >
+            Saltar al contenido principal
+        </a>
+
+        <header class="relative z-30 border-b border-line bg-white">
+            <nav class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8" aria-label="Barra superior del panel">
+                <div class="flex items-center gap-3">
+                    <button
+                        class="grid size-10 place-items-center rounded-xl border border-line bg-white text-xl text-primary-dark transition hover:bg-primary-light lg:hidden"
+                        id="mobile-menu-button"
+                        type="button"
+                        aria-controls="dashboard-sidebar"
+                        aria-expanded="false"
+                    >
+                        ☰
+                    </button>
+
+                    <a href="../index.html" class="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl" aria-label="Ir al inicio de MediReservas">
+                        <span class="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white"> + </span>
+
+                        <span class="hidden sm:inline"> MediReservas </span>
+                    </a>
+                </div>
+
+                <div class="flex items-center gap-3 sm:gap-5">
+                    <a href="perfil.html" class="text-right">
+                        <p id="header-user-name" class="text-sm font-semibold">Usuario</p>
+
+                        <p id="header-user-role" class="text-xs text-muted">Paciente</p>
+                    </a>
+
+                    <button
+                        id="logout-button"
+                        type="button"
+                        class="inline-flex items-center justify-center rounded-xl border border-line bg-white px-3 py-2.5 text-sm font-semibold text-primary-dark transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 sm:px-4"
+                    >
+                        <span class="sm:hidden">Salir</span>
+                        <span class="hidden sm:inline">Cerrar sesión</span>
+                    </button>
+                </div>
+            </nav>
+        </header>
+
+        <button id="sidebar-backdrop" class="fixed inset-0 z-40 hidden bg-slate-950/45 lg:hidden" type="button"></button>
+
+        <div class="grid w-full flex-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
+            <aside
+                id="dashboard-sidebar"
+                class="fixed inset-y-0 left-0 z-50 w-72 -translate-x-full overflow-y-auto border-r border-line bg-white px-5 py-5 shadow-xl transition-transform duration-300 lg:static lg:z-auto lg:w-auto lg:translate-x-0 lg:overflow-visible lg:px-5 lg:py-8 lg:shadow-none"
+            >
+                <header class="mb-6 flex items-center justify-between border-b border-line pb-5 lg:hidden">
+                    <p class="font-bold text-primary-dark">Menú principal</p>
+
+                    <button id="close-mobile-menu" type="button" class="grid size-10 place-items-center rounded-xl border border-line text-xl text-muted transition hover:bg-page hover:text-ink" aria-label="Cerrar menú de navegación">×</button>
+                </header>
+
+                <nav>
+                    <ul id="dashboard-menu" class="flex flex-col gap-2"></ul>
+                </nav>
+            </aside>
+
+            <main id="main-content" tabindex="-1" class="min-w-0 px-4 py-8 sm:px-6 lg:px-10">
+                <div class="mx-auto max-w-4xl">
+                    <section class="rounded-3xl bg-primary-dark p-6 text-white shadow-lg">
+                        <p class="text-sm font-bold uppercase tracking-widest text-emerald-200">Paciente</p>
+
+                        <h1 class="mt-2 text-3xl font-bold">Solicitar cita médica</h1>
+
+                        <p class="mt-3 text-emerald-50">Complete el formulario para solicitar una cita médica con un especialista.</p>
+                    </section>
+
+                    <section class="mt-8 rounded-2xl border border-line bg-white p-6 shadow-sm">
+                        <h2 class="text-2xl font-bold">Formulario de solicitud</h2>
+
+                        <p class="mt-2 text-muted">Todos los campos son obligatorios.</p>
+
+                        <form id="formularioCita" class="mt-6 space-y-5">
+                            <div>
+                                <label for="especialidad" class="block text-sm font-semibold"> Especialidad médica </label>
+
+                                <select id="especialidad" name="especialidad" class="mt-2 w-full rounded-xl border border-line px-4 py-3">
+                                    <option value="">Seleccione una especialidad</option>
+                                </select>
+
+                                <p id="errorEspecialidad" class="mt-1 text-sm text-red-600"></p>
+                            </div>
+
+                            <div>
+                                <label for="medico" class="block text-sm font-semibold"> Médico </label>
+
+                                <select id="medico" name="medico" class="mt-2 w-full rounded-xl border border-line px-4 py-3">
+                                    <option value="">Seleccione un médico</option>
+                                </select>
+
+                                <p id="errorMedico" class="mt-1 text-sm text-red-600"></p>
+                            </div>
+
+                            <div class="grid gap-5 md:grid-cols-2">
+                                <div>
+                                    <label for="fecha" class="block text-sm font-semibold"> Fecha de la cita </label>
+
+                                    <select id="fecha" name="fecha" class="mt-2 w-full rounded-xl border border-line px-4 py-3">
+                                        <option value="">Seleccione una fecha</option>
+                                    </select>
+
+                                    <p id="errorFecha" class="mt-1 text-sm text-red-600"></p>
+                                </div>
+
+                                <div>
+                                    <label for="hora" class="block text-sm font-semibold"> Hora disponible </label>
+
+                                    <select id="hora" name="hora" class="mt-2 w-full rounded-xl border border-line px-4 py-3">
+                                        <option value="">Seleccione una hora</option>
+                                    </select>
+
+                                    <p id="errorHora" class="mt-1 text-sm text-red-600"></p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <label for="motivo" class="block text-sm font-semibold"> Motivo de la consulta </label>
+
+                                <textarea
+                                    id="motivo"
+                                    name="motivo"
+                                    rows="5"
+                                    placeholder="Describa el motivo de la consulta."
+                                    class="mt-2 w-full rounded-xl border border-line px-4 py-3"
+                                ></textarea>
+
+                                <p id="errorMotivo" class="mt-1 text-sm text-red-600"></p>
+                            </div>
+
+                            <div>
+                                <p class="text-sm font-semibold">Modalidad de atención</p>
+
+                                <div class="mt-3 flex flex-col gap-2 sm:flex-row sm:gap-6">
+                                    <label class="flex items-center gap-2">
+                                        <input type="radio" name="modalidad" value="Presencial" />
+
+                                        Presencial
+                                    </label>
+
+                                    <label class="flex items-center gap-2">
+                                        <input type="radio" name="modalidad" value="Virtual" />
+
+                                        Virtual
+                                    </label>
+                                </div>
+
+                                <p id="errorModalidad" class="mt-1 text-sm text-red-600"></p>
+                            </div>
+
+                            <div class="flex flex-wrap gap-3">
+                                <button type="submit" class="rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark">Solicitar cita</button>
+
+                                <button type="reset" class="rounded-xl border border-line bg-white px-5 py-3 font-semibold">Limpiar formulario</button>
+                            </div>
+                        </form>
+
+                        <div id="mensajeSolicitud" class="mt-6 hidden rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                            <p class="font-semibold text-emerald-700">La cita médica fue solicitada correctamente.</p>
+                        </div>
+                    </section>
+                </div>
+            </main>
+        </div>
+
+        <footer class="border-t border-line bg-white px-4 py-5 text-center text-sm text-muted">
+            <p>&copy; 2026 MediReservas. Todos los derechos reservados.</p>
+        </footer>
+
+        <script type="module" src="../assets/js/navigation.js"></script>
+        <script type="module" src="../assets/js/solicitar-cita.js"></script>
+        <script type="module" src="../assets/js/logout.js"></script>
+    </body>
+</html>

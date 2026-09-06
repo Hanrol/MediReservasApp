@@ -16,19 +16,19 @@
         </a>
         <header class="relative border-b border-line bg-white">
             <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8" aria-label="Navegación principal">
-                <a class="flex items-center gap-2 text-xl font-bold text-primary-dark" href="index.html" aria-label="Ir al inicio de MediReservas">
+                <a class="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl" href="index.html" aria-label="Ir al inicio de MediReservas">
                     <span class="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white" aria-hidden="true">+</span>
-                    <span>MediReservas</span>
+                    <span class="hidden sm:inline">MediReservas</span>
                 </a>
 
                 <ul class="hidden items-center gap-8 text-sm font-medium text-muted lg:flex">
                     <li><a class="text-primary-dark" href="index.html" aria-current="page">Inicio</a></li>
-                    <li><a class="transition hover:text-primary" href="pages/especialidades.html">Especialidades</a></li>
-                    <li><a class="transition hover:text-primary" href="pages/medicos.html">Médicos</a></li>
+                    <li><a class="transition hover:text-primary" href="pages/medicos-especialidades.html#especialidades">Especialidades</a></li>
+                    <li><a class="transition hover:text-primary" href="pages/medicos-especialidades.html#medicos">Médicos</a></li>
                     <li><a class="transition hover:text-primary" href="pages/contacto.html">Contacto</a></li>
                 </ul>
 
-                <div class="flex items-center gap-2 sm:gap-3">
+                <div class="flex items-center gap-2 sm:gap-3" data-public-auth-actions>
                     <a class="hidden rounded-lg px-4 py-2 text-sm font-semibold text-primary-dark transition hover:bg-primary-light sm:inline-flex" href="pages/login.html">Iniciar sesión</a>
                     <a class="hidden rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark sm:inline-flex" href="pages/registro.html">Crear cuenta</a>
                     <button
@@ -49,11 +49,11 @@
             <nav id="mobile-menu" class="absolute inset-x-0 top-full z-10 hidden border-t border-line bg-white px-4 py-5 shadow-xl lg:hidden" aria-label="Navegación móvil">
                 <ul class="space-y-2 font-medium">
                     <li><a class="block rounded-lg bg-primary-light px-4 py-3 text-primary-dark" href="index.html" aria-current="page">Inicio</a></li>
-                    <li><a class="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark" href="pages/especialidades.html">Especialidades</a></li>
-                    <li><a class="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark" href="pages/medicos.html">Médicos</a></li>
+                    <li><a class="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark" href="pages/medicos-especialidades.html#especialidades">Especialidades</a></li>
+                    <li><a class="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark" href="pages/medicos-especialidades.html#medicos">Médicos</a></li>
                     <li><a class="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark" href="pages/contacto.html">Contacto</a></li>
                 </ul>
-                <div class="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4">
+                <div class="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4" data-public-auth-actions>
                     <a class="inline-flex justify-center rounded-lg border border-line px-4 py-2.5 text-sm font-semibold text-primary-dark" href="pages/login.html">Iniciar sesión</a>
                     <a class="inline-flex justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white" href="pages/registro.html">Crear cuenta</a>
                 </div>
@@ -70,8 +70,8 @@
                         tu próxima atención desde cualquier dispositivo.
                     </p>
                     <div class="mt-8 flex flex-col gap-3 sm:flex-row">
-                        <a class="inline-flex justify-center rounded-xl bg-primary px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-primary-dark" href="pages/medicos.html">Buscar un médico</a>
-                        <a class="inline-flex justify-center rounded-xl border border-line bg-white px-6 py-3 font-semibold text-ink transition hover:border-primary hover:text-primary-dark" href="pages/especialidades.html">Ver especialidades</a>
+                        <a class="inline-flex justify-center rounded-xl bg-primary px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-primary-dark" href="pages/medicos-especialidades.html#medicos">Buscar un médico</a>
+                        <a class="inline-flex justify-center rounded-xl border border-line bg-white px-6 py-3 font-semibold text-ink transition hover:border-primary hover:text-primary-dark" href="pages/medicos-especialidades.html#especialidades">Ver especialidades</a>
                     </div>
                 </div>
 
@@ -98,7 +98,7 @@
                             <div class="mb-5 grid size-12 place-items-center rounded-xl bg-primary-light text-xl font-bold text-primary" aria-hidden="true">01</div>
                             <h3 class="text-xl font-bold">Encuentra especialistas</h3>
                             <p class="mt-3 leading-7 text-muted">Consulta médicos disponibles según el área de atención que necesitas.</p>
-                            <a class="mt-5 inline-flex font-semibold text-primary-dark hover:text-primary" href="pages/medicos.html">Explorar médicos →</a>
+                            <a class="mt-5 inline-flex font-semibold text-primary-dark hover:text-primary" href="pages/medicos-especialidades.html#medicos">Explorar médicos →</a>
                         </article>
 
                         <article class="rounded-2xl border border-line p-6 transition hover:-translate-y-1 hover:border-primary hover:shadow-lg">
@@ -124,7 +124,7 @@
                         <p class="text-sm font-bold uppercase tracking-widest text-primary">Especialidades</p>
                         <h2 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl" id="specialties-title">Atención para distintas necesidades</h2>
                     </div>
-                    <a class="font-semibold text-primary-dark hover:text-primary" href="pages/especialidades.html">Conocer todas →</a>
+                    <a class="font-semibold text-primary-dark hover:text-primary" href="pages/medicos-especialidades.html#especialidades">Conocer todas →</a>
                 </div>
 
                 <ul class="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -156,8 +156,8 @@
                 <nav aria-label="Navegación del pie de página">
                     <ul class="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted md:justify-center">
                         <li><a class="hover:text-primary" href="index.html">Inicio</a></li>
-                        <li><a class="hover:text-primary" href="pages/medicos.html">Médicos</a></li>
-                        <li><a class="hover:text-primary" href="pages/especialidades.html">Especialidades</a></li>
+                        <li><a class="hover:text-primary" href="pages/medicos-especialidades.html#medicos">Médicos</a></li>
+                        <li><a class="hover:text-primary" href="pages/medicos-especialidades.html#especialidades">Especialidades</a></li>
                         <li><a class="hover:text-primary" href="pages/contacto.html">Contacto</a></li>
                     </ul>
                 </nav>
@@ -165,6 +165,6 @@
                 <p class="text-sm text-muted md:text-right">&copy; <span id="current-year">2026</span> MediReservas. Todos los derechos reservados.</p>
             </div>
         </footer>
-        <script src="assets/js/main.js"></script>
+        <script type="module" src="assets/js/main.js"></script>
     </body>
 </html>

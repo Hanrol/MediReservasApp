@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { evaluateRouteAccess } from "../assets/js/route-guard.js";
 
-const allRoles = ["ADMINISTRADOR", "RECEPCIONISTA", "MEDICO", "PACIENTE"];
+const allRoles = ["ADMIN", "RECEPTIONIST", "DOCTOR", "PATIENT"];
 
 test("permite ingresar a una ruta pública sin sesión", () => {
     assert.equal(
@@ -36,14 +36,25 @@ test("permite a cada rol entrar a las vistas compartidas", () => {
 });
 
 test("deniega una vista administrativa a roles no autorizados", () => {
-    ["RECEPCIONISTA", "MEDICO", "PACIENTE"].forEach((role) => {
+    ["RECEPTIONIST", "DOCTOR", "PATIENT"].forEach((role) => {
         assert.equal(
             evaluateRouteAccess({
                 authRequired: true,
-                allowedRoles: ["ADMINISTRADOR"],
+                allowedRoles: ["ADMIN"],
                 session: { role },
             }),
             "denied"
         );
     });
+});
+
+test("restringe las vistas personales al rol del paciente", () => {
+    assert.equal(
+        evaluateRouteAccess({authRequired: true, allowedRoles: ["PATIENT"], session: {role: "PATIENT"}}),
+        "allowed"
+    );
+    assert.equal(
+        evaluateRouteAccess({authRequired: true, allowedRoles: ["PATIENT"], session: {role: "DOCTOR"}}),
+        "denied"
+    );
 });
