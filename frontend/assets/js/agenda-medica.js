@@ -1,5 +1,5 @@
-import {getAppointments, getSession, initializeBaseAppointments} from "./storage.js";
-import {getLocalDateString} from "./validaciones.js";
+import { getAppointments, getSession, initializeBaseAppointments } from "./storage.js";
+import { getLocalDateString } from "./validaciones.js";
 
 const dateInput = document.querySelector("#agenda-date");
 const agendaList = document.querySelector("#agenda-list");

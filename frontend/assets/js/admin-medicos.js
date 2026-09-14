@@ -226,19 +226,19 @@ function fillDoctorSelects() {
     const doctorUsers = getUsers().filter((user) => user.role === "MEDICO" && user.active);
     fillSelect(
         getInput("userId"),
-        doctorUsers.map((user) => ({value: user.id, label: `${user.firstName} ${user.lastName} — ${user.email}`})),
+        doctorUsers.map((user) => ({ value: user.id, label: `${user.firstName} ${user.lastName} — ${user.email}` })),
         "Selecciona un usuario con rol médico"
     );
 
     const activeSpecialties = getSpecialties().filter((specialty) => specialty.active);
     fillSelect(
         getInput("specialtyId"),
-        activeSpecialties.map((specialty) => ({value: specialty.id, label: specialty.specialtyName})),
+        activeSpecialties.map((specialty) => ({ value: specialty.id, label: specialty.specialtyName })),
         "Selecciona una especialidad"
     );
     fillSelect(
         getInput("extraSpecialtyIds"),
-        activeSpecialties.map((specialty) => ({value: specialty.id, label: specialty.specialtyName}))
+        activeSpecialties.map((specialty) => ({ value: specialty.id, label: specialty.specialtyName }))
     );
 }
 
@@ -337,7 +337,7 @@ tableBody?.addEventListener("click", (event) => {
 confirmStatusButton?.addEventListener("click", () => {
     const doctorId = statusDoctorId.value;
     const nextActiveState = confirmStatusButton.dataset.nextActive === "true";
-    const updatedDoctor = updateDoctor(doctorId, {active: nextActiveState});
+    const updatedDoctor = updateDoctor(doctorId, { active: nextActiveState });
 
     if (!updatedDoctor) {
         statusDialogDescription.textContent = "No fue posible encontrar al médico seleccionado.";
@@ -372,13 +372,13 @@ form?.addEventListener("submit", (event) => {
         return;
     }
 
-    const doctorData = {...values};
+    const doctorData = { ...values };
     delete doctorData.doctorId;
 
     if (isEditing) {
         updateDoctor(values.doctorId, doctorData);
     } else {
-        saveDoctor({...doctorData, doctorId: getNextDoctorId()});
+        saveDoctor({ ...doctorData, doctorId: getNextDoctorId() });
     }
 
     dialog.close();

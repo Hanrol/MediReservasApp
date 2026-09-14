@@ -4,7 +4,7 @@ import {
     initializeBaseAppointments,
     updateAppointment
 } from "./storage.js";
-import {getLocalDateString} from "./validaciones.js";
+import { getLocalDateString } from "./validaciones.js";
 
 const tableBody = document.querySelector("#appointments-table-body");
 const emptyMessage = document.querySelector("#appointments-empty-message");
@@ -146,7 +146,7 @@ function confirmAppointment(appointmentId) {
     const appointment = getAppointmentById(appointmentId);
     if (!appointment) return;
 
-    updateAppointment(appointmentId, {status: "CONFIRMADA"});
+    updateAppointment(appointmentId, { status: "CONFIRMADA" });
     renderAppointments();
     showFeedback(`La cita de ${appointment.patientName} del ${appointment.date} a las ${appointment.time} fue confirmada.`);
 }
@@ -226,7 +226,7 @@ rescheduleForm?.addEventListener("submit", (event) => {
     }
     if (hasErrors) return;
 
-    const appointment = updateAppointment(appointmentId, {date, time, status: "REAGENDADA"});
+    const appointment = updateAppointment(appointmentId, { date, time, status: "REAGENDADA" });
     rescheduleDialog.close();
     renderAppointments();
     if (appointment) {
@@ -236,7 +236,7 @@ rescheduleForm?.addEventListener("submit", (event) => {
 
 document.querySelector("#confirm-cancel-button")?.addEventListener("click", () => {
     const appointmentId = cancelAppointmentId.value;
-    const appointment = updateAppointment(appointmentId, {status: "CANCELADA"});
+    const appointment = updateAppointment(appointmentId, { status: "CANCELADA" });
 
     cancelDialog.close();
     renderAppointments();

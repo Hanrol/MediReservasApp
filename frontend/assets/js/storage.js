@@ -82,14 +82,14 @@ export function updateUser(userId, changes) {
 
     if (userIndex < 0) return null;
 
-    users[userIndex] = {...users[userIndex], ...changes, id: userId};
+    users[userIndex] = { ...users[userIndex], ...changes, id: userId };
     localStorage.setItem(USERS_KEY, JSON.stringify(users));
     return users[userIndex];
 }
 
 export function updateUserStatus(userId, active) {
     if (typeof active !== "boolean") return null;
-    return updateUser(userId, {active});
+    return updateUser(userId, { active });
 }
 
 export function initializeBaseUsers() {
@@ -131,21 +131,21 @@ const BASE_SPECIALTIES = [
         description: "Diagnóstico y tratamiento de enfermedades del corazón.",
         active: true
     },
-    {id: 2, specialtyName: "Pediatría", description: "Atención médica para niños y adolescentes.", active: true},
+    { id: 2, specialtyName: "Pediatría", description: "Atención médica para niños y adolescentes.", active: true },
     {
         id: 3,
         specialtyName: "Traumatología",
         description: "Tratamiento de lesiones de huesos, músculos y articulaciones.",
         active: true
     },
-    {id: 4, specialtyName: "Dermatología", description: "Cuidado de la piel, cabello y uñas.", active: true},
+    { id: 4, specialtyName: "Dermatología", description: "Cuidado de la piel, cabello y uñas.", active: true },
     {
         id: 5,
         specialtyName: "Neurología",
         description: "Diagnóstico y tratamiento de enfermedades del sistema nervioso.",
         active: true
     },
-    {id: 6, specialtyName: "Medicina General", description: "Atención primaria y controles de salud.", active: false}
+    { id: 6, specialtyName: "Medicina General", description: "Atención primaria y controles de salud.", active: false }
 ];
 
 const BASE_DOCTORS = [
@@ -298,7 +298,7 @@ export function updateSpecialty(specialtyId, changes) {
 
     if (specialtyIndex < 0) return null;
 
-    specialties[specialtyIndex] = {...specialties[specialtyIndex], ...changes, id: Number(specialtyId)};
+    specialties[specialtyIndex] = { ...specialties[specialtyIndex], ...changes, id: Number(specialtyId) };
     localStorage.setItem(SPECIALTIES_KEY, JSON.stringify(specialties));
     return specialties[specialtyIndex];
 }
@@ -347,7 +347,7 @@ export function updateDoctor(doctorId, changes) {
 
     if (doctorIndex < 0) return null;
 
-    doctors[doctorIndex] = {...doctors[doctorIndex], ...changes, doctorId: Number(doctorId)};
+    doctors[doctorIndex] = { ...doctors[doctorIndex], ...changes, doctorId: Number(doctorId) };
     localStorage.setItem(DOCTORS_KEY, JSON.stringify(doctors));
     return doctors[doctorIndex];
 }
@@ -392,7 +392,7 @@ export function updateAppointment(appointmentId, changes) {
 
     if (appointmentIndex < 0) return null;
 
-    appointments[appointmentIndex] = {...appointments[appointmentIndex], ...changes, id: appointmentId};
+    appointments[appointmentIndex] = { ...appointments[appointmentIndex], ...changes, id: appointmentId };
     localStorage.setItem(APPOINTMENTS_KEY, JSON.stringify(appointments));
     return appointments[appointmentIndex];
 }
