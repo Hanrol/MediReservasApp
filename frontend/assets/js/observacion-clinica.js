@@ -1,4 +1,4 @@
-import {getAppointmentById, initializeBaseAppointments} from "./storage.js";
+import { getAppointmentById, initializeBaseAppointments } from "./storage.js";
 
 const form = document.querySelector("#observation-form");
 const formMessage = document.querySelector("#observation-form-message");
