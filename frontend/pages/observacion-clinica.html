@@ -3,31 +3,31 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta
-                name="description"
-                content="Registro de observación clínica básica tras la atención de un paciente en MediReservas."
-        >
+        <meta name="description"
+            content="Registro de observación clínica básica tras la atención de un paciente en MediReservas.">
         <title>Observación clínica | MediReservas</title>
         <link rel="stylesheet" href="../assets/css/style.css">
         <script type="module" src="../assets/js/route-guard.js"></script>
     </head>
+
     <body class="flex min-h-screen flex-col bg-page text-ink antialiased" data-page-name="Observación clínica"
-          data-auth-required>
+        data-auth-required>
         <a class="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0"
-           href="#main-content">Saltar al contenido principal</a>
+            href="#main-content">Saltar al contenido principal</a>
         <header class="relative z-30 border-b border-line bg-white">
             <nav class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8"
-                 aria-label="Barra superior de MediReservas">
+                aria-label="Barra superior de MediReservas">
                 <div class="flex items-center gap-3">
-                    <button class="grid size-10 place-items-center rounded-xl border border-line bg-white text-xl text-primary-dark transition hover:bg-primary-light lg:hidden"
-                            id="mobile-menu-button" type="button" aria-controls="shared-mobile-sidebar"
-                            aria-expanded="false" aria-label="Abrir menú de navegación">
+                    <button
+                        class="grid size-10 place-items-center rounded-xl border border-line bg-white text-xl text-primary-dark transition hover:bg-primary-light lg:hidden"
+                        id="mobile-menu-button" type="button" aria-controls="shared-mobile-sidebar"
+                        aria-expanded="false" aria-label="Abrir menú de navegación">
                         <span class="leading-none" aria-hidden="true">☰</span>
                     </button>
                     <a class="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl"
-                       href="dashboard.html" aria-label="Ir al panel principal de MediReservas">
+                        href="dashboard.html" aria-label="Ir al panel principal de MediReservas">
                         <span class="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white"
-                              aria-hidden="true">+</span>
+                            aria-hidden="true">+</span>
                         <span class="hidden sm:inline">MediReservas</span>
                     </a>
                 </div>
@@ -37,8 +37,9 @@
                         <p class="text-sm font-semibold" id="header-user-name">Usuario</p>
                         <p class="text-xs text-muted" id="header-user-role">Perfil</p>
                     </a>
-                    <button class="inline-flex items-center justify-center rounded-xl border border-line bg-white px-3 py-2.5 text-sm font-semibold text-primary-dark transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 sm:px-4"
-                            id="logout-button" type="button">
+                    <button
+                        class="inline-flex items-center justify-center rounded-xl border border-line bg-white px-3 py-2.5 text-sm font-semibold text-primary-dark transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 sm:px-4"
+                        id="logout-button" type="button">
                         <span class="sm:hidden">Salir</span>
                         <span class="hidden sm:inline">Cerrar sesión</span>
                     </button>
@@ -56,7 +57,7 @@
                 </header>
 
                 <p class="mt-6 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-medium text-red-700"
-                   id="observation-not-found" hidden>No se encontró la cita indicada. Vuelve a tu agenda y selecciona
+                    id="observation-not-found" hidden>No se encontró la cita indicada. Vuelve a tu agenda y selecciona
                     una atención.</p>
 
                 <div class="mt-6 rounded-2xl border border-line bg-white p-5 shadow-sm" id="appointment-summary-card">
@@ -87,31 +88,33 @@
                 </div>
 
                 <form class="mt-6 rounded-2xl border border-line bg-white p-5 shadow-sm sm:p-8" id="observation-form"
-                      novalidate>
+                    novalidate>
                     <div>
                         <label class="mb-2 block text-sm font-semibold" for="observation-diagnosis">Diagnóstico</label>
-                        <input class="w-full rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
-                               id="observation-diagnosis" name="diagnosis" type="text" maxlength="120"
-                               placeholder="Ej.: Hipertensión controlada">
-                        <p class="mt-1.5 min-h-5 text-sm text-red-600" id="observation-diagnosis-error"
-                           role="alert"></p>
+                        <input
+                            class="w-full rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
+                            id="observation-diagnosis" name="diagnosis" type="text" maxlength="120"
+                            placeholder="Ej.: Hipertensión controlada">
+                        <p class="mt-1.5 min-h-5 text-sm text-red-600" id="observation-diagnosis-error" role="alert">
+                        </p>
                     </div>
 
                     <div class="mt-4">
                         <label class="mb-2 block text-sm font-semibold" for="observation-notes">Observación
                             clínica</label>
                         <textarea
-                                class="min-h-32 w-full rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
-                                id="observation-notes" name="notes" maxlength="500"
-                                placeholder="Describe la observación de la atención"></textarea>
+                            class="min-h-32 w-full rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
+                            id="observation-notes" name="notes" maxlength="500"
+                            placeholder="Describe la observación de la atención"></textarea>
                         <p class="mt-1.5 min-h-5 text-sm text-red-600" id="observation-notes-error" role="alert"></p>
                     </div>
 
                     <footer class="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                         <a class="rounded-xl border border-line px-5 py-3 text-center font-semibold text-muted transition hover:bg-page"
-                           href="agenda-medica.html">Volver a mi agenda</a>
-                        <button class="rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark"
-                                type="submit">Guardar observación
+                            href="agenda-medica.html">Volver a mi agenda</a>
+                        <button
+                            class="rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark"
+                            type="submit">Guardar observación
                         </button>
                     </footer>
                     <p class="mt-4 text-center text-sm font-medium" id="observation-form-message" role="status"></p>
@@ -126,4 +129,5 @@
         <script type="module" src="../assets/js/navigation.js"></script>
         <script type="module" src="../assets/js/logout.js"></script>
     </body>
+
 </html>

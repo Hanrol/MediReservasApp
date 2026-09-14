@@ -3,24 +3,28 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta
-            name="description"
-            content="Crea una cuenta de paciente en MediReservas para solicitar y consultar horas médicas."
-        >
+        <meta name="description"
+            content="Crea una cuenta de paciente en MediReservas para solicitar y consultar horas médicas.">
         <title>Crear cuenta | MediReservas</title>
         <link rel="stylesheet" href="../assets/css/style.css">
     </head>
+
     <body class="min-h-screen bg-page text-ink antialiased" data-page-name="Crear cuenta">
-        <a class="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0" href="#main-content">Saltar al contenido principal</a>
+        <a class="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0"
+            href="#main-content">Saltar al contenido principal</a>
         <header class="border-b border-line bg-white">
-            <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8" aria-label="Navegación de registro">
-                <a class="flex items-center gap-2 text-xl font-bold text-primary-dark" href="../index.html" aria-label="Volver al inicio de MediReservas">
-                    <span class="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white" aria-hidden="true">+</span>
+            <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8"
+                aria-label="Navegación de registro">
+                <a class="flex items-center gap-2 text-xl font-bold text-primary-dark" href="../index.html"
+                    aria-label="Volver al inicio de MediReservas">
+                    <span class="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white"
+                        aria-hidden="true">+</span>
                     <span>MediReservas</span>
                 </a>
                 <p class="text-sm text-muted">
                     <span class="hidden sm:inline">¿Ya tienes una cuenta?</span>
-                    <a class="ml-1 font-semibold text-primary-dark hover:text-primary" href="login.html">Inicia sesión</a>
+                    <a class="ml-1 font-semibold text-primary-dark hover:text-primary" href="login.html">Inicia
+                        sesión</a>
                 </p>
             </nav>
         </header>
@@ -29,49 +33,71 @@
             <section class="mx-auto max-w-4xl" aria-labelledby="register-title">
                 <div class="mb-8 text-center">
                     <p class="text-sm font-bold uppercase tracking-widest text-primary">Registro de pacientes</p>
-                    <h1 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl" id="register-title">Crea tu cuenta</h1>
-                    <p class="mx-auto mt-3 max-w-2xl text-muted">Ingresa tus datos personales para comenzar a gestionar tus horas médicas.</p>
+                    <h1 class="mt-3 text-3xl font-bold tracking-tight sm:text-4xl" id="register-title">Crea tu cuenta
+                    </h1>
+                    <p class="mx-auto mt-3 max-w-2xl text-muted">Ingresa tus datos personales para comenzar a gestionar
+                        tus horas médicas.</p>
                 </div>
 
-                <form class="space-y-8 rounded-3xl border border-line bg-white p-5 shadow-sm sm:p-8 lg:p-10" id="register-form" novalidate>
+                <form class="space-y-8 rounded-3xl border border-line bg-white p-5 shadow-sm sm:p-8 lg:p-10"
+                    id="register-form" novalidate>
                     <fieldset>
                         <legend class="mb-6 text-xl font-bold text-primary-dark">Datos personales</legend>
 
                         <div class="grid gap-x-6 gap-y-5 sm:grid-cols-2">
                             <div>
                                 <label class="mb-2 block text-sm font-semibold" for="run">RUN</label>
-                                <input class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="run" name="run" type="text" autocomplete="off" maxlength="12" aria-describedby="run-help run-error">
+                                <input
+                                    class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
+                                    id="run" name="run" type="text" autocomplete="off" maxlength="12"
+                                    aria-describedby="run-help run-error">
                                 <p class="mt-1.5 text-xs text-muted" id="run-help">Escríbelo sin puntos y con guion.</p>
                                 <p class="mt-1.5 min-h-5 text-sm text-red-600" id="run-error" role="alert"></p>
                             </div>
 
                             <div>
                                 <label class="mb-2 block text-sm font-semibold" for="first-name">Nombre</label>
-                                <input class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="first-name" name="firstName" type="text" autocomplete="given-name" maxlength="80" aria-describedby="first-name-error">
+                                <input
+                                    class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
+                                    id="first-name" name="firstName" type="text" autocomplete="given-name"
+                                    maxlength="80" aria-describedby="first-name-error">
                                 <p class="mt-1.5 min-h-5 text-sm text-red-600" id="first-name-error" role="alert"></p>
                             </div>
 
                             <div>
                                 <label class="mb-2 block text-sm font-semibold" for="last-name">Apellidos</label>
-                                <input class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="last-name" name="lastName" type="text" autocomplete="family-name" maxlength="80" aria-describedby="last-name-error">
+                                <input
+                                    class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
+                                    id="last-name" name="lastName" type="text" autocomplete="family-name" maxlength="80"
+                                    aria-describedby="last-name-error">
                                 <p class="mt-1.5 min-h-5 text-sm text-red-600" id="last-name-error" role="alert"></p>
                             </div>
 
                             <div>
-                                <label class="mb-2 block text-sm font-semibold" for="birth-date">Fecha de nacimiento</label>
-                                <input class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="birth-date" name="birthDate" type="date" autocomplete="bday" aria-describedby="birth-date-error">
+                                <label class="mb-2 block text-sm font-semibold" for="birth-date">Fecha de
+                                    nacimiento</label>
+                                <input
+                                    class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
+                                    id="birth-date" name="birthDate" type="date" autocomplete="bday"
+                                    aria-describedby="birth-date-error">
                                 <p class="mt-1.5 min-h-5 text-sm text-red-600" id="birth-date-error" role="alert"></p>
                             </div>
 
                             <div>
                                 <label class="mb-2 block text-sm font-semibold" for="phone">Teléfono</label>
-                                <input class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="phone" name="phone" type="tel" autocomplete="tel" maxlength="20" placeholder="+56 9 1234 5678" aria-describedby="phone-error">
+                                <input
+                                    class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
+                                    id="phone" name="phone" type="tel" autocomplete="tel" maxlength="20"
+                                    placeholder="+56 9 1234 5678" aria-describedby="phone-error">
                                 <p class="mt-1.5 min-h-5 text-sm text-red-600" id="phone-error" role="alert"></p>
                             </div>
 
                             <div>
                                 <label class="mb-2 block text-sm font-semibold" for="address">Dirección</label>
-                                <input class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="address" name="address" type="text" autocomplete="street-address" maxlength="150" aria-describedby="address-error">
+                                <input
+                                    class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
+                                    id="address" name="address" type="text" autocomplete="street-address"
+                                    maxlength="150" aria-describedby="address-error">
                                 <p class="mt-1.5 min-h-5 text-sm text-red-600" id="address-error" role="alert"></p>
                             </div>
                         </div>
@@ -85,33 +111,49 @@
                         <div class="grid gap-x-6 gap-y-5 sm:grid-cols-2">
                             <div class="sm:col-span-2">
                                 <label class="mb-2 block text-sm font-semibold" for="email">Correo electrónico</label>
-                                <input class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="email" name="email" type="email" autocomplete="email" maxlength="100" placeholder="nombre@correo.cl" aria-describedby="email-error">
+                                <input
+                                    class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
+                                    id="email" name="email" type="email" autocomplete="email" maxlength="100"
+                                    placeholder="nombre@correo.cl" aria-describedby="email-error">
                                 <p class="mt-1.5 min-h-5 text-sm text-red-600" id="email-error" role="alert"></p>
                             </div>
 
                             <div>
                                 <label class="mb-2 block text-sm font-semibold" for="password">Contraseña</label>
-                                <input class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="password" name="password" type="password" autocomplete="new-password" minlength="6" maxlength="100" aria-describedby="password-error">
+                                <input
+                                    class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
+                                    id="password" name="password" type="password" autocomplete="new-password"
+                                    minlength="6" maxlength="100" aria-describedby="password-error">
                                 <p class="mt-1.5 min-h-5 text-sm text-red-600" id="password-error" role="alert"></p>
                             </div>
 
                             <div>
-                                <label class="mb-2 block text-sm font-semibold" for="password-confirmation">Confirmar contraseña</label>
-                                <input class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="password-confirmation" name="passwordConfirmation" type="password" autocomplete="new-password" minlength="6" maxlength="100" aria-describedby="password-confirmation-error">
-                                <p class="mt-1.5 min-h-5 text-sm text-red-600" id="password-confirmation-error" role="alert"></p>
+                                <label class="mb-2 block text-sm font-semibold" for="password-confirmation">Confirmar
+                                    contraseña</label>
+                                <input
+                                    class="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
+                                    id="password-confirmation" name="passwordConfirmation" type="password"
+                                    autocomplete="new-password" minlength="6" maxlength="100"
+                                    aria-describedby="password-confirmation-error">
+                                <p class="mt-1.5 min-h-5 text-sm text-red-600" id="password-confirmation-error"
+                                    role="alert"></p>
                             </div>
                         </div>
                     </fieldset>
 
                     <div>
                         <div class="flex items-start gap-3">
-                            <input class="mt-1 size-4 accent-primary" id="terms" name="terms" type="checkbox" aria-describedby="terms-error">
-                            <label class="text-sm leading-6 text-muted" for="terms">Acepto los términos de uso y la política de privacidad.</label>
+                            <input class="mt-1 size-4 accent-primary" id="terms" name="terms" type="checkbox"
+                                aria-describedby="terms-error">
+                            <label class="text-sm leading-6 text-muted" for="terms">Acepto los términos de uso y la
+                                política de privacidad.</label>
                         </div>
                         <p class="mt-1.5 min-h-5 text-sm text-red-600" id="terms-error" role="alert"></p>
                     </div>
 
-                    <button class="w-full rounded-xl bg-primary px-6 py-3.5 font-semibold text-white shadow-sm transition hover:bg-primary-dark focus:ring-3 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60" type="submit">Crear cuenta</button>
+                    <button
+                        class="w-full rounded-xl bg-primary px-6 py-3.5 font-semibold text-white shadow-sm transition hover:bg-primary-dark focus:ring-3 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                        type="submit">Crear cuenta</button>
                     <p class="text-center text-sm font-medium" id="register-message" role="status"></p>
                 </form>
             </section>
@@ -119,8 +161,10 @@
 
         <footer class="px-4 pb-8 text-center text-sm text-muted">
             <p>&copy; 2026 MediReservas. Todos los derechos reservados.</p>
-            <a class="mt-2 inline-flex font-semibold text-primary-dark hover:text-primary" href="../index.html">Volver al inicio</a>
+            <a class="mt-2 inline-flex font-semibold text-primary-dark hover:text-primary" href="../index.html">Volver
+                al inicio</a>
         </footer>
         <script type="module" src="../assets/js/registro.js"></script>
     </body>
+
 </html>
