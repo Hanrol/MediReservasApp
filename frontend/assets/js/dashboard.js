@@ -1,8 +1,15 @@
 import { getDashboardConfig } from "./roles.js";
-import { getSession } from "./storage.js";
+import {getAppointments, getDoctors, getSession, getSpecialties, getUsers, initializeBaseAppointments, initializeBaseDoctors, initializeBaseSpecialties, initializeBaseUsers} from "./storage.js";
+import {getDashboardSummary} from "./dashboard-data.js";
+import {getLocalDateString} from "./validaciones.js";
 
 const session = getSession();
 const config = getDashboardConfig(session?.role);
+
+initializeBaseUsers();
+initializeBaseSpecialties();
+initializeBaseDoctors();
+initializeBaseAppointments();
 
 function createActionLink(action, compact = false) {
     const link = document.createElement("a");
@@ -52,8 +59,16 @@ function renderDashboard() {
 
     const summary = document.querySelector("#dashboard-summary");
     summary.className = "mt-6 grid gap-4 sm:grid-cols-3";
+    const summaryItems = getDashboardSummary({
+        session,
+        users: getUsers(),
+        doctors: getDoctors(),
+        specialties: getSpecialties(),
+        appointments: getAppointments(),
+        today: getLocalDateString()
+    });
     summary.replaceChildren(
-        ...config.summary.map((item) => {
+        ...summaryItems.map((item) => {
             const card = document.createElement("article");
             card.className = "rounded-2xl border border-line bg-white p-5 shadow-sm";
 

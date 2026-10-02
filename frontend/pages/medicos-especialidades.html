@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="Busca médicos y especialidades disponibles en MediReservas.">
+        <title>Médicos y especialidades | MediReservas</title>
+        <link rel="stylesheet" href="../assets/css/style.css">
+    </head>
+    <body class="bg-page text-ink antialiased" data-page-name="Médicos y especialidades">
+        <a class="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0" href="#main-content">
+            Saltar al contenido principal
+        </a>
+
+        <header class="relative z-30 border-b border-line bg-white">
+            <nav class="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8" aria-label="Navegación principal">
+                <a class="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl" href="../index.html" aria-label="Ir al inicio de MediReservas">
+                    <span class="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white" aria-hidden="true">+</span>
+                    <span class="hidden sm:inline">MediReservas</span>
+                </a>
+
+                <ul class="hidden items-center gap-8 text-sm font-medium text-muted lg:flex">
+                    <li><a class="transition hover:text-primary" href="../index.html">Inicio</a></li>
+                    <li><a class="text-primary-dark" href="#especialidades">Especialidades</a></li>
+                    <li><a class="text-primary-dark" href="#medicos">Médicos</a></li>
+                    <li><a class="transition hover:text-primary" href="contacto.html">Contacto</a></li>
+                </ul>
+
+                <div class="flex items-center gap-2 sm:gap-3" data-public-auth-actions>
+                    <a class="hidden rounded-lg px-4 py-2 text-sm font-semibold text-primary-dark transition hover:bg-primary-light sm:inline-flex" href="login.html">Iniciar sesión</a>
+                    <a class="hidden rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark sm:inline-flex" href="registro.html">Crear cuenta</a>
+                    <button id="menu-button" class="grid size-10 place-items-center rounded-lg border border-line text-primary-dark lg:hidden" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Abrir menú principal">
+                        <svg class="size-6" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                            <path d="M4 6h16M4 12h16M4 18h16"></path>
+                        </svg>
+                    </button>
+                </div>
+            </nav>
+
+            <nav id="mobile-menu" class="absolute inset-x-0 top-full z-10 hidden border-t border-line bg-white px-4 py-5 shadow-xl lg:hidden" aria-label="Navegación móvil">
+                <ul class="space-y-2 font-medium">
+                    <li><a class="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark" href="../index.html">Inicio</a></li>
+                    <li><a class="block rounded-lg px-4 py-3 text-primary-dark hover:bg-page" href="#especialidades">Especialidades</a></li>
+                    <li><a class="block rounded-lg px-4 py-3 text-primary-dark hover:bg-page" href="#medicos">Médicos</a></li>
+                    <li><a class="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark" href="contacto.html">Contacto</a></li>
+                </ul>
+                <div class="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4" data-public-auth-actions>
+                    <a class="inline-flex justify-center rounded-lg border border-line px-4 py-2.5 text-sm font-semibold text-primary-dark" href="login.html">Iniciar sesión</a>
+                    <a class="inline-flex justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white" href="registro.html">Crear cuenta</a>
+                </div>
+            </nav>
+        </header>
+
+        <main id="main-content" tabindex="-1">
+            <section class="bg-primary-dark py-14 text-white sm:py-20" aria-labelledby="page-title">
+                <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <p class="text-sm font-bold uppercase tracking-widest text-emerald-200">Directorio médico</p>
+                    <h1 class="mt-3 max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl" id="page-title">Encuentra la atención que necesitas</h1>
+                    <p class="mt-4 max-w-2xl text-lg leading-8 text-emerald-50">Consulta las especialidades disponibles y conoce a nuestros profesionales de salud.</p>
+                </div>
+            </section>
+
+            <section id="especialidades" class="scroll-mt-24 py-14 sm:py-20" aria-labelledby="specialties-title">
+                <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div class="flex flex-col justify-between gap-5 md:flex-row md:items-end">
+                        <div>
+                            <p class="text-sm font-bold uppercase tracking-widest text-primary">Especialidades</p>
+                            <h2 class="mt-2 text-3xl font-bold tracking-tight" id="specialties-title">Áreas de atención médica</h2>
+                            <p class="mt-3 text-muted">Selecciona una especialidad para consultar sus médicos disponibles.</p>
+                        </div>
+                        <div class="w-full md:max-w-sm">
+                            <label class="text-sm font-semibold" for="buscarEspecialidad">Buscar especialidad</label>
+                            <input class="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" type="search" id="buscarEspecialidad" placeholder="Ej.: Cardiología">
+                        </div>
+                    </div>
+
+                    <div id="listaEspecialidades" class="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3"></div>
+                    <div id="mensajeSinEspecialidades" class="mt-6 hidden rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800" role="status">
+                        <p>No se encontraron especialidades.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="medicos" class="scroll-mt-24 border-t border-line bg-white py-14 sm:py-20" aria-labelledby="doctors-title">
+                <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                    <div>
+                        <p class="text-sm font-bold uppercase tracking-widest text-primary">Profesionales</p>
+                        <h2 class="mt-2 text-3xl font-bold tracking-tight" id="doctors-title">Médicos disponibles</h2>
+                        <p class="mt-3 text-muted">Busca por nombre o filtra el listado según especialidad.</p>
+                    </div>
+
+                    <div class="mt-7 grid gap-5 rounded-2xl border border-line bg-page p-5 md:grid-cols-2">
+                        <div>
+                            <label class="text-sm font-semibold" for="buscarMedico">Buscar médico</label>
+                            <input class="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" type="search" id="buscarMedico" placeholder="Ej.: Ana Rojas">
+                        </div>
+                        <div>
+                            <label class="text-sm font-semibold" for="filtroEspecialidad">Filtrar por especialidad</label>
+                            <select class="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" id="filtroEspecialidad">
+                                <option value="">Todas las especialidades</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="listaMedicos" class="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3"></div>
+                    <div id="mensajeSinMedicos" class="mt-6 hidden rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800" role="status">
+                        <p>No se encontraron médicos.</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <dialog id="detalleMedico" class="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-line bg-white p-0 shadow-2xl">
+            <div class="p-6 sm:p-8">
+                <div class="flex items-start justify-between gap-4">
+                    <div>
+                        <p class="text-sm font-bold uppercase tracking-widest text-primary">Profesional</p>
+                        <h2 class="mt-2 text-2xl font-bold">Detalle del médico</h2>
+                    </div>
+                    <button type="button" id="cerrarDetalle" class="grid size-10 shrink-0 place-items-center rounded-xl border border-line text-xl text-muted hover:bg-page" aria-label="Cerrar detalle">×</button>
+                </div>
+                <dl class="mt-6 space-y-4">
+                    <div><dt class="text-sm font-semibold text-muted">Nombre</dt><dd class="mt-1 font-semibold" id="detalleNombre"></dd></div>
+                    <div><dt class="text-sm font-semibold text-muted">Especialidad</dt><dd class="mt-1" id="detalleEspecialidad"></dd></div>
+                    <div><dt class="text-sm font-semibold text-muted">Registro médico</dt><dd class="mt-1" id="detalleRegistro"></dd></div>
+                    <div><dt class="text-sm font-semibold text-muted">Descripción</dt><dd class="mt-1 leading-7" id="detalleDescripcion"></dd></div>
+                    <div><dt class="text-sm font-semibold text-muted">Próximos horarios disponibles</dt><dd class="mt-2" id="detalleHorarios"></dd></div>
+                </dl>
+                <a class="mt-7 inline-flex w-full justify-center rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark" id="solicitarCitaMedico" href="solicitar-cita.html">Solicitar cita</a>
+            </div>
+        </dialog>
+
+        <footer class="border-t border-line bg-white">
+            <div class="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
+                <p class="font-bold text-primary-dark">MediReservas</p>
+                <p>&copy; 2026 MediReservas. Todos los derechos reservados.</p>
+            </div>
+        </footer>
+
+        <script type="module" src="../assets/js/main.js"></script>
+        <script type="module" src="../assets/js/buscar.js"></script>
+    </body>
+</html>

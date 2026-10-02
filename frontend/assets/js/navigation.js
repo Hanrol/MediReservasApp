@@ -4,6 +4,16 @@ import { getSession } from "./storage.js";
 const session = getSession();
 const config = getDashboardConfig(session?.role);
 
+function updateSessionHeader() {
+    if (!session || !config) return;
+
+    document.querySelector("body > header nav > div:first-child")?.classList.add("lg:pl-8");
+    const name = document.querySelector("#header-user-name");
+    const role = document.querySelector("#header-user-role");
+    if (name) name.textContent = `${session.firstName} ${session.lastName}`.trim();
+    if (role) role.textContent = config.label;
+}
+
 export function getNavigationItems(role) {
     const roleConfig = getDashboardConfig(role);
     if (!roleConfig) return [];
@@ -15,13 +25,17 @@ export function getNavigationItems(role) {
     ];
 }
 
+export function isNavigationItemCurrent(itemHref, currentPage, currentSearch = "") {
+    return itemHref === `${currentPage}${currentSearch}`;
+}
+
 function createLink(item) {
     const currentPage = window.location.pathname.split("/").pop() || "dashboard.html";
     const link = document.createElement("a");
     link.href = item.href;
     link.className = "flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted transition hover:bg-primary-light hover:text-primary-dark";
 
-    if (currentPage === item.href.split("?")[0]) {
+    if (isNavigationItemCurrent(item.href, currentPage, window.location.search)) {
         link.classList.add("bg-primary-light", "text-primary-dark");
         link.setAttribute("aria-current", "page");
     }
@@ -46,10 +60,12 @@ function createMenuItems(items) {
 
 function addPageLocation(main) {
     const pageName = document.body.dataset.pageName;
-    if (!main || !pageName || pageName === "Panel principal") return;
+    if (!main || !pageName || pageName === "Panel principal" || main.querySelector("[data-page-location]")) return;
 
+    main.classList.add("pt-6", "sm:pt-8", "lg:pt-8");
     const location = document.createElement("nav");
     location.className = "mb-6 overflow-x-auto text-sm";
+    location.dataset.pageLocation = "";
     location.setAttribute("aria-label", "Ruta de navegación");
     const list = document.createElement("ol");
     list.className = "flex min-w-max items-center gap-2 text-muted";
@@ -99,8 +115,18 @@ function initializeDashboardMenu() {
     const menu = document.querySelector("#dashboard-menu");
     if (!button || !sidebar || !backdrop || !closeButton || !menu || !config) return false;
 
+    const navigation = menu.closest("nav");
+    if (navigation && !navigation.querySelector(":scope > p")) {
+        const label = document.createElement("p");
+        label.className = "mb-3 hidden px-3 text-xs font-bold uppercase tracking-widest text-muted lg:block";
+        label.dataset.navigationLabel = "";
+        label.textContent = "Navegación";
+        navigation.prepend(label);
+    }
+
     menu.replaceChildren(...createMenuItems(getNavigationItems(session.role)));
     connectMenu(button, sidebar, backdrop, closeButton);
+    addPageLocation(sidebar.parentElement?.querySelector(":scope > main"));
     return true;
 }
 
@@ -111,9 +137,6 @@ function initializeSharedMenu() {
     const items = getNavigationItems(session.role);
     const button = document.querySelector("#mobile-menu-button");
     if (!button) return;
-
-    document.querySelector("#header-user-name").textContent = `${session.firstName} ${session.lastName}`.trim();
-    document.querySelector("#header-user-role").textContent = config.label;
 
     const backdrop = document.createElement("button");
     backdrop.className = "fixed inset-0 z-40 hidden bg-slate-950/45 lg:hidden";
@@ -138,6 +161,7 @@ function initializeSharedMenu() {
     const nav = document.createElement("nav");
     const navLabel = document.createElement("p");
     navLabel.className = "mb-3 hidden px-3 text-xs font-bold uppercase tracking-widest text-muted lg:block";
+    navLabel.dataset.navigationLabel = "";
     navLabel.textContent = "Navegación";
     const menu = document.createElement("ul");
     menu.className = "flex flex-col gap-2";
@@ -163,5 +187,6 @@ function initializeSharedMenu() {
 }
 
 if (typeof document !== "undefined") {
+    updateSessionHeader();
     if (!initializeDashboardMenu()) initializeSharedMenu();
 }

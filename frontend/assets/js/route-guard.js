@@ -27,7 +27,8 @@ function protectCurrentRoute() {
     });
 
     if (decision === "login") {
-        window.location.replace("login.html");
+        const returnTo = `${routeName}${window.location.search}`;
+        window.location.replace(`login.html?returnTo=${encodeURIComponent(returnTo)}`);
         return;
     }
 

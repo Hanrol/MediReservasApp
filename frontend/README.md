@@ -60,11 +60,11 @@ frontend/
 ├── dashboard.html                # Dashboard según rol
 ├── perfil.html                   # Perfil de usuario
 ├── contacto.html                 # Mapa y contacto
-├── medicos.html                  # Listado de médicos y especialidades
+├── medicos-especialidades.html   # Listado de médicos y especialidades
 ├── medico-detalle.html           # Detalle de médico
 ├── solicitar-cita.html           # Formulario de solicitud de cita
 ├── mis-citas.html                # Citas del paciente
-├── historial.html                # Historial clínico básico
+├── historial-clinico.html        # Historial clínico básico
 ├── admin-usuarios.html           # Admin - Gestión de usuarios
 ├── admin-roles.html              # Admin - Roles y permisos
 ├── admin-medicos.html            # Admin - Médicos
@@ -104,11 +104,11 @@ Cada integrante es responsable de las vistas y los scripts de sus vistas. **El C
 
 | Archivo HTML | Contenido |
 | ------------ | --------- |
-| `medicos.html` | Listado de médicos y especialidades con buscador/filtros |
+| `medicos-especialidades.html` | Listado de médicos y especialidades con buscador/filtros |
 | `medico_detalle.html` | Detalle del médico: especialidad, horarios referenciales y botón de cita |
-| `solicitar_cita.html` | Formulario de cita: especialidad, médico, fecha, hora y motivo |
-| `mis_citas.html` | Citas del paciente con filtro por estado y opción de cancelar |
-| `historial.html` | Historial clínico básico (observaciones mock) |
+| `solicitar-cita.html` | Formulario de cita: especialidad, médico, fecha, hora y motivo |
+| `mis-citas.html` | Citas del paciente con filtro por estado y opción de cancelar |
+| `historial-clinico.html` | Historial clínico básico (observaciones mock) |
 | `contacto.html` | Datos de contacto, formulario de contacto y mapa (DuocUC San Joaquín) |
 
 **JavaScript (`assets/js/`):**
@@ -124,10 +124,10 @@ Cada integrante es responsable de las vistas y los scripts de sus vistas. **El C
 
 | Archivo HTML | Contenido |
 | ------------ | --------- |
-| `admin_medicos.html` | Mantenedor de médicos: crear, editar, desactivar y asociar especialidad |
-| `admin_especialidades.html` | Mantenedor de especialidades médicas (CRUD simulado) |
-| `recepcion_citas.html` | Tabla de solicitudes de citas: confirmar, cancelar y reagendar |
-| `medico_agenda.html` | Agenda del médico por fecha + formulario de observación clínica |
+| `admin-medicos.html` | Mantenedor de médicos: crear, editar, desactivar y asociar especialidad |
+| `admin-especialidades.html` | Mantenedor de especialidades médicas (CRUD simulado) |
+| `gestion-citas.html` | Tabla de solicitudes de citas: confirmar, cancelar y reagendar |
+| `agenda-medica.html` | Agenda del médico por fecha + formulario de observación clínica |
 
 **JavaScript (`assets/js/`):**
 

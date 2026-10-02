@@ -34,7 +34,8 @@ class LocalStorageMock {
 globalThis.localStorage = new LocalStorageMock();
 
 const newUser = {
-    id: "patient-new",
+    userId: 7,
+    authUserId: 7,
     run: "12345678-5",
     firstName: "Camila",
     lastName: "Soto",
@@ -42,7 +43,7 @@ const newUser = {
     phone: "+56912345678",
     address: "Santiago",
     password: "Temporal123",
-    role: "PACIENTE",
+    role: "PATIENT",
     active: true
 };
 
@@ -54,18 +55,18 @@ test.beforeEach(() => {
 test("crea un usuario sin reemplazar las cuentas existentes", () => {
     saveUser(newUser);
 
-    assert.equal(getUsers().length, 5);
-    assert.deepEqual(getUserById(newUser.id), newUser);
+    assert.equal(getUsers().length, 7);
+    assert.deepEqual(getUserById(newUser.userId), newUser);
 });
 
 test("actualiza un usuario conservando su identificador y contraseña", () => {
     saveUser(newUser);
-    const updated = updateUser(newUser.id, {
+    const updated = updateUser(newUser.userId, {
         firstName: "Camila Andrea",
-        id: "attempted-change"
+        userId: 99
     });
 
-    assert.equal(updated.id, newUser.id);
+    assert.equal(updated.userId, newUser.userId);
     assert.equal(updated.firstName, "Camila Andrea");
     assert.equal(updated.password, newUser.password);
 });
@@ -75,7 +76,7 @@ test("detecta RUN o correo utilizados por otra cuenta", () => {
 
     assert.equal(isUserDataTaken(newUser.run, "otro@example.com"), true);
     assert.equal(isUserDataTaken("98765432-1", newUser.email), true);
-    assert.equal(isUserDataTaken(newUser.run, newUser.email, newUser.id), false);
+    assert.equal(isUserDataTaken(newUser.run, newUser.email, newUser.userId), false);
 });
 
 test("exige contraseña al crear y permite omitirla al editar", () => {
@@ -103,17 +104,17 @@ test("rechaza datos administrativos inválidos", () => {
 test("desactiva y reactiva una cuenta sin modificar sus datos", () => {
     saveUser(newUser);
 
-    const inactiveUser = updateUserStatus(newUser.id, false);
+    const inactiveUser = updateUserStatus(newUser.userId, false);
     assert.equal(inactiveUser.active, false);
     assert.equal(inactiveUser.email, newUser.email);
     assert.equal(inactiveUser.password, newUser.password);
     assert.equal(inactiveUser.role, newUser.role);
 
-    const activeUser = updateUserStatus(newUser.id, true);
+    const activeUser = updateUserStatus(newUser.userId, true);
     assert.equal(activeUser.active, true);
 });
 
 test("rechaza estados inválidos y usuarios inexistentes", () => {
-    assert.equal(updateUserStatus(newUser.id, "inactive"), null);
+    assert.equal(updateUserStatus(newUser.userId, "inactive"), null);
     assert.equal(updateUserStatus("missing-user", false), null);
 });

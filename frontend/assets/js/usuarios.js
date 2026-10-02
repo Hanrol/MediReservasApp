@@ -2,6 +2,7 @@ import { getDashboardConfig } from "./roles.js";
 import {
     getUsers,
     getUserById,
+    getNextUserId,
     initializeBaseUsers,
     isUserDataTaken,
     saveUser,
@@ -9,6 +10,7 @@ import {
     updateUserStatus
 } from "./storage.js";
 import { normalizeRun, validateManagedUser } from "./validaciones.js";
+import {createActiveStatusButton, createActiveStatusCell, createTableCell, setFieldError} from "./ui-utils.js";
 
 const dialog = document.querySelector("#user-dialog");
 const form = document.querySelector("#user-form");
@@ -35,7 +37,7 @@ function getFormValues() {
     const formData = new FormData(form);
 
     return {
-        id: String(formData.get("userId") ?? ""),
+        userId: Number(formData.get("userId") ?? 0),
         run: normalizeRun(String(formData.get("run") ?? "").trim()),
         firstName: String(formData.get("firstName") ?? "").trim(),
         lastName: String(formData.get("lastName") ?? "").trim(),
@@ -50,10 +52,7 @@ function showFieldError(fieldName, error = "") {
     const input = getInput(fieldName);
     const errorElement = document.querySelector(`#user-${fieldName.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}-error`);
 
-    if (!input || !errorElement) return;
-    input.setAttribute("aria-invalid", String(Boolean(error)));
-    input.classList.toggle("border-red-500", Boolean(error));
-    errorElement.textContent = error;
+    setFieldError(input, errorElement, error);
 }
 
 function getFilteredUsers() {
@@ -68,25 +67,6 @@ function getFilteredUsers() {
     });
 }
 
-function createCell(text, className = "px-5 py-4") {
-    const cell = document.createElement("td");
-    cell.className = className;
-    cell.textContent = text;
-    return cell;
-}
-
-function createStatusCell(isActive) {
-    const cell = document.createElement("td");
-    cell.className = "px-5 py-4";
-    const badge = document.createElement("span");
-    badge.className = isActive
-        ? "inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-primary-dark"
-        : "inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700";
-    badge.textContent = isActive ? "Activo" : "Inactivo";
-    cell.append(badge);
-    return cell;
-}
-
 function renderUsers() {
     const users = getFilteredUsers();
     const rows = users.map((user) => {
@@ -96,11 +76,11 @@ function renderUsers() {
         const role = getDashboardConfig(user.role)?.label ?? "Usuario";
 
         row.append(
-            createCell(fullName, "px-5 py-4 font-semibold"),
-            createCell(user.run ?? "Sin información"),
-            createCell(user.email),
-            createCell(role),
-            createStatusCell(user.active)
+            createTableCell(fullName, "px-5 py-4 font-semibold"),
+            createTableCell(user.run ?? "Sin información"),
+            createTableCell(user.email),
+            createTableCell(role),
+            createActiveStatusCell(user.active)
         );
 
         const actionsCell = document.createElement("td");
@@ -110,15 +90,9 @@ function renderUsers() {
         const editButton = document.createElement("button");
         editButton.className = "rounded-lg border border-line px-3 py-2 text-sm font-semibold text-primary-dark transition hover:bg-primary-light";
         editButton.type = "button";
-        editButton.dataset.editUser = user.id;
+        editButton.dataset.editUser = user.userId;
         editButton.textContent = "Editar";
-        const statusButton = document.createElement("button");
-        statusButton.className = user.active
-            ? "rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-            : "rounded-lg border border-emerald-200 px-3 py-2 text-sm font-semibold text-primary-dark transition hover:bg-emerald-50";
-        statusButton.type = "button";
-        statusButton.dataset.changeStatus = user.id;
-        statusButton.textContent = user.active ? "Desactivar" : "Activar";
+        const statusButton = createActiveStatusButton(user.active, user.userId);
         actions.append(editButton, statusButton);
         actionsCell.append(actions);
         row.append(actionsCell);
@@ -140,11 +114,11 @@ function openCreateDialog() {
 }
 
 function openEditDialog(userId) {
-    const user = getUsers().find((item) => item.id === userId);
+    const user = getUserById(userId);
     if (!user) return;
 
     form.reset();
-    getInput("userId").value = user.id;
+    getInput("userId").value = user.userId;
     fieldNames.filter((field) => field !== "password").forEach((field) => {
         getInput(field).value = user[field] ?? "";
         showFieldError(field);
@@ -163,7 +137,7 @@ function openStatusDialog(userId) {
     const action = nextActiveState ? "activar" : "desactivar";
     const fullName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || "este usuario";
 
-    statusUserId.value = user.id;
+    statusUserId.value = user.userId;
     confirmStatusButton.dataset.nextActive = String(nextActiveState);
     statusDialogTitle.textContent = `${nextActiveState ? "Activar" : "Desactivar"} usuario`;
     statusDialogDescription.textContent = `¿Confirmas que deseas ${action} la cuenta de ${fullName}?`;
@@ -176,7 +150,7 @@ function openStatusDialog(userId) {
 
 function validateField(fieldName) {
     const values = getFormValues();
-    const errors = validateManagedUser(values, Boolean(values.id));
+    const errors = validateManagedUser(values, Boolean(values.userId));
     showFieldError(fieldName, errors[fieldName]);
 }
 
@@ -224,7 +198,7 @@ getInput("run")?.addEventListener("blur", (event) => {
 form?.addEventListener("submit", (event) => {
     event.preventDefault();
     const values = getFormValues();
-    const isEditing = Boolean(values.id);
+    const isEditing = Boolean(values.userId);
     const errors = validateManagedUser(values, isEditing);
 
     fieldNames.forEach((fieldName) => showFieldError(fieldName, errors[fieldName]));
@@ -235,7 +209,7 @@ form?.addEventListener("submit", (event) => {
         return;
     }
 
-    if (isUserDataTaken(values.run, values.email, values.id || null)) {
+    if (isUserDataTaken(values.run, values.email, values.userId || null)) {
         formMessage.className = "mt-4 text-center text-sm font-medium text-red-600";
         formMessage.textContent = "El RUN o correo ya está asociado a otra cuenta.";
         return;
@@ -243,14 +217,15 @@ form?.addEventListener("submit", (event) => {
 
     if (isEditing) {
         const changes = { ...values };
-        delete changes.id;
+        delete changes.userId;
         if (!changes.password) delete changes.password;
-        updateUser(values.id, changes);
+        updateUser(values.userId, changes);
     } else {
         saveUser({
             ...values,
-            id: crypto.randomUUID?.() ?? `user-${Date.now()}`,
-            role: "PACIENTE",
+            userId: getNextUserId(),
+            authUserId: getNextUserId(),
+            role: "PATIENT",
             active: true
         });
     }

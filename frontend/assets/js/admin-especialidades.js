@@ -7,6 +7,7 @@ import {
     updateSpecialty,
     getNextSpecialtyId
 } from "./storage.js";
+import {createActiveStatusButton, createActiveStatusCell, createTableCell, setFieldError} from "./ui-utils.js";
 
 const dialog = document.querySelector("#specialty-dialog");
 const form = document.querySelector("#specialty-form");
@@ -30,7 +31,7 @@ function getFormValues() {
     const formData = new FormData(form);
 
     return {
-        id: Number(formData.get("specialtyId") ?? 0),
+        specialtyId: Number(formData.get("specialtyId") ?? 0),
         specialtyName: String(formData.get("specialtyName") ?? "").trim(),
         description: String(formData.get("description") ?? "").trim(),
         active: getInput("active").checked
@@ -41,10 +42,7 @@ function showFieldError(fieldName, error = "") {
     const input = getInput(fieldName);
     const errorElement = document.querySelector(`#specialty-${fieldName === "specialtyName" ? "name" : "description"}-error`);
 
-    if (!input || !errorElement) return;
-    input.setAttribute("aria-invalid", String(Boolean(error)));
-    input.classList.toggle("border-red-500", Boolean(error));
-    errorElement.textContent = error;
+    setFieldError(input, errorElement, error);
 }
 
 function validateSpecialty(values) {
@@ -58,25 +56,6 @@ function validateSpecialty(values) {
     return errors;
 }
 
-function createCell(text, className = "px-5 py-4") {
-    const cell = document.createElement("td");
-    cell.className = className;
-    cell.textContent = text;
-    return cell;
-}
-
-function createStatusCell(isActive) {
-    const cell = document.createElement("td");
-    cell.className = "px-5 py-4";
-    const badge = document.createElement("span");
-    badge.className = isActive
-        ? "inline-flex rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-primary-dark"
-        : "inline-flex rounded-full bg-red-50 px-3 py-1 text-xs font-bold text-red-700";
-    badge.textContent = isActive ? "Activa" : "Inactiva";
-    cell.append(badge);
-    return cell;
-}
-
 function renderSpecialties() {
     const specialties = getSpecialties();
     const rows = specialties.map((specialty) => {
@@ -84,9 +63,9 @@ function renderSpecialties() {
         row.className = "border-b border-line last:border-0";
 
         row.append(
-            createCell(specialty.specialtyName, "px-5 py-4 font-semibold"),
-            createCell(specialty.description || "Sin descripción"),
-            createStatusCell(specialty.active)
+            createTableCell(specialty.specialtyName, "px-5 py-4 font-semibold"),
+            createTableCell(specialty.description || "Sin descripción"),
+            createActiveStatusCell(specialty.active, {active: "Activa", inactive: "Inactiva"})
         );
 
         const actionsCell = document.createElement("td");
@@ -96,15 +75,9 @@ function renderSpecialties() {
         const editButton = document.createElement("button");
         editButton.className = "rounded-lg border border-line px-3 py-2 text-sm font-semibold text-primary-dark transition hover:bg-primary-light";
         editButton.type = "button";
-        editButton.dataset.editSpecialty = specialty.id;
+        editButton.dataset.editSpecialty = specialty.specialtyId;
         editButton.textContent = "Editar";
-        const statusButton = document.createElement("button");
-        statusButton.className = specialty.active
-            ? "rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-            : "rounded-lg border border-emerald-200 px-3 py-2 text-sm font-semibold text-primary-dark transition hover:bg-emerald-50";
-        statusButton.type = "button";
-        statusButton.dataset.changeStatus = specialty.id;
-        statusButton.textContent = specialty.active ? "Desactivar" : "Activar";
+        const statusButton = createActiveStatusButton(specialty.active, specialty.specialtyId);
         actions.append(editButton, statusButton);
         actionsCell.append(actions);
         row.append(actionsCell);
@@ -132,7 +105,7 @@ function openEditDialog(specialtyId) {
     if (!specialty) return;
 
     form.reset();
-    getInput("specialtyId").value = specialty.id;
+    getInput("specialtyId").value = specialty.specialtyId;
     getInput("specialtyName").value = specialty.specialtyName ?? "";
     getInput("description").value = specialty.description ?? "";
     getInput("active").checked = Boolean(specialty.active);
@@ -150,7 +123,7 @@ function openStatusDialog(specialtyId) {
     const nextActiveState = !specialty.active;
     const action = nextActiveState ? "activar" : "desactivar";
 
-    statusSpecialtyId.value = specialty.id;
+    statusSpecialtyId.value = specialty.specialtyId;
     confirmStatusButton.dataset.nextActive = String(nextActiveState);
     statusDialogTitle.textContent = `${nextActiveState ? "Activar" : "Desactivar"} especialidad`;
     statusDialogDescription.textContent = `¿Confirmas que deseas ${action} la especialidad ${specialty.specialtyName}?`;
@@ -191,7 +164,7 @@ confirmStatusButton?.addEventListener("click", () => {
 form?.addEventListener("submit", (event) => {
     event.preventDefault();
     const values = getFormValues();
-    const isEditing = Boolean(values.id);
+    const isEditing = Boolean(values.specialtyId);
     const errors = validateSpecialty(values);
 
     showFieldError("specialtyName", errors.specialtyName);
@@ -203,21 +176,21 @@ form?.addEventListener("submit", (event) => {
         return;
     }
 
-    if (isSpecialtyNameTaken(values.specialtyName, values.id || null)) {
+    if (isSpecialtyNameTaken(values.specialtyName, values.specialtyId || null)) {
         formMessage.className = "mt-4 text-center text-sm font-medium text-red-600";
         formMessage.textContent = "Ya existe una especialidad con ese nombre.";
         return;
     }
 
     if (isEditing) {
-        updateSpecialty(values.id, {
+        updateSpecialty(values.specialtyId, {
             specialtyName: values.specialtyName,
             description: values.description,
             active: values.active
         });
     } else {
         saveSpecialty({
-            id: getNextSpecialtyId(),
+            specialtyId: getNextSpecialtyId(),
             specialtyName: values.specialtyName,
             description: values.description,
             active: values.active
