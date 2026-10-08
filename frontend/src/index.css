@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary: #059669;
+  --color-primary-dark: #065f46;
+  --color-primary-light: #ecfdf5;
+  --color-secondary: #2563eb;
+  --color-page: #f8fafc;
+  --color-ink: #111827;
+  --color-muted: #6b7280;
+  --color-line: #e5e7eb;
+}
+
+@layer base {
+  :focus-visible {
+    outline: 3px solid var(--color-secondary);
+    outline-offset: 3px;
+  }
+}
