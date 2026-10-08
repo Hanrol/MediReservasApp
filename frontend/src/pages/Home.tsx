@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import PublicFooter from '../components/layout/PublicFooter'
 import { useMobileMenu } from '../hooks/useMobileMenu'
 
 const legacyMedicalPage = '/legacy/pages/medicos-especialidades.html'
@@ -175,23 +176,10 @@ function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-line bg-white">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 md:grid-cols-3 md:items-center lg:px-8">
-          <div>
-            <Link className="text-lg font-bold text-primary-dark" to="/">MediReservas</Link>
-            <p className="mt-2 text-sm text-muted">Una forma simple de organizar tu atención médica.</p>
-          </div>
-          <nav aria-label="Navegación del pie de página">
-            <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted md:justify-center">
-              <li><Link className="hover:text-primary" to="/">Inicio</Link></li>
-              <li><a className="hover:text-primary" href={`${legacyMedicalPage}#medicos`}>Médicos</a></li>
-              <li><a className="hover:text-primary" href={`${legacyMedicalPage}#especialidades`}>Especialidades</a></li>
-              <li><a className="hover:text-primary" href="/legacy/pages/contacto.html">Contacto</a></li>
-            </ul>
-          </nav>
-          <p className="text-sm text-muted md:text-right">&copy; {new Date().getFullYear()} MediReservas. Todos los derechos reservados.</p>
-        </div>
-      </footer>
+      <PublicFooter
+        medicalDirectoryHref={legacyMedicalPage}
+        contactHref="/legacy/pages/contacto.html"
+      />
     </div>
   )
 }

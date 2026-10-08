@@ -1,5 +1,6 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import PublicFooter from '../components/layout/PublicFooter'
 import { useAuth } from '../hooks/useAuth'
 import { useMobileMenu } from '../hooks/useMobileMenu'
 import type { ContactErrors, ContactValues } from '../lib/types'
@@ -483,17 +484,7 @@ function Contacto() {
         </section>
       </main>
 
-      <footer className="border-t border-line bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <p className="font-bold text-primary-dark">
-            MediReservas
-          </p>
-
-          <p>
-            &copy; 2026 MediReservas. Todos los derechos reservados.
-          </p>
-        </div>
-      </footer>
+      <PublicFooter compact />
     </div>
   )
 }
