@@ -1,5 +1,5 @@
 import Contacto from './pages/Contacto'
-import SolicitarCita from './pages/solicitar-cita';
+import SolicitarCita from './pages/Solicitar-cita';
 function App() {
   return(
     <>
