@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import DashboardHeader from '../components/layout/DashboardHeader'
+import DashboardSidebar from '../components/layout/DashboardSidebar'
 import { createProfileData } from '../lib/profile'
 import { DASHBOARD_CONFIG } from '../lib/roles'
 import { getSession, getUserById } from '../lib/storage'
@@ -23,11 +24,6 @@ function Perfil() {
 
   if (!session || !config || !profile) return <Navigate to="/login" replace />
 
-  const navigation = [
-    { icon: '⌂', title: 'Panel principal', href: '/dashboard', reactRoute: true },
-    { icon: 'MI', title: 'Mi perfil', href: '/perfil', reactRoute: true },
-    ...config.actions,
-  ]
 
 
   return (
@@ -35,32 +31,8 @@ function Perfil() {
       <a className="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0" href="#main-content">Saltar al contenido principal</a>
       <DashboardHeader menuOpen={menuOpen} onOpenMenu={() => setMenuOpen(true)} />
 
-      <button className={`fixed inset-0 z-40 bg-slate-950/45 lg:hidden ${menuOpen ? '' : 'hidden'}`} type="button" aria-label="Cerrar menú de navegación" onClick={() => setMenuOpen(false)} />
       <div className="grid w-full flex-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className={`fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto border-r border-line bg-white px-5 py-5 shadow-xl transition-transform duration-300 lg:static lg:z-auto lg:w-auto lg:translate-x-0 lg:overflow-visible lg:px-5 lg:py-8 lg:shadow-none ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`} aria-label="Menú del panel">
-          <header className="mb-6 flex items-center justify-between gap-4 border-b border-line pb-5 lg:hidden">
-            <p className="font-bold text-primary-dark">Menú principal</p>
-            <button className="grid size-10 place-items-center rounded-xl border border-line text-xl text-muted" type="button" aria-label="Cerrar menú de navegación" onClick={() => setMenuOpen(false)}>×</button>
-          </header>
-          <nav className="lg:sticky lg:top-8">
-            <p className="mb-3 hidden px-3 text-xs font-bold uppercase tracking-widest text-muted lg:block">Navegación</p>
-            <ul className="flex flex-col gap-2">
-              {navigation.map((item) => (
-                <li key={item.title}>
-                  {item.reactRoute ? (
-                    <Link className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition hover:bg-primary-light hover:text-primary-dark ${item.href === '/perfil' ? 'bg-primary-light text-primary-dark' : 'text-muted'}`} to={item.href} aria-current={item.href === '/perfil' ? 'page' : undefined} onClick={() => setMenuOpen(false)}>
-                      <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-page text-xs font-bold text-primary-dark" aria-hidden="true">{item.icon}</span>{item.title}
-                    </Link>
-                  ) : (
-                    <a className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted transition hover:bg-primary-light hover:text-primary-dark" href={item.href} onClick={() => setMenuOpen(false)}>
-                      <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-page text-xs font-bold text-primary-dark" aria-hidden="true">{item.icon}</span>{item.title}
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </aside>
+        <DashboardSidebar currentPath="/perfil" menuOpen={menuOpen} onCloseMenu={() => setMenuOpen(false)} />
 
         <main className="min-w-0 flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pb-14 sm:pt-8 lg:px-8 lg:pt-8" id="main-content" tabIndex={-1}>
           <nav className="mb-6 overflow-x-auto text-sm" aria-label="Ruta de navegación">

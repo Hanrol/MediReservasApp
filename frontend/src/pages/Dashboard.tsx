@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import DashboardHeader from '../components/layout/DashboardHeader'
+import DashboardSidebar from '../components/layout/DashboardSidebar'
 import { DASHBOARD_CONFIG, type DashboardAction } from '../lib/roles'
 import { getSession, getStoredItems, getUsers } from '../lib/storage'
 
@@ -90,11 +91,6 @@ function Dashboard() {
 
   if (!session || !config) return <Navigate to="/login" replace />
 
-  const navigation: DashboardAction[] = [
-    { icon: '⌂', title: 'Panel principal', href: '/dashboard', reactRoute: true, description: '' },
-    { icon: 'MI', title: 'Mi perfil', href: '/perfil', reactRoute: true, description: '' },
-    ...config.actions,
-  ]
   const summary = getSummary(session.role, session.userId)
 
 
@@ -103,20 +99,8 @@ function Dashboard() {
       <a className="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0" href="#main-content">Saltar al contenido principal</a>
       <DashboardHeader menuOpen={menuOpen} onOpenMenu={() => setMenuOpen(true)} />
 
-      <button className={`fixed inset-0 z-40 bg-slate-950/45 lg:hidden ${menuOpen ? '' : 'hidden'}`} type="button" aria-label="Cerrar menú de navegación" onClick={() => setMenuOpen(false)} />
       <div className="grid w-full flex-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside className={`fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto border-r border-line bg-white px-5 py-5 shadow-xl transition-transform duration-300 lg:static lg:z-auto lg:w-auto lg:translate-x-0 lg:overflow-visible lg:px-5 lg:py-8 lg:shadow-none ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`} aria-label="Menú del panel">
-          <header className="mb-6 flex items-center justify-between gap-4 border-b border-line pb-5 lg:hidden">
-            <p className="font-bold text-primary-dark">Menú principal</p>
-            <button className="grid size-10 place-items-center rounded-xl border border-line text-xl text-muted" type="button" aria-label="Cerrar menú de navegación" onClick={() => setMenuOpen(false)}>×</button>
-          </header>
-          <nav className="lg:sticky lg:top-8">
-            <p className="mb-3 hidden px-3 text-xs font-bold uppercase tracking-widest text-muted lg:block">Navegación</p>
-            <ul className="flex flex-col gap-2">
-              {navigation.map((item) => <li key={item.title}><ActionLink action={item} compact onClick={() => setMenuOpen(false)} /></li>)}
-            </ul>
-          </nav>
-        </aside>
+        <DashboardSidebar currentPath="/dashboard" menuOpen={menuOpen} onCloseMenu={() => setMenuOpen(false)} />
 
         <main className="min-w-0 px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12" id="main-content" tabIndex={-1}>
           <section className="rounded-3xl bg-primary-dark p-6 text-white shadow-lg sm:p-8" aria-labelledby="welcome-title">
