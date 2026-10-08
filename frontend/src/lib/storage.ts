@@ -46,6 +46,14 @@ export function userExists(run: string, email: string) {
   )
 }
 
+export function isUserDataTaken(run: string, email: string, excludedUserId?: number) {
+  const normalizedEmail = email.trim().toLowerCase()
+  return getUsers().some((user) =>
+    user.userId !== excludedUserId &&
+    (user.run === run || user.email.toLowerCase() === normalizedEmail),
+  )
+}
+
 export function getNextUserId() {
   return getUsers().reduce((max, user) => Math.max(max, user.userId), 0) + 1
 }
@@ -56,6 +64,19 @@ export function getUserById(userId: number) {
 
 export function saveUser(user: User) {
   localStorage.setItem(USERS_KEY, JSON.stringify([...getUsers(), user]))
+}
+
+export function updateUser(userId: number, changes: Partial<Omit<User, 'userId'>>) {
+  const users = getUsers()
+  const index = users.findIndex((user) => user.userId === userId)
+  if (index < 0) return null
+  users[index] = { ...users[index], ...changes, userId }
+  localStorage.setItem(USERS_KEY, JSON.stringify(users))
+  return users[index]
+}
+
+export function updateUserStatus(userId: number, active: boolean) {
+  return updateUser(userId, { active })
 }
 
 export function saveSession(session: Session) {

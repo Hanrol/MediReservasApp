@@ -45,3 +45,16 @@ export interface Session {
   email: string
   role: Role
 }
+
+export interface ManagedUserValues {
+  userId: number
+  run: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  address: string
+  password: string
+}
+
+export type ManagedUserErrors = Partial<Record<Exclude<keyof ManagedUserValues, 'userId'>, string>>

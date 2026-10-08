@@ -1,6 +1,8 @@
 import type {
   LoginErrors,
   LoginValues,
+  ManagedUserErrors,
+  ManagedUserValues,
   RegistrationErrors,
   RegistrationValues,
 } from './types'
@@ -69,5 +71,28 @@ export function validateLogin(values: LoginValues): LoginErrors {
   else if (!isValidEmail(values.email)) errors.email = 'Ingresa un correo electrónico válido.'
   if (!values.password) errors.password = 'La contraseña es obligatoria.'
   else if (values.password.length < 6) errors.password = 'La contraseña debe tener al menos 6 caracteres.'
+  return errors
+}
+
+export function validateManagedUser(values: ManagedUserValues, isEditing = false): ManagedUserErrors {
+  const errors: ManagedUserErrors = {}
+  if (!values.run) errors.run = 'El RUN es obligatorio.'
+  else if (!isValidRun(values.run)) errors.run = 'Ingresa un RUN chileno válido.'
+  if (!values.firstName) errors.firstName = 'El nombre es obligatorio.'
+  else if (values.firstName.length > 80) errors.firstName = 'El nombre no puede superar 80 caracteres.'
+  else if (!isValidName(values.firstName)) errors.firstName = 'El nombre contiene caracteres no permitidos.'
+  if (!values.lastName) errors.lastName = 'Los apellidos son obligatorios.'
+  else if (values.lastName.length > 80) errors.lastName = 'Los apellidos no pueden superar 80 caracteres.'
+  else if (!isValidName(values.lastName)) errors.lastName = 'Los apellidos contienen caracteres no permitidos.'
+  if (!values.email) errors.email = 'El correo electrónico es obligatorio.'
+  else if (values.email.length > 100) errors.email = 'El correo no puede superar 100 caracteres.'
+  else if (!isValidEmail(values.email)) errors.email = 'Ingresa un correo electrónico válido.'
+  if (values.phone) {
+    const digits = values.phone.replace(/\D/g, '')
+    if (digits.length < 9 || digits.length > 12) errors.phone = 'Ingresa un teléfono válido de 9 a 12 dígitos.'
+  }
+  if (values.address.length > 150) errors.address = 'La dirección no puede superar 150 caracteres.'
+  if (!isEditing && !values.password) errors.password = 'La contraseña temporal es obligatoria.'
+  else if (values.password && (values.password.length < 6 || values.password.length > 100)) errors.password = 'La contraseña debe tener entre 6 y 100 caracteres.'
   return errors
 }
