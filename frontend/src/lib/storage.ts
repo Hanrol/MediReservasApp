@@ -1,7 +1,8 @@
 import { BASE_USERS } from './data'
-import type { Role, User } from './types'
+import type { Role, Session, User } from './types'
 
 const USERS_KEY = 'medireservas_users'
+const SESSION_KEY = 'medireservas_session'
 const legacyRoles: Record<string, Role> = {
   ADMINISTRADOR: 'ADMIN',
   RECEPCIONISTA: 'RECEPTIONIST',
@@ -51,4 +52,21 @@ export function getNextUserId() {
 
 export function saveUser(user: User) {
   localStorage.setItem(USERS_KEY, JSON.stringify([...getUsers(), user]))
+}
+
+export function saveSession(session: Session) {
+  localStorage.setItem(SESSION_KEY, JSON.stringify(session))
+}
+
+export function getSession(): Session | null {
+  try {
+    const session = JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null')
+    return session && typeof session === 'object' ? session : null
+  } catch {
+    return null
+  }
+}
+
+export function removeSession() {
+  localStorage.removeItem(SESSION_KEY)
 }

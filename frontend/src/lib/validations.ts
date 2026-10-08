@@ -1,4 +1,9 @@
-import type { RegistrationErrors, RegistrationValues } from './types'
+import type {
+  LoginErrors,
+  LoginValues,
+  RegistrationErrors,
+  RegistrationValues,
+} from './types'
 
 export function normalizeRun(value: string) {
   const clean = value.replace(/[^0-9kK]/g, '').toUpperCase()
@@ -55,5 +60,14 @@ export function validateRegistration(values: RegistrationValues): RegistrationEr
   if (!values.passwordConfirmation) errors.passwordConfirmation = 'Confirma tu contraseña.'
   else if (values.passwordConfirmation !== values.password) errors.passwordConfirmation = 'Las contraseñas no coinciden.'
   if (!values.terms) errors.terms = 'Debes aceptar los términos para continuar.'
+  return errors
+}
+
+export function validateLogin(values: LoginValues): LoginErrors {
+  const errors: LoginErrors = {}
+  if (!values.email) errors.email = 'El correo electrónico es obligatorio.'
+  else if (!isValidEmail(values.email)) errors.email = 'Ingresa un correo electrónico válido.'
+  if (!values.password) errors.password = 'La contraseña es obligatoria.'
+  else if (values.password.length < 6) errors.password = 'La contraseña debe tener al menos 6 caracteres.'
   return errors
 }

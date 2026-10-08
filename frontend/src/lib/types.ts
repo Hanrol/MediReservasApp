@@ -29,3 +29,19 @@ export interface RegistrationValues {
 }
 
 export type RegistrationErrors = Partial<Record<keyof RegistrationValues, string>>
+
+export interface LoginValues {
+  email: string
+  password: string
+}
+
+export type LoginErrors = Partial<Record<keyof LoginValues, string>>
+
+export interface Session {
+  token: string
+  userId: number
+  firstName: string
+  lastName: string
+  email: string
+  role: Role
+}
