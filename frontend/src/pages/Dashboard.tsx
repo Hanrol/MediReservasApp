@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import DashboardHeader from '../components/layout/DashboardHeader'
 import { DASHBOARD_CONFIG, type DashboardAction } from '../lib/roles'
-import { getSession, getStoredItems, getUsers, removeSession } from '../lib/storage'
+import { getSession, getStoredItems, getUsers } from '../lib/storage'
 
 interface Appointment {
   appointmentStatus?: string
@@ -74,7 +75,6 @@ function getSummary(role: string, userId: number) {
 }
 
 function Dashboard() {
-  const navigate = useNavigate()
   const session = getSession()
   const config = session ? DASHBOARD_CONFIG[session.role] : null
   const [menuOpen, setMenuOpen] = useState(false)
@@ -97,34 +97,11 @@ function Dashboard() {
   ]
   const summary = getSummary(session.role, session.userId)
 
-  function logout() {
-    removeSession()
-    navigate('/login', { replace: true })
-  }
 
   return (
     <div className="flex min-h-screen flex-col bg-page text-ink antialiased">
       <a className="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0" href="#main-content">Saltar al contenido principal</a>
-      <header className="relative z-30 border-b border-line bg-white">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8" aria-label="Barra superior del panel">
-          <div className="flex items-center gap-3 lg:pl-8">
-            <button className="grid size-10 place-items-center rounded-xl border border-line bg-white text-xl text-primary-dark transition hover:bg-primary-light lg:hidden" type="button" aria-expanded={menuOpen} aria-label="Abrir menú de navegación" onClick={() => setMenuOpen(true)}>☰</button>
-            <Link className="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl" to="/" aria-label="Ir al inicio de MediReservas">
-              <span className="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white" aria-hidden="true">+</span>
-              <span className="hidden sm:inline">MediReservas</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-3 sm:gap-5">
-            <Link className="text-right" to="/perfil" aria-label="Ver mi perfil">
-              <p className="text-sm font-semibold">{session.firstName} {session.lastName}</p>
-              <p className="text-xs text-muted">{config.label}</p>
-            </Link>
-            <button className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm font-semibold text-primary-dark transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 sm:px-4" type="button" onClick={logout}>
-              <span className="sm:hidden">Salir</span><span className="hidden sm:inline">Cerrar sesión</span>
-            </button>
-          </div>
-        </nav>
-      </header>
+      <DashboardHeader menuOpen={menuOpen} onOpenMenu={() => setMenuOpen(true)} />
 
       <button className={`fixed inset-0 z-40 bg-slate-950/45 lg:hidden ${menuOpen ? '' : 'hidden'}`} type="button" aria-label="Cerrar menú de navegación" onClick={() => setMenuOpen(false)} />
       <div className="grid w-full flex-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
