@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
+import Breadcrumbs from '../components/layout/Breadcrumbs'
 import DashboardHeader from '../components/layout/DashboardHeader'
 import DashboardSidebar from '../components/layout/DashboardSidebar'
 import { createProfileData } from '../lib/profile'
@@ -35,13 +36,7 @@ function Perfil() {
         <DashboardSidebar currentPath="/perfil" menuOpen={menuOpen} onCloseMenu={() => setMenuOpen(false)} />
 
         <main className="min-w-0 flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pb-14 sm:pt-8 lg:px-8 lg:pt-8" id="main-content" tabIndex={-1}>
-          <nav className="mb-6 overflow-x-auto text-sm" aria-label="Ruta de navegación">
-            <ol className="flex min-w-max items-center gap-2 text-muted">
-              <li><Link className="font-semibold text-primary-dark hover:underline" to="/dashboard">Panel principal</Link></li>
-              <li aria-hidden="true">/</li>
-              <li className="font-semibold text-ink" aria-current="page">Mi perfil</li>
-            </ol>
-          </nav>
+          <Breadcrumbs items={[{ label: 'Panel principal', href: '/dashboard' }, { label: 'Mi perfil' }]} />
           <section className="mx-auto max-w-4xl" aria-labelledby="profile-title">
             <div className="mb-8">
               <p className="text-sm font-bold uppercase tracking-widest text-primary">Cuenta personal</p>
