@@ -1,0 +1,79 @@
+import { useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { removeSession } from '../lib/storage'
+
+function AccesoDenegado() {
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    document.title = 'Acceso restringido | MediReservas'
+  }, [])
+
+  function logout() {
+    removeSession()
+    navigate('/login', { replace: true })
+  }
+
+  return (
+    <div className="grid min-h-screen place-items-center bg-page px-4 py-10 text-ink antialiased sm:px-6">
+      <a
+        className="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0"
+        href="#main-content"
+      >
+        Saltar al contenido principal
+      </a>
+
+      <main className="w-full max-w-xl" id="main-content" tabIndex={-1}>
+        <section
+          className="overflow-hidden rounded-3xl border border-line bg-white shadow-xl"
+          aria-labelledby="access-title"
+        >
+          <div className="bg-primary-dark px-6 py-8 text-center text-white sm:px-10 sm:py-10">
+            <span
+              className="mx-auto grid size-16 place-items-center rounded-2xl bg-white/15 text-3xl font-bold"
+              aria-hidden="true"
+            >
+              !
+            </span>
+            <p className="mt-6 text-sm font-bold uppercase tracking-widest text-emerald-200">
+              Acceso restringido
+            </p>
+            <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl" id="access-title">
+              No tienes permiso para ingresar
+            </h1>
+          </div>
+
+          <div className="p-6 text-center sm:p-10">
+            <p className="leading-7 text-muted">
+              Tu sesión está activa, pero el perfil asociado a tu cuenta no puede acceder a esta sección.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Link
+                className="rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark"
+                to="/dashboard"
+              >
+                Volver al panel
+              </Link>
+              <button
+                className="rounded-xl border border-line px-5 py-3 font-semibold text-primary-dark transition hover:bg-primary-light"
+                type="button"
+                onClick={logout}
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <Link
+          className="mx-auto mt-6 block w-fit text-sm font-semibold text-primary-dark hover:underline"
+          to="/"
+        >
+          Ir al inicio de MediReservas
+        </Link>
+      </main>
+    </div>
+  )
+}
+
+export default AccesoDenegado
