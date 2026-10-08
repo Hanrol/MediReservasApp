@@ -1,6 +1,6 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { getSession } from '../lib/storage'
+import { useAuth } from '../hooks/useAuth'
 import type { ContactErrors, ContactValues } from '../lib/types'
 import { validateContact } from '../lib/validations'
 
@@ -8,7 +8,7 @@ const emptyForm: ContactValues = { nombre: '', correo: '', asunto: '', mensaje: 
 
 function Contacto() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const session = getSession()
+  const { isAuthenticated } = useAuth()
   const [form, setForm] = useState<ContactValues>(emptyForm)
   const [errors, setErrors] = useState<ContactErrors>({})
   const [success, setSuccess] = useState('')
@@ -118,7 +118,7 @@ function Contacto() {
           </ul>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            {session ? (
+            {isAuthenticated ? (
               <Link className="hidden rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark sm:inline-flex" to="/dashboard">Ir al panel</Link>
             ) : (
               <>
@@ -196,8 +196,8 @@ function Contacto() {
             </li>
           </ul>
 
-          <div className={`mt-4 grid gap-3 border-t border-line pt-4 ${session ? '' : 'grid-cols-2'}`}>
-            {session ? (
+          <div className={`mt-4 grid gap-3 border-t border-line pt-4 ${isAuthenticated ? '' : 'grid-cols-2'}`}>
+            {isAuthenticated ? (
               <Link className="inline-flex justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white" to="/dashboard">Ir al panel</Link>
             ) : (
               <>

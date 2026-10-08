@@ -1,18 +1,13 @@
 import { useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { removeSession } from '../lib/storage'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 
 function AccesoDenegado() {
-  const navigate = useNavigate()
+  const { logout } = useAuth()
 
   useEffect(() => {
     document.title = 'Acceso restringido | MediReservas'
   }, [])
-
-  function logout() {
-    removeSession()
-    navigate('/login', { replace: true })
-  }
 
   return (
     <div className="grid min-h-screen place-items-center bg-page px-4 py-10 text-ink antialiased sm:px-6">
