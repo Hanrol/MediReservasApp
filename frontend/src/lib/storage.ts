@@ -70,3 +70,12 @@ export function getSession(): Session | null {
 export function removeSession() {
   localStorage.removeItem(SESSION_KEY)
 }
+
+export function getStoredItems<T>(key: string): T[] {
+  try {
+    const items = JSON.parse(localStorage.getItem(key) ?? '[]')
+    return Array.isArray(items) ? items : []
+  } catch {
+    return []
+  }
+}
