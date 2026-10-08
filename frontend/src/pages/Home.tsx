@@ -1,36 +1,15 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { useMobileMenu } from '../hooks/useMobileMenu'
 
 const legacyMedicalPage = '/legacy/pages/medicos-especialidades.html'
 
 function Home() {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const menuContainer = useRef<HTMLDivElement>(null)
+  const { menuOpen, menuContainer, closeMenu, toggleMenu } = useMobileMenu<HTMLElement>()
 
   useEffect(() => {
     document.title = 'MediReservas | Reserva tu hora médica'
 
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setMenuOpen(false)
-    }
-    const closeOnResize = () => {
-      if (window.innerWidth >= 1024) setMenuOpen(false)
-    }
-    const closeOnOutsideClick = (event: MouseEvent) => {
-      if (!menuContainer.current?.contains(event.target as Node)) {
-        setMenuOpen(false)
-      }
-    }
-
-    document.addEventListener('keydown', closeOnEscape)
-    document.addEventListener('click', closeOnOutsideClick)
-    window.addEventListener('resize', closeOnResize)
-
-    return () => {
-      document.removeEventListener('keydown', closeOnEscape)
-      document.removeEventListener('click', closeOnOutsideClick)
-      window.removeEventListener('resize', closeOnResize)
-    }
   }, [])
 
   return (
@@ -87,7 +66,7 @@ function Home() {
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
               aria-label={menuOpen ? 'Cerrar menú principal' : 'Abrir menú principal'}
-              onClick={() => setMenuOpen((current) => !current)}
+              onClick={toggleMenu}
             >
               <svg className="size-6" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                 <path d="M4 6h16M4 12h16M4 18h16" />
@@ -102,7 +81,7 @@ function Home() {
           aria-label="Navegación móvil"
         >
           <ul className="space-y-2 font-medium">
-            <li><Link className="block rounded-lg bg-primary-light px-4 py-3 text-primary-dark" to="/" aria-current="page" onClick={() => setMenuOpen(false)}>Inicio</Link></li>
+            <li><Link className="block rounded-lg bg-primary-light px-4 py-3 text-primary-dark" to="/" aria-current="page" onClick={closeMenu}>Inicio</Link></li>
             <li><a className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark" href={`${legacyMedicalPage}#especialidades`}>Especialidades</a></li>
             <li><a className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark" href={`${legacyMedicalPage}#medicos`}>Médicos</a></li>
             <li><a className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark" href="/legacy/pages/contacto.html">Contacto</a></li>

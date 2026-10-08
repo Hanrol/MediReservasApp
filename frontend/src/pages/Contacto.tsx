@@ -1,13 +1,14 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import { useMobileMenu } from '../hooks/useMobileMenu'
 import type { ContactErrors, ContactValues } from '../lib/types'
 import { validateContact } from '../lib/validations'
 
 const emptyForm: ContactValues = { nombre: '', correo: '', asunto: '', mensaje: '' }
 
 function Contacto() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  const { menuOpen, menuContainer, closeMenu, toggleMenu } = useMobileMenu<HTMLElement>()
   const { isAuthenticated } = useAuth()
   const [form, setForm] = useState<ContactValues>(emptyForm)
   const [errors, setErrors] = useState<ContactErrors>({})
@@ -58,7 +59,7 @@ function Contacto() {
         Saltar al contenido principal
       </a>
 
-      <header className="relative z-30 border-b border-line bg-white">
+      <header className="relative z-30 border-b border-line bg-white" ref={menuContainer}>
         <nav
           className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8"
           aria-label="Navegación principal"
@@ -133,7 +134,7 @@ function Contacto() {
               aria-expanded={menuOpen}
               aria-controls="mobile-menu"
               aria-label="Abrir menú principal"
-              onClick={() => setMenuOpen((prev) => !prev)}
+              onClick={toggleMenu}
             >
               <svg
                 className="size-6"
@@ -162,6 +163,7 @@ function Contacto() {
               <Link
                 className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark"
                 to="/"
+                onClick={closeMenu}
               >
                 Inicio
               </Link>
@@ -171,6 +173,7 @@ function Contacto() {
               <Link
                 className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark"
                 to="/medicos-especialidades#especialidades"
+                onClick={closeMenu}
               >
                 Especialidades
               </Link>
@@ -180,6 +183,7 @@ function Contacto() {
               <Link
                 className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark"
                 to="/medicos-especialidades#medicos"
+                onClick={closeMenu}
               >
                 Médicos
               </Link>
@@ -189,6 +193,7 @@ function Contacto() {
               <Link
                 className="block rounded-lg bg-primary-light px-4 py-3 text-primary-dark"
                 to="/contacto"
+                onClick={closeMenu}
                 aria-current="page"
               >
                 Contacto
