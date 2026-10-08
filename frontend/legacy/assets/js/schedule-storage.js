@@ -8,7 +8,8 @@ const SLOT_TEMPLATES = Object.freeze([
     {scheduleSlotId: 9, doctorId: 1, dayOffset: 2, startTime: "14:00:00", endTime: "14:30:00"},
     {scheduleSlotId: 10, doctorId: 2, dayOffset: 1, startTime: "10:00:00", endTime: "10:30:00"},
     {scheduleSlotId: 11, doctorId: 2, dayOffset: 2, startTime: "15:00:00", endTime: "15:30:00"},
-    {scheduleSlotId: 12, doctorId: 2, dayOffset: 3, startTime: "16:00:00", endTime: "16:30:00"}
+    {scheduleSlotId: 12, doctorId: 2, dayOffset: 3, startTime: "16:00:00", endTime: "16:30:00"},
+    {scheduleSlotId: 20, doctorId: 1, dayOffset: 0, startTime: "16:00:00", endTime: "16:30:00"}
 ]);
 
 function getDateWithOffset(dayOffset) {
