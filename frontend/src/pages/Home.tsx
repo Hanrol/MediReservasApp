@@ -1,13 +1,11 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import PublicFooter from '../components/layout/PublicFooter'
-import { useMobileMenu } from '../hooks/useMobileMenu'
+import PublicHeader from '../components/layout/PublicHeader'
 
 const legacyMedicalPage = '/legacy/pages/medicos-especialidades.html'
 
 function Home() {
-  const { menuOpen, menuContainer, closeMenu, toggleMenu } = useMobileMenu<HTMLElement>()
-
   useEffect(() => {
     document.title = 'MediReservas | Reserva tu hora médica'
 
@@ -22,77 +20,11 @@ function Home() {
         Saltar al contenido principal
       </a>
 
-      <header className="relative border-b border-line bg-white" ref={menuContainer}>
-        <nav
-          className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8"
-          aria-label="Navegación principal"
-        >
-          <Link
-            className="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl"
-            to="/"
-            aria-label="Ir al inicio de MediReservas"
-          >
-            <span
-              className="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white"
-              aria-hidden="true"
-            >
-              +
-            </span>
-            <span className="hidden sm:inline">MediReservas</span>
-          </Link>
-
-          <ul className="hidden items-center gap-8 text-sm font-medium text-muted lg:flex">
-            <li><Link className="text-primary-dark" to="/" aria-current="page">Inicio</Link></li>
-            <li><a className="transition hover:text-primary" href={`${legacyMedicalPage}#especialidades`}>Especialidades</a></li>
-            <li><a className="transition hover:text-primary" href={`${legacyMedicalPage}#medicos`}>Médicos</a></li>
-            <li><a className="transition hover:text-primary" href="/legacy/pages/contacto.html">Contacto</a></li>
-          </ul>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              className="hidden rounded-lg px-4 py-2 text-sm font-semibold text-primary-dark transition hover:bg-primary-light sm:inline-flex"
-              to="/login"
-            >
-              Iniciar sesión
-            </Link>
-            <Link
-              className="hidden rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark sm:inline-flex"
-              to="/registro"
-            >
-              Crear cuenta
-            </Link>
-            <button
-              className="grid size-10 place-items-center rounded-lg border border-line text-primary-dark lg:hidden"
-              type="button"
-              aria-expanded={menuOpen}
-              aria-controls="mobile-menu"
-              aria-label={menuOpen ? 'Cerrar menú principal' : 'Abrir menú principal'}
-              onClick={toggleMenu}
-            >
-              <svg className="size-6" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
-        </nav>
-
-        <nav
-          id="mobile-menu"
-          className={`${menuOpen ? '' : 'hidden'} absolute inset-x-0 top-full z-10 border-t border-line bg-white px-4 py-5 shadow-xl lg:hidden`}
-          aria-label="Navegación móvil"
-        >
-          <ul className="space-y-2 font-medium">
-            <li><Link className="block rounded-lg bg-primary-light px-4 py-3 text-primary-dark" to="/" aria-current="page" onClick={closeMenu}>Inicio</Link></li>
-            <li><a className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark" href={`${legacyMedicalPage}#especialidades`}>Especialidades</a></li>
-            <li><a className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark" href={`${legacyMedicalPage}#medicos`}>Médicos</a></li>
-            <li><a className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark" href="/legacy/pages/contacto.html">Contacto</a></li>
-          </ul>
-          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4">
-            <Link className="inline-flex justify-center rounded-lg border border-line px-4 py-2.5 text-sm font-semibold text-primary-dark" to="/login">Iniciar sesión</Link>
-            <Link className="inline-flex justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white" to="/registro">Crear cuenta</Link>
-          </div>
-        </nav>
-      </header>
+      <PublicHeader
+        currentPage="home"
+        medicalDirectoryHref={legacyMedicalPage}
+        contactHref="/legacy/pages/contacto.html"
+      />
 
       <main id="main-content" tabIndex={-1}>
         <section className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2 lg:px-8 lg:py-28" aria-labelledby="hero-title">
