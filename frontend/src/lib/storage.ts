@@ -50,6 +50,10 @@ export function getNextUserId() {
   return getUsers().reduce((max, user) => Math.max(max, user.userId), 0) + 1
 }
 
+export function getUserById(userId: number) {
+  return getUsers().find((user) => user.userId === userId)
+}
+
 export function saveUser(user: User) {
   localStorage.setItem(USERS_KEY, JSON.stringify([...getUsers(), user]))
 }
