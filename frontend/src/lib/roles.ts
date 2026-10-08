@@ -51,3 +51,13 @@ export const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
     ],
   },
 }
+
+export function isValidRole(role: string): role is Role {
+  return Object.hasOwn(DASHBOARD_CONFIG, role)
+}
+
+export function validateRoleChange(currentRole: Role, newRole: string) {
+  if (!isValidRole(newRole)) return 'Selecciona un rol válido.'
+  if (currentRole === newRole) return 'Selecciona un rol diferente al actual.'
+  return ''
+}
