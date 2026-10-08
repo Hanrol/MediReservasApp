@@ -58,3 +58,12 @@ export interface ManagedUserValues {
 }
 
 export type ManagedUserErrors = Partial<Record<Exclude<keyof ManagedUserValues, 'userId'>, string>>
+
+export interface ContactValues {
+  nombre: string
+  correo: string
+  asunto: string
+  mensaje: string
+}
+
+export type ContactErrors = Partial<Record<keyof ContactValues, string>>

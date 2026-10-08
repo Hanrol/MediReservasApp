@@ -1,25 +1,24 @@
-import { useState, type FormEvent } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { getSession } from '../lib/storage'
+import type { ContactErrors, ContactValues } from '../lib/types'
+import { validateContact } from '../lib/validations'
+
+const emptyForm: ContactValues = { nombre: '', correo: '', asunto: '', mensaje: '' }
 
 function Contacto() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [form, setForm] = useState({
-    nombre: "",
-    correo: "",
-    asunto: "",
-    mensaje: "",
-  });
+  const session = getSession()
+  const [form, setForm] = useState<ContactValues>(emptyForm)
+  const [errors, setErrors] = useState<ContactErrors>({})
+  const [success, setSuccess] = useState('')
 
-  const [errors, setErrors] = useState({
-    nombre: "",
-    correo: "",
-    asunto: "",
-    mensaje: "",
-  });
-
-  const [success, setSuccess] = useState("");
+  useEffect(() => {
+    document.title = 'Contacto | MediReservas'
+  }, [])
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
 
@@ -28,39 +27,14 @@ function Contacto() {
       [name]: value,
     }));
 
-    setErrors((prev) => ({
-      ...prev,
-      [name]: "",
-    }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }))
+    setSuccess('')
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const newErrors = {
-      nombre: "",
-      correo: "",
-      asunto: "",
-      mensaje: "",
-    };
-
-    if (!form.nombre.trim()) {
-      newErrors.nombre = "El nombre es obligatorio.";
-    }
-
-    if (!form.correo.trim()) {
-      newErrors.correo = "El correo electrónico es obligatorio.";
-    } else if (!/\S+@\S+\.\S+/.test(form.correo)) {
-      newErrors.correo = "Ingresa un correo electrónico válido.";
-    }
-
-    if (!form.asunto.trim()) {
-      newErrors.asunto = "El asunto es obligatorio.";
-    }
-
-    if (!form.mensaje.trim()) {
-      newErrors.mensaje = "El mensaje es obligatorio.";
-    }
+    const newErrors = validateContact(form)
 
     setErrors(newErrors);
 
@@ -71,22 +45,12 @@ function Contacto() {
       return;
     }
 
-    // Aquí posteriormente puedes conectar tu API/backend.
-    setSuccess(
-      "Tu mensaje ha sido enviado correctamente. Te responderemos a tu correo electrónico."
-    );
-
-    setForm({
-      nombre: "",
-      correo: "",
-      asunto: "",
-      mensaje: "",
-    });
+    setSuccess('El mensaje fue enviado correctamente.')
+    setForm(emptyForm)
   };
 
   return (
     <div className="min-h-screen bg-page text-ink antialiased">
-      {/* Skip link */}
       <a
         className="fixed left-4 top-4 z-50 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0"
         href="#main-content"
@@ -94,15 +58,14 @@ function Contacto() {
         Saltar al contenido principal
       </a>
 
-      {/* Header */}
       <header className="relative z-30 border-b border-line bg-white">
         <nav
           className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8"
           aria-label="Navegación principal"
         >
-          <a
+          <Link
             className="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl"
-            href="/"
+            to="/"
             aria-label="Ir al inicio de MediReservas"
           >
             <span
@@ -113,62 +76,56 @@ function Contacto() {
             </span>
 
             <span className="hidden sm:inline">MediReservas</span>
-          </a>
+          </Link>
 
-          {/* Desktop navigation */}
           <ul className="hidden items-center gap-8 text-sm font-medium text-muted lg:flex">
             <li>
-              <a
+              <Link
                 className="transition hover:text-primary"
-                href="/"
+                to="/"
               >
                 Inicio
-              </a>
+              </Link>
             </li>
 
             <li>
-              <a
+              <Link
                 className="transition hover:text-primary"
-                href="/medicos-especialidades#especialidades"
+                to="/medicos-especialidades#especialidades"
               >
                 Especialidades
-              </a>
+              </Link>
             </li>
 
             <li>
-              <a
+              <Link
                 className="transition hover:text-primary"
-                href="/medicos-especialidades#medicos"
+                to="/medicos-especialidades#medicos"
               >
                 Médicos
-              </a>
+              </Link>
             </li>
 
             <li>
-              <a
+              <Link
                 className="text-primary-dark"
-                href="/contacto"
+                to="/contacto"
                 aria-current="page"
               >
                 Contacto
-              </a>
+              </Link>
             </li>
           </ul>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <a
-              className="hidden rounded-lg px-4 py-2 text-sm font-semibold text-primary-dark transition hover:bg-primary-light sm:inline-flex"
-              href="/login"
-            >
-              Iniciar sesión
-            </a>
-
-            <a
-              className="hidden rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark sm:inline-flex"
-              href="/registro"
-            >
-              Crear cuenta
-            </a>
+            {session ? (
+              <Link className="hidden rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark sm:inline-flex" to="/dashboard">Ir al panel</Link>
+            ) : (
+              <>
+                <Link className="hidden rounded-lg px-4 py-2 text-sm font-semibold text-primary-dark transition hover:bg-primary-light sm:inline-flex" to="/login">Iniciar sesión</Link>
+                <Link className="hidden rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark sm:inline-flex" to="/registro">Crear cuenta</Link>
+              </>
+            )}
 
             <button
               className="grid size-10 place-items-center rounded-lg border border-line text-primary-dark lg:hidden"
@@ -193,7 +150,6 @@ function Contacto() {
           </div>
         </nav>
 
-        {/* Mobile menu */}
         <nav
           id="mobile-menu"
           className={`absolute inset-x-0 top-full z-10 border-t border-line bg-white px-4 py-5 shadow-xl lg:hidden ${
@@ -203,63 +159,57 @@ function Contacto() {
         >
           <ul className="space-y-2 font-medium">
             <li>
-              <a
+              <Link
                 className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark"
-                href="/"
+                to="/"
               >
                 Inicio
-              </a>
+              </Link>
             </li>
 
             <li>
-              <a
+              <Link
                 className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark"
-                href="/medicos-especialidades#especialidades"
+                to="/medicos-especialidades#especialidades"
               >
                 Especialidades
-              </a>
+              </Link>
             </li>
 
             <li>
-              <a
+              <Link
                 className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark"
-                href="/medicos-especialidades#medicos"
+                to="/medicos-especialidades#medicos"
               >
                 Médicos
-              </a>
+              </Link>
             </li>
 
             <li>
-              <a
+              <Link
                 className="block rounded-lg bg-primary-light px-4 py-3 text-primary-dark"
-                href="/contacto"
+                to="/contacto"
                 aria-current="page"
               >
                 Contacto
-              </a>
+              </Link>
             </li>
           </ul>
 
-          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4">
-            <a
-              className="inline-flex justify-center rounded-lg border border-line px-4 py-2.5 text-sm font-semibold text-primary-dark"
-              href="/login"
-            >
-              Iniciar sesión
-            </a>
-
-            <a
-              className="inline-flex justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white"
-              href="/registro"
-            >
-              Crear cuenta
-            </a>
+          <div className={`mt-4 grid gap-3 border-t border-line pt-4 ${session ? '' : 'grid-cols-2'}`}>
+            {session ? (
+              <Link className="inline-flex justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white" to="/dashboard">Ir al panel</Link>
+            ) : (
+              <>
+                <Link className="inline-flex justify-center rounded-lg border border-line px-4 py-2.5 text-sm font-semibold text-primary-dark" to="/login">Iniciar sesión</Link>
+                <Link className="inline-flex justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white" to="/registro">Crear cuenta</Link>
+              </>
+            )}
           </div>
         </nav>
       </header>
 
       <main id="main-content" tabIndex={-1}>
-        {/* Hero */}
         <section
           className="bg-primary-dark py-14 text-white sm:py-20"
           aria-labelledby="contact-title"
@@ -282,7 +232,6 @@ function Contacto() {
           </div>
         </section>
 
-        {/* Información */}
         <section
           className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8"
           aria-labelledby="contact-info-title"
@@ -338,7 +287,6 @@ function Contacto() {
           </div>
         </section>
 
-        {/* Ubicación */}
         <section
           className="border-y border-line bg-white py-14 sm:py-20"
           aria-labelledby="location-title"
@@ -371,7 +319,6 @@ function Contacto() {
           </div>
         </section>
 
-        {/* Formulario */}
         <section
           className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[0.75fr_1.25fr] lg:items-start lg:gap-16 lg:px-8"
           aria-labelledby="form-title"
@@ -531,7 +478,6 @@ function Contacto() {
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-line bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <p className="font-bold text-primary-dark">
@@ -544,6 +490,6 @@ function Contacto() {
         </div>
       </footer>
     </div>
-  );
+  )
 }
 export default Contacto
