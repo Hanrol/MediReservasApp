@@ -1,8 +1,9 @@
-import Contacto from './pages/contacto'
+import Contacto from './pages/Contacto'
+import SolicitarCita from './pages/solicitar-cita';
 function App() {
   return(
     <>
-    <Contacto></Contacto>
+    <SolicitarCita></SolicitarCita>
     </>
   )
 }
