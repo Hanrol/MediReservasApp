@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
+import DashboardLayout from '../components/layout/DashboardLayout'
 import { Link, Navigate } from 'react-router-dom'
-import DashboardHeader from '../components/layout/DashboardHeader'
-import DashboardSidebar from '../components/layout/DashboardSidebar'
 import { DASHBOARD_CONFIG, type DashboardAction } from '../lib/roles'
 import { getSession, getStoredItems, getUsers } from '../lib/storage'
 
@@ -78,16 +77,11 @@ function getSummary(role: string, userId: number) {
 function Dashboard() {
   const session = getSession()
   const config = session ? DASHBOARD_CONFIG[session.role] : null
-  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     if (config) document.title = `Panel de ${config.label} | MediReservas`
   }, [config])
 
-  useEffect(() => {
-    document.body.classList.toggle('overflow-hidden', menuOpen)
-    return () => document.body.classList.remove('overflow-hidden')
-  }, [menuOpen])
 
   if (!session || !config) return <Navigate to="/login" replace />
 
@@ -95,46 +89,34 @@ function Dashboard() {
 
 
   return (
-    <div className="flex min-h-screen flex-col bg-page text-ink antialiased">
-      <a className="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0" href="#main-content">Saltar al contenido principal</a>
-      <DashboardHeader menuOpen={menuOpen} onOpenMenu={() => setMenuOpen(true)} />
+    <DashboardLayout currentPath="/dashboard" mainClassName="px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
 
-      <div className="grid w-full flex-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <DashboardSidebar currentPath="/dashboard" menuOpen={menuOpen} onCloseMenu={() => setMenuOpen(false)} />
+      <section className="rounded-3xl bg-primary-dark p-6 text-white shadow-lg sm:p-8" aria-labelledby="welcome-title">
+        <p className="text-sm font-bold uppercase tracking-widest text-emerald-200">Panel de {config.label.toLowerCase()}</p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl" id="welcome-title">Hola, {session.firstName}</h1>
+        <p className="mt-3 max-w-2xl leading-7 text-emerald-50">{config.description}</p>
+      </section>
 
-        <main className="min-w-0 px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12" id="main-content" tabIndex={-1}>
-          <section className="rounded-3xl bg-primary-dark p-6 text-white shadow-lg sm:p-8" aria-labelledby="welcome-title">
-            <p className="text-sm font-bold uppercase tracking-widest text-emerald-200">Panel de {config.label.toLowerCase()}</p>
-            <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl" id="welcome-title">Hola, {session.firstName}</h1>
-            <p className="mt-3 max-w-2xl leading-7 text-emerald-50">{config.description}</p>
-          </section>
+      <section className="mt-10" aria-labelledby="quick-access-title">
+        <p className="text-sm font-bold uppercase tracking-widest text-primary">Funciones</p>
+        <h2 className="mt-2 text-2xl font-bold" id="quick-access-title">Accesos principales</h2>
+        <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {config.actions.map((action) => <ActionLink action={action} key={action.title} />)}
+        </div>
+      </section>
 
-          <section className="mt-10" aria-labelledby="quick-access-title">
-            <p className="text-sm font-bold uppercase tracking-widest text-primary">Funciones</p>
-            <h2 className="mt-2 text-2xl font-bold" id="quick-access-title">Accesos principales</h2>
-            <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-              {config.actions.map((action) => <ActionLink action={action} key={action.title} />)}
-            </div>
-          </section>
-
-          <section className="mt-10" aria-labelledby="summary-title">
-            <h2 className="text-2xl font-bold" id="summary-title">Resumen</h2>
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              {summary.map((item) => (
-                <article className="rounded-2xl border border-line bg-white p-5 shadow-sm" key={item.label}>
-                  <p className="text-3xl font-bold text-primary-dark">{item.value}</p>
-                  <p className="mt-1 text-sm text-muted">{item.label}</p>
-                </article>
-              ))}
-            </div>
-          </section>
-        </main>
-      </div>
-
-      <footer className="border-t border-line bg-white px-4 py-5 text-center text-sm text-muted">
-        <p>© {new Date().getFullYear()} MediReservas. Todos los derechos reservados.</p>
-      </footer>
-    </div>
+      <section className="mt-10" aria-labelledby="summary-title">
+        <h2 className="text-2xl font-bold" id="summary-title">Resumen</h2>
+        <div className="mt-6 grid gap-4 sm:grid-cols-3">
+          {summary.map((item) => (
+            <article className="rounded-2xl border border-line bg-white p-5 shadow-sm" key={item.label}>
+              <p className="text-3xl font-bold text-primary-dark">{item.value}</p>
+              <p className="mt-1 text-sm text-muted">{item.label}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </DashboardLayout>
   )
 }
 
