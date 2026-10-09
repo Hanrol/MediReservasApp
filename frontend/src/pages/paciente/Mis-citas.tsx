@@ -1,203 +1,450 @@
+import { useMemo, useState } from "react";
+import { useAppointments } from "../../hooks/useAppointments";
+import { APPOINTMENT_STATUSES } from "../../constants/appointmentStatuses";
+import type { AppointmentStatus } from "../../types/appointment";
+
 function MisCitas() {
+  const {
+    appointments,
+    loading,
+    error,
+    refresh,
+    cancelAppointment,
+  } = useAppointments({
+    filters: { patientId: "patient-001" },
+  });
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] =
+    useState<AppointmentStatus | "all">("all");
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+
+  const normalizedSearch = searchTerm.trim().toLocaleLowerCase("es");
+
+  const filteredAppointments = useMemo(() => {
+    return appointments.filter((appointment) => {
+      const matchesDoctor = appointment.doctorName
+        .toLocaleLowerCase("es")
+        .includes(normalizedSearch);
+
+      const matchesStatus =
+        selectedStatus === "all" ||
+        appointment.status === selectedStatus;
+
+      return matchesDoctor && matchesStatus;
+    });
+  }, [appointments, normalizedSearch, selectedStatus]);
+
+  const handleCancel = (appointmentId: string) => {
+    setActionMessage(null);
+
+    const appointment = appointments.find(
+      (item) => item.id === appointmentId
+    );
+
+    if (!appointment) {
+      setActionMessage("No se encontró la cita seleccionada.");
+      return;
+    }
+
+    if (appointment.status !== "pending") {
+      setActionMessage(
+        "Solo puedes cancelar citas que estén pendientes."
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "¿Estás seguro de que deseas cancelar esta cita?"
+    );
+
+    if (!confirmed) return;
+
+    const cancelled = cancelAppointment(appointmentId);
+
+    if (cancelled) {
+      setActionMessage("La cita se canceló correctamente.");
+    }
+  };
+
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedStatus("all");
+    setActionMessage(null);
+  };
+
   return (
-    <div className="flex min-h-screen flex-col bg-page text-ink antialiased">
-      <a
-        href="#main-content"
-        className="fixed left-4 top-4 z-[60] -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0"
-      >
-        Saltar al contenido principal
-      </a>
-
+    <div className="min-h-screen bg-page text-ink">
       {/* Encabezado */}
-      <header className="relative z-30 border-b border-line bg-white">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              aria-label="Abrir menú de navegación"
-              aria-controls="dashboard-sidebar"
-              className="grid size-10 place-items-center rounded-xl border border-line bg-white text-xl text-primary-dark transition hover:bg-primary-light lg:hidden"
+      <header className="border-b border-line bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+          <a
+            href="/"
+            className="flex items-center gap-2 text-xl font-bold text-primary"
+          >
+            <span
+              className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg text-white"
+              aria-hidden="true"
             >
-              ☰
-            </button>
+              M
+            </span>
+            MediReservas
+          </a>
 
+          <nav
+            aria-label="Navegación principal"
+            className="hidden items-center gap-6 md:flex"
+          >
             <a
-              href="/"
-              className="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl"
-              aria-label="Ir al inicio de MediReservas"
+              href="/paciente/solicitar-cita"
+              className="text-sm font-medium text-muted transition hover:text-primary"
             >
-              <span className="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white">
-                +
-              </span>
-
-              <span className="hidden sm:inline">MediReservas</span>
+              Solicitar cita
             </a>
-          </div>
-
-          <div className="flex items-center gap-3 sm:gap-5">
-            <a href="/perfil" className="text-right">
-              <p className="text-sm font-semibold">Usuario</p>
-              <p className="text-xs text-muted">Paciente</p>
-            </a>
-
-            <button
-              type="button"
-              className="inline-flex items-center justify-center rounded-xl border border-line bg-white px-3 py-2.5 text-sm font-semibold text-primary-dark transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 sm:px-4"
+            <a
+              href="/paciente/mis-citas"
+              aria-current="page"
+              className="text-sm font-semibold text-primary"
             >
-              <span className="sm:hidden">Salir</span>
-              <span className="hidden sm:inline">Cerrar sesión</span>
-            </button>
-          </div>
-        </nav>
+              Mis citas
+            </a>
+          </nav>
+
+          <a
+            href="/"
+            className="rounded-lg border border-line px-3 py-2 text-sm font-medium transition hover:bg-gray-50"
+          >
+            Volver
+          </a>
+        </div>
       </header>
 
-      {/* Menú lateral */}
-      <button
-        type="button"
-        aria-label="Cerrar menú de navegación"
-        className="fixed inset-0 z-40 hidden bg-slate-950/45 lg:hidden"
-      />
+      {/* Contenido */}
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Título */}
+        <section className="mb-8">
+          <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
+            Área del paciente
+          </p>
 
-      <div className="grid w-full flex-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside
-          id="dashboard-sidebar"
-          className="hidden border-r border-line bg-white px-5 py-8 lg:block"
+          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+            Mis citas médicas
+          </h1>
+
+          <p className="mt-3 max-w-2xl text-muted">
+            Consulta tus próximas citas, revisa sus estados y cancela las
+            solicitudes que todavía estén pendientes.
+          </p>
+        </section>
+
+        {/* Mensaje de acción */}
+        {actionMessage && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="mb-6 flex items-start justify-between gap-3 rounded-xl border border-primary/20 bg-primary-light p-4 text-sm text-primary-dark"
+          >
+            <p>{actionMessage}</p>
+
+            <button
+              type="button"
+              onClick={() => setActionMessage(null)}
+              aria-label="Cerrar mensaje"
+              className="shrink-0 rounded px-2 font-bold hover:bg-white/60"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        {/* Filtros */}
+        <section
+          aria-label="Filtros de citas"
+          className="mb-6 rounded-2xl border border-line bg-white p-5 shadow-sm"
         >
-          <header className="mb-6 border-b border-line pb-5">
-            <p className="font-bold text-primary-dark">Menú principal</p>
-          </header>
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold">Buscar citas</h2>
+            <p className="mt-1 text-sm text-muted">
+              Filtra tus citas por médico o estado.
+            </p>
+          </div>
 
-          <nav aria-label="Navegación del paciente">
-            <ul className="flex flex-col gap-2">
-              <li>
+          <div className="grid gap-4 md:grid-cols-[1fr_260px_auto] md:items-end">
+            <div>
+              <label
+                htmlFor="searchDoctor"
+                className="mb-2 block text-sm font-medium"
+              >
+                Nombre del médico
+              </label>
+
+              <input
+                id="searchDoctor"
+                type="search"
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Ej.: María González"
+                maxLength={100}
+                className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-secondary"
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="statusFilter"
+                className="mb-2 block text-sm font-medium"
+              >
+                Estado de la cita
+              </label>
+
+              <select
+                id="statusFilter"
+                value={selectedStatus}
+                onChange={(event) =>
+                  setSelectedStatus(
+                    event.target.value as AppointmentStatus | "all"
+                  )
+                }
+                className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none transition focus:border-secondary"
+              >
+                <option value="all">Todos los estados</option>
+                <option value="pending">Pendientes</option>
+                <option value="confirmed">Confirmadas</option>
+                <option value="completed">Completadas</option>
+                <option value="cancelled">Canceladas</option>
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="rounded-xl border border-line px-4 py-3 text-sm font-semibold transition hover:bg-gray-50"
+            >
+              Limpiar filtros
+            </button>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4">
+            <p className="text-sm text-muted" aria-live="polite">
+              {loading
+                ? "Cargando citas..."
+                : `${filteredAppointments.length} ${
+                    filteredAppointments.length === 1
+                      ? "cita encontrada"
+                      : "citas encontradas"
+                  }`}
+            </p>
+
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={loading}
+              className="text-sm font-semibold text-primary transition hover:text-primary-dark disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Actualizar lista
+            </button>
+          </div>
+        </section>
+
+        {/* Error de carga */}
+        {error && (
+          <div
+            role="alert"
+            className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4"
+          >
+            <p className="font-semibold text-red-800">
+              No se pudieron procesar las citas.
+            </p>
+            <p className="mt-1 text-sm text-red-700">{error}</p>
+
+            <button
+              type="button"
+              onClick={refresh}
+              disabled={loading}
+              className="mt-3 rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-800 hover:bg-red-100 disabled:opacity-50"
+            >
+              Intentar nuevamente
+            </button>
+          </div>
+        )}
+
+        {/* Cargando */}
+        {loading && (
+          <div
+            role="status"
+            className="rounded-2xl border border-line bg-white px-6 py-12 text-center"
+          >
+            <div
+              className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-primary"
+              aria-hidden="true"
+            />
+            <p className="font-medium">Cargando tus citas médicas...</p>
+            <p className="mt-1 text-sm text-muted">
+              Espera un momento, por favor.
+            </p>
+          </div>
+        )}
+
+        {/* Lista de citas */}
+        {!loading && !error && (
+          <>
+            {filteredAppointments.length === 0 ? (
+              <section className="rounded-2xl border border-line bg-white px-6 py-14 text-center shadow-sm">
+                <div
+                  className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-2xl"
+                  aria-hidden="true"
+                >
+                  —
+                </div>
+
+                <h2 className="text-lg font-semibold">
+                  No se encontraron citas
+                </h2>
+
+                <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+                  {appointments.length === 0
+                    ? "Todavía no hay citas registradas para mostrar."
+                    : "Prueba con otro nombre de médico o cambia el filtro de estado."}
+                </p>
+
+                {(searchTerm || selectedStatus !== "all") && (
+                  <button
+                    type="button"
+                    onClick={clearFilters}
+                    className="mt-5 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-dark"
+                  >
+                    Ver todas las citas
+                  </button>
+                )}
+
                 <a
                   href="/paciente/solicitar-cita"
-                  className="block rounded-xl px-4 py-3 text-sm font-medium text-muted transition hover:bg-primary-light hover:text-primary-dark"
+                  className="mt-5 inline-block rounded-xl border border-line px-5 py-3 text-sm font-semibold transition hover:bg-gray-50"
                 >
-                  Solicitar cita
+                  Solicitar una cita
                 </a>
-              </li>
-
-              <li>
-                <a
-                  href="/paciente/mis-citas"
-                  aria-current="page"
-                  className="block rounded-xl bg-primary-light px-4 py-3 text-sm font-semibold text-primary-dark"
-                >
-                  Mis citas
-                </a>
-              </li>
-            </ul>
-          </nav>
-        </aside>
-
-        {/* Contenido principal */}
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="min-w-0 px-4 py-8 sm:px-6 lg:px-10"
-        >
-          <div className="mx-auto max-w-5xl">
-            {/* Banner */}
-            <section className="rounded-3xl bg-primary-dark p-6 text-white shadow-lg">
-              <p className="text-sm font-bold uppercase tracking-widest text-emerald-200">
-                Paciente
-              </p>
-
-              <h1 className="mt-2 text-3xl font-bold">
-                Mis citas médicas
-              </h1>
-
-              <p className="mt-3 text-emerald-50">
-                Consulte el estado de sus citas médicas y cancele las que estén pendientes.
-              </p>
-            </section>
-
-            {/* Búsqueda y filtros */}
-            <section className="mt-8 rounded-2xl border border-line bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-bold">
-                Buscar y filtrar citas
-              </h2>
-
-              <div className="mt-5 grid gap-5 md:grid-cols-2">
-                <div>
-                  <label
-                    htmlFor="buscarCita"
-                    className="block text-sm font-semibold"
-                  >
-                    Buscar por médico
-                  </label>
-
-                  <input
-                    type="text"
-                    id="buscarCita"
-                    placeholder="Ej: Juan Pérez"
-                    className="mt-2 w-full rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="estadoCita"
-                    className="block text-sm font-semibold"
-                  >
-                    Filtrar por estado
-                  </label>
-
-                  <select
-                    id="estadoCita"
-                    defaultValue=""
-                    className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary"
-                  >
-                    <option value="">Todas</option>
-                    <option value="PENDING">Pendiente</option>
-                    <option value="CONFIRMED">Confirmada</option>
-                    <option value="CANCELLED">Cancelada</option>
-                    <option value="COMPLETED">Completada</option>
-                    <option value="NO_SHOW">Inasistencia</option>
-                  </select>
-                </div>
-              </div>
-            </section>
-
-            {/* Listado */}
-            <section className="mt-8 rounded-2xl border border-line bg-white p-6 shadow-sm">
-              <h2 className="text-2xl font-bold">
-                Listado de citas
-              </h2>
-
-              <div
-                id="listaCitas"
-                className="mt-5 space-y-5"
-                aria-live="polite"
+              </section>
+            ) : (
+              <section
+                aria-label="Listado de citas médicas"
+                className="space-y-4"
               >
-                <div className="rounded-xl border border-dashed border-line px-4 py-10 text-center">
-                  <p className="font-semibold text-ink">
-                    Tus citas aparecerán aquí
-                  </p>
+                {filteredAppointments.map((appointment) => {
+                  const canCancel = appointment.status === "pending";
 
-                  <p className="mt-2 text-sm text-muted">
-                    El listado se conectará con el servicio de citas en la siguiente etapa.
-                  </p>
-                </div>
-              </div>
+                  const statusStyles: Record<AppointmentStatus, string> = {
+                    pending: "bg-amber-50 text-amber-800 ring-amber-200",
+                    confirmed: "bg-blue-50 text-blue-800 ring-blue-200",
+                    completed: "bg-primary-light text-primary-dark ring-primary/20",
+                    cancelled: "bg-gray-100 text-gray-600 ring-gray-200",
+                  };
 
-              <div
-                id="mensajeSinCitas"
-                className="mt-6 hidden rounded-xl border border-yellow-300 bg-yellow-50 p-4"
-              >
-                <p>No se encontraron citas médicas.</p>
-              </div>
-            </section>
-          </div>
-        </main>
-      </div>
+                  return (
+                    <article
+                      key={appointment.id}
+                      className="rounded-2xl border border-line bg-white p-5 shadow-sm transition hover:shadow-md sm:p-6"
+                    >
+                      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-3">
+                            <h2 className="text-lg font-semibold">
+                              {appointment.doctorName}
+                            </h2>
+
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${
+                                statusStyles[appointment.status]
+                              }`}
+                            >
+                              {APPOINTMENT_STATUSES[appointment.status]}
+                            </span>
+                          </div>
+
+                          <p className="mt-1 text-sm text-muted">
+                            {appointment.specialtyName}
+                          </p>
+
+                          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                            <div>
+                              <p className="text-xs font-medium uppercase tracking-wide text-muted">
+                                Fecha
+                              </p>
+                              <p className="mt-1 font-medium">
+                                {appointment.date}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-medium uppercase tracking-wide text-muted">
+                                Hora
+                              </p>
+                              <p className="mt-1 font-medium">
+                                {appointment.time}
+                              </p>
+                            </div>
+
+                            <div>
+                              <p className="text-xs font-medium uppercase tracking-wide text-muted">
+                                Modalidad
+                              </p>
+                              <p className="mt-1 font-medium">
+                                {appointment.modality === "online"
+                                  ? "Virtual"
+                                  : "Presencial"}
+                              </p>
+                            </div>
+                          </div>
+
+                          {appointment.reason && (
+                            <div className="mt-5 border-t border-line pt-4">
+                              <p className="text-xs font-medium uppercase tracking-wide text-muted">
+                                Motivo de consulta
+                              </p>
+                              <p className="mt-1 whitespace-pre-wrap text-sm">
+                                {appointment.reason}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="shrink-0">
+                          {canCancel ? (
+                            <button
+                              type="button"
+                              onClick={() => handleCancel(appointment.id)}
+                              className="w-full rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 sm:w-auto"
+                            >
+                              Cancelar cita
+                            </button>
+                          ) : (
+                            <p className="text-sm text-muted">
+                              {appointment.status === "confirmed" &&
+                                "Cita confirmada"}
+                              {appointment.status === "completed" &&
+                                "Cita completada"}
+                              {appointment.status === "cancelled" &&
+                                "Cita cancelada"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </section>
+            )}
+          </>
+        )}
+      </main>
 
       {/* Pie de página */}
-      <footer className="border-t border-line bg-white px-4 py-5 text-center text-sm text-muted">
-        <p>© 2026 MediReservas. Todos los derechos reservados.</p>
+      <footer className="mt-12 border-t border-line bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-muted sm:px-6 lg:px-8">
+          MediReservas · Gestión de citas médicas
+        </div>
       </footer>
     </div>
   );
 }
+
 export default MisCitas
