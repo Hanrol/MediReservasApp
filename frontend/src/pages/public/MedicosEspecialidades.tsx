@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import PublicFooter from '../../components/layout/PublicFooter'
 import PublicHeader from '../../components/layout/PublicHeader'
+import EmptyState from '../../components/ui/EmptyState'
+import Modal from '../../components/ui/Modal'
 import { useAuth } from '../../hooks/useAuth'
 import { getDoctors, getSpecialties, initializeBaseDoctors, initializeBaseSpecialties } from '../../lib/storage'
 import type { Doctor } from '../../lib/types'
@@ -83,7 +85,7 @@ function MedicosEspecialidades() {
                   </article>
                 ))}
               </div>
-            ) : <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800" role="status">No se encontraron especialidades.</p>}
+            ) : <EmptyState>No se encontraron especialidades.</EmptyState>}
           </div>
         </section>
 
@@ -114,7 +116,7 @@ function MedicosEspecialidades() {
                   </article>
                 ))}
               </div>
-            ) : <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-amber-800" role="status">No se encontraron médicos.</p>}
+            ) : <EmptyState>No se encontraron médicos.</EmptyState>}
           </div>
         </section>
       </main>
@@ -122,20 +124,18 @@ function MedicosEspecialidades() {
       <PublicFooter compact />
 
       {selectedDoctor && (
-        <div className="fixed inset-0 z-70 grid place-items-center bg-slate-950/55 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedDoctor(null) }}>
-          <section className="w-full max-w-lg rounded-2xl bg-white p-6 shadow-2xl sm:p-8" role="dialog" aria-modal="true" aria-labelledby="doctor-detail-title">
-            <div className="flex items-start justify-between gap-4">
-              <div><p className="text-sm font-bold uppercase tracking-widest text-primary">Profesional</p><h2 className="mt-2 text-2xl font-bold" id="doctor-detail-title">{selectedDoctor.firstName} {selectedDoctor.lastName}</h2></div>
-              <button className="grid size-10 place-items-center rounded-xl border border-line text-xl text-muted hover:bg-page" type="button" aria-label="Cerrar detalle" onClick={() => setSelectedDoctor(null)}>×</button>
-            </div>
-            <dl className="mt-6 space-y-4">
+        <Modal
+          eyebrow="Profesional"
+          title={`${selectedDoctor.firstName} ${selectedDoctor.lastName}`}
+          onClose={() => setSelectedDoctor(null)}
+          footer={<Link className="inline-flex w-full justify-center rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark" to={isAuthenticated ? `/solicitar-cita?medico=${selectedDoctor.doctorId}` : '/login'}>{isAuthenticated ? 'Solicitar cita' : 'Iniciar sesión para reservar'}</Link>}
+        >
+            <dl className="space-y-4">
               <div><dt className="text-sm font-semibold text-muted">Especialidades</dt><dd className="mt-1">{doctorSpecialties(selectedDoctor).map((item) => item?.specialtyName).join(', ')}</dd></div>
               <div><dt className="text-sm font-semibold text-muted">Registro médico</dt><dd className="mt-1">{selectedDoctor.medicalLicenseNumber}</dd></div>
               <div><dt className="text-sm font-semibold text-muted">Descripción</dt><dd className="mt-1 leading-7">{doctorSpecialties(selectedDoctor).map((item) => item?.description).join(' ')}</dd></div>
             </dl>
-            <Link className="mt-7 inline-flex w-full justify-center rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark" to={isAuthenticated ? `/solicitar-cita?medico=${selectedDoctor.doctorId}` : '/login'}>{isAuthenticated ? 'Solicitar cita' : 'Iniciar sesión para reservar'}</Link>
-          </section>
-        </div>
+        </Modal>
       )}
     </div>
   )
