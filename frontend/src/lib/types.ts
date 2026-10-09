@@ -67,3 +67,34 @@ export interface ContactValues {
 }
 
 export type ContactErrors = Partial<Record<keyof ContactValues, string>>
+
+export interface Specialty {
+  specialtyId: number
+  specialtyName: string
+  description: string
+  active: boolean
+}
+
+export type SpecialtyValues = Specialty
+export type SpecialtyErrors = Partial<Record<'specialtyName' | 'description', string>>
+
+export interface Doctor {
+  doctorId: number
+  userId: number
+  firstName: string
+  lastName: string
+  run: string
+  email: string
+  phone: string
+  medicalLicenseNumber: string
+  specialtyIds: number[]
+  admissionDate: string
+  active: boolean
+}
+
+export interface DoctorValues extends Omit<Doctor, 'specialtyIds'> {
+  specialtyId: number
+  extraSpecialtyIds: number[]
+}
+
+export type DoctorErrors = Partial<Record<keyof DoctorValues, string>>
