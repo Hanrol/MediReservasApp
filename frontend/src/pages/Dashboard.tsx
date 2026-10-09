@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import SummaryCard from '../components/ui/SummaryCard'
 import { Link, Navigate } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../hooks/useAuth'
@@ -111,10 +112,7 @@ function Dashboard() {
         <h2 className="text-2xl font-bold" id="summary-title">Resumen</h2>
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           {summary.map((item) => (
-            <article className="rounded-2xl border border-line bg-white p-5 shadow-sm" key={item.label}>
-              <p className="text-3xl font-bold text-primary-dark">{item.value}</p>
-              <p className="mt-1 text-sm text-muted">{item.label}</p>
-            </article>
+            <SummaryCard key={item.label} value={item.value} label={item.label} />
           ))}
         </div>
       </section>
