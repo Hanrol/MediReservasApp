@@ -23,7 +23,6 @@ function Home() {
       <PublicHeader
         currentPage="home"
         medicalDirectoryHref={legacyMedicalPage}
-        contactHref="/legacy/pages/contacto.html"
       />
 
       <main id="main-content" tabIndex={-1}>
@@ -110,7 +109,6 @@ function Home() {
 
       <PublicFooter
         medicalDirectoryHref={legacyMedicalPage}
-        contactHref="/legacy/pages/contacto.html"
       />
     </div>
   )
