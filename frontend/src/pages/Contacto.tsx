@@ -1,7 +1,5 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
-import PublicFooter from '../components/layout/PublicFooter'
-import PublicHeader from '../components/layout/PublicHeader'
-import SkipLink from '../components/ui/SkipLink'
+import PublicLayout from '../components/layout/PublicLayout'
 import type { ContactErrors, ContactValues } from '../lib/types'
 import { validateContact } from '../lib/validations'
 
@@ -49,12 +47,7 @@ function Contacto() {
   };
 
   return (
-    <div className="min-h-screen bg-page text-ink antialiased">
-      <SkipLink />
-
-      <PublicHeader currentPage="contact" />
-
-      <main id="main-content" tabIndex={-1}>
+    <PublicLayout currentPage="contact" compactFooter>
         <section
           className="bg-primary-dark py-14 text-white sm:py-20"
           aria-labelledby="contact-title"
@@ -321,10 +314,7 @@ function Contacto() {
             )}
           </form>
         </section>
-      </main>
-
-      <PublicFooter compact />
-    </div>
+    </PublicLayout>
   )
 }
 export default Contacto

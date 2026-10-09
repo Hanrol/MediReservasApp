@@ -1,8 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import PublicFooter from '../components/layout/PublicFooter'
-import PublicHeader from '../components/layout/PublicHeader'
-import SkipLink from '../components/ui/SkipLink'
+import PublicLayout from '../components/layout/PublicLayout'
 import { ROUTES } from '../constants/routes'
 
 function Home() {
@@ -12,12 +10,7 @@ function Home() {
   }, [])
 
   return (
-    <div className="min-h-screen bg-page text-ink antialiased">
-      <SkipLink />
-
-      <PublicHeader currentPage="home" />
-
-      <main id="main-content" tabIndex={-1}>
+    <PublicLayout currentPage="home">
         <section className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2 lg:px-8 lg:py-28" aria-labelledby="hero-title">
           <div>
             <p className="mb-4 text-sm font-bold uppercase tracking-widest text-primary">Atención médica más cerca de ti</p>
@@ -97,10 +90,7 @@ function Home() {
             <Link className="inline-flex shrink-0 rounded-xl bg-white px-6 py-3 font-semibold text-secondary transition hover:bg-blue-50" to={ROUTES.register}>Registrarme</Link>
           </div>
         </section>
-      </main>
-
-      <PublicFooter />
-    </div>
+    </PublicLayout>
   )
 }
 

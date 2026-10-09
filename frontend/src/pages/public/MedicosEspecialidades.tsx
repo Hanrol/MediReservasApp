@@ -1,10 +1,8 @@
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import PublicFooter from '../../components/layout/PublicFooter'
-import PublicHeader from '../../components/layout/PublicHeader'
+import PublicLayout from '../../components/layout/PublicLayout'
 import EmptyState from '../../components/ui/EmptyState'
 import Modal from '../../components/ui/Modal'
-import SkipLink from '../../components/ui/SkipLink'
 import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
 import { getDoctors, getSpecialties, initializeBaseDoctors, initializeBaseSpecialties } from '../../lib/storage'
@@ -52,11 +50,8 @@ function MedicosEspecialidades() {
   }
 
   return (
-    <div className="min-h-screen bg-page text-ink antialiased">
-      <SkipLink />
-      <PublicHeader currentPage="directory" />
-
-      <main id="main-content" tabIndex={-1}>
+    <Fragment>
+      <PublicLayout currentPage="directory" compactFooter>
         <section className="bg-primary-dark py-14 text-white sm:py-20" aria-labelledby="directory-title">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <p className="text-sm font-bold uppercase tracking-widest text-emerald-200">Directorio médico</p>
@@ -121,9 +116,7 @@ function MedicosEspecialidades() {
             ) : <EmptyState>No se encontraron médicos.</EmptyState>}
           </div>
         </section>
-      </main>
-
-      <PublicFooter compact />
+      </PublicLayout>
 
       {selectedDoctor && (
         <Modal
@@ -139,7 +132,7 @@ function MedicosEspecialidades() {
             </dl>
         </Modal>
       )}
-    </div>
+    </Fragment>
   )
 }
 

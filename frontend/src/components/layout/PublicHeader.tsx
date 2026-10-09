@@ -3,7 +3,7 @@ import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
 import { useMobileMenu } from '../../hooks/useMobileMenu'
 
-type PublicPage = 'home' | 'directory' | 'contact'
+export type PublicPage = 'home' | 'directory' | 'contact'
 
 interface PublicHeaderProps {
   currentPage: PublicPage
