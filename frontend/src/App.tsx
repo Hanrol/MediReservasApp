@@ -21,7 +21,7 @@ import Registro from './pages/Registro'
 function App() {
   return (
     <>
-    <MisCitas></MisCitas>
+    <SolicitarCita></SolicitarCita>
     </>
   )
 }
