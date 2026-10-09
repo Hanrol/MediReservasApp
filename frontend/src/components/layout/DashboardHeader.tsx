@@ -8,10 +8,10 @@ interface DashboardHeaderProps {
 }
 
 function DashboardHeader({ menuOpen, onOpenMenu }: DashboardHeaderProps) {
-  const { session, logout } = useAuth()
-  const config = session ? DASHBOARD_CONFIG[session.role] : null
+  const { user, logout } = useAuth()
+  const config = user ? DASHBOARD_CONFIG[user.role] : null
 
-  if (!session || !config) return null
+  if (!user || !config) return null
 
   return (
     <header className="relative z-30 border-b border-line bg-white">
@@ -33,7 +33,7 @@ function DashboardHeader({ menuOpen, onOpenMenu }: DashboardHeaderProps) {
         </div>
         <div className="flex items-center gap-3 sm:gap-5">
           <Link className="text-right" to="/perfil" aria-label="Ver mi perfil">
-            <p className="text-sm font-semibold">{session.firstName} {session.lastName}</p>
+            <p className="text-sm font-semibold">{user.firstName} {user.lastName}</p>
             <p className="text-xs text-muted">{config.label}</p>
           </Link>
           <button

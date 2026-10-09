@@ -10,8 +10,8 @@ interface DashboardSidebarProps {
 }
 
 function DashboardSidebar({ currentPath, menuOpen, onCloseMenu }: DashboardSidebarProps) {
-  const { session } = useAuth()
-  const config = session ? DASHBOARD_CONFIG[session.role] : null
+  const { user } = useAuth()
+  const config = user ? DASHBOARD_CONFIG[user.role] : null
 
   if (!config) return null
 
