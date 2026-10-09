@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import SkipLink from '../components/ui/SkipLink'
 import { useAuth } from '../hooks/useAuth'
 
 function AccesoDenegado() {
@@ -11,12 +12,7 @@ function AccesoDenegado() {
 
   return (
     <div className="grid min-h-screen place-items-center bg-page px-4 py-10 text-ink antialiased sm:px-6">
-      <a
-        className="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0"
-        href="#main-content"
-      >
-        Saltar al contenido principal
-      </a>
+      <SkipLink />
 
       <main className="w-full max-w-xl" id="main-content" tabIndex={-1}>
         <section

@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import PublicFooter from '../components/layout/PublicFooter'
 import PublicHeader from '../components/layout/PublicHeader'
+import SkipLink from '../components/ui/SkipLink'
 
 function Home() {
   useEffect(() => {
@@ -11,12 +12,7 @@ function Home() {
 
   return (
     <div className="min-h-screen bg-page text-ink antialiased">
-      <a
-        className="fixed left-4 top-4 z-20 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0"
-        href="#main-content"
-      >
-        Saltar al contenido principal
-      </a>
+      <SkipLink />
 
       <PublicHeader currentPage="home" />
 

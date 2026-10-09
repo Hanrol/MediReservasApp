@@ -1,6 +1,7 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
 import PublicFooter from '../components/layout/PublicFooter'
 import PublicHeader from '../components/layout/PublicHeader'
+import SkipLink from '../components/ui/SkipLink'
 import type { ContactErrors, ContactValues } from '../lib/types'
 import { validateContact } from '../lib/validations'
 
@@ -49,12 +50,7 @@ function Contacto() {
 
   return (
     <div className="min-h-screen bg-page text-ink antialiased">
-      <a
-        className="fixed left-4 top-4 z-50 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0"
-        href="#main-content"
-      >
-        Saltar al contenido principal
-      </a>
+      <SkipLink />
 
       <PublicHeader currentPage="contact" />
 

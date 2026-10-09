@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import SkipLink from '../components/ui/SkipLink'
 import { getNextUserId, initializeBaseUsers, saveUser, userExists } from '../lib/storage'
 import type { RegistrationErrors, RegistrationValues } from '../lib/types'
 import { getLocalDateString, normalizeRun, validateRegistration } from '../lib/validations'
@@ -117,7 +118,7 @@ function Registro() {
 
   return (
     <div className="min-h-screen bg-page text-ink antialiased">
-      <a className="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0" href="#main-content">Saltar al contenido principal</a>
+      <SkipLink />
       <header className="border-b border-line bg-white">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8" aria-label="Navegación de registro">
           <Link className="flex items-center gap-2 text-xl font-bold text-primary-dark" to="/" aria-label="Volver al inicio de MediReservas">
