@@ -2,17 +2,17 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import AuthGuard from './guards/AuthGuard'
 import RoleGuard from './guards/RoleGuard'
 import AccesoDenegado from './pages/AccesoDenegado'
-import AgendaMedica from './pages/Agenda-Medica'
 import Contacto from './pages/Contacto'
+import SolicitarCita from './pages/paciente/Solicitar-cita';
+import ObservacionClinica from './pages/medico/Observacion-clinica';
+import MisCitas from './pages/paciente/Mis-citas';
+import AgendaMedica from './pages/medico/Agenda-Medica';
 import Dashboard from './pages/Dashboard'
 import Home from './pages/Home'
 import Login from './pages/Login'
-import MisCitas from './pages/Mis-citas'
-import ObservacionClinica from './pages/Observacion-clinica'
 import Perfil from './pages/Perfil'
 import Registro from './pages/Registro'
 import Roles from './pages/Roles'
-import SolicitarCita from './pages/Solicitar-cita'
 import Usuarios from './pages/Usuarios'
 
 function App() {
@@ -35,6 +35,8 @@ function App() {
 
       <Route path="/solicitar-cita" element={<RoleGuard allowedRoles={['PATIENT']}><SolicitarCita /></RoleGuard>} />
       <Route path="/mis-citas" element={<RoleGuard allowedRoles={['PATIENT']}><MisCitas /></RoleGuard>} />
+
+      <Route path="/agenda-medica" element={<RoleGuard allowedRoles={['DOCTOR']}><AgendaMedica /></RoleGuard>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
