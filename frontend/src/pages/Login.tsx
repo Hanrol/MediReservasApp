@@ -1,5 +1,5 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { authenticate } from '../lib/auth'
 import { initializeBaseUsers } from '../lib/storage'
@@ -10,7 +10,8 @@ const initialValues: LoginValues = { email: '', password: '' }
 
 function Login() {
   const navigate = useNavigate()
-  const { startSession } = useAuth()
+  const location = useLocation()
+  const { isAuthenticated, startSession } = useAuth()
   const timerRef = useRef<number | null>(null)
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
@@ -18,6 +19,9 @@ function Login() {
   const [errors, setErrors] = useState<LoginErrors>({})
   const [message, setMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const requestedPath = typeof location.state?.from === 'string' && location.state.from.startsWith('/')
+    ? location.state.from
+    : '/dashboard'
 
   useEffect(() => {
     document.title = 'Iniciar sesión | MediReservas'
@@ -62,8 +66,10 @@ function Login() {
     startSession(user)
     setIsSubmitting(true)
     setMessage('Sesión iniciada. Redirigiendo al panel...')
-    timerRef.current = window.setTimeout(() => navigate('/dashboard'), 500)
+    timerRef.current = window.setTimeout(() => navigate(requestedPath, { replace: true }), 500)
   }
+
+  if (isAuthenticated) return <Navigate to={requestedPath} replace />
 
   return (
     <div className="min-h-screen bg-page text-ink antialiased">
