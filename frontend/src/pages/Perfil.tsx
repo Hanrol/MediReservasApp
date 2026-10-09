@@ -2,15 +2,14 @@ import { useEffect } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { Navigate } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
+import { useAuth } from '../hooks/useAuth'
 import Breadcrumbs from '../components/layout/Breadcrumbs'
 import { createProfileData } from '../lib/profile'
 import { DASHBOARD_CONFIG } from '../lib/roles'
-import { getSession, getUserById } from '../lib/storage'
 
 function Perfil() {
-  const session = getSession()
-  const user = session ? getUserById(session.userId) : undefined
-  const config = session ? DASHBOARD_CONFIG[session.role] : null
+  const { user } = useAuth()
+  const config = user ? DASHBOARD_CONFIG[user.role] : null
   const profile = user && config ? createProfileData(user, config.label) : null
 
   useEffect(() => {
@@ -18,7 +17,7 @@ function Perfil() {
   }, [profile])
 
 
-  if (!session || !config || !profile) return <Navigate to={ROUTES.login} replace />
+  if (!user || !config || !profile) return <Navigate to={ROUTES.login} replace />
 
 
 
