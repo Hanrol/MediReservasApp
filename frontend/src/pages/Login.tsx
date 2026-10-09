@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { authenticate, createSession } from '../lib/auth'
+import { useAuth } from '../hooks/useAuth'
+import { authenticate } from '../lib/auth'
 import { initializeBaseUsers } from '../lib/storage'
 import type { LoginErrors, LoginValues } from '../lib/types'
 import { validateLogin } from '../lib/validations'
@@ -9,6 +10,7 @@ const initialValues: LoginValues = { email: '', password: '' }
 
 function Login() {
   const navigate = useNavigate()
+  const { startSession } = useAuth()
   const timerRef = useRef<number | null>(null)
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
@@ -57,7 +59,7 @@ function Login() {
       return
     }
 
-    createSession(user)
+    startSession(user)
     setIsSubmitting(true)
     setMessage('Sesión iniciada. Redirigiendo al panel...')
     timerRef.current = window.setTimeout(() => navigate('/dashboard'), 500)
