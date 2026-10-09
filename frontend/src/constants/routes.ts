@@ -14,6 +14,7 @@ export const ROUTES = {
   appointmentManagement: '/gestion-citas',
   medicalSchedule: '/agenda-medica',
   clinicalObservation: '/observacion-clinica',
+  clinicalHistory: '/historial-clinico',
   requestAppointment: '/solicitar-cita',
   myAppointments: '/mis-citas',
 } as const

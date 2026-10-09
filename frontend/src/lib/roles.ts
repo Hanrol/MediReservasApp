@@ -37,7 +37,7 @@ export const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
     description: 'Consulta tu agenda y registra la información de tus atenciones.',
     actions: [
       { icon: 'AG', title: 'Mi agenda', description: 'Revisa tus citas y registra observaciones de las atenciones confirmadas.', href: '/agenda-medica', reactRoute: true },
-      { icon: 'HI', title: 'Historial clínico', description: 'Consulta antecedentes asociados a tus atenciones.', href: '/legacy/pages/historial-clinico.html' },
+      { icon: 'HI', title: 'Historial clínico', description: 'Consulta antecedentes asociados a tus atenciones.', href: '/historial-clinico', reactRoute: true },
     ],
   },
   PATIENT: {
@@ -47,7 +47,7 @@ export const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
       { icon: 'RE', title: 'Reservar una hora', description: 'Selecciona especialidad, profesional, fecha y horario.', href: '/solicitar-cita', reactRoute: true },
       { icon: 'MC', title: 'Mis citas', description: 'Consulta, revisa o cancela tus próximas atenciones.', href: '/mis-citas', reactRoute: true },
       { icon: 'ME', title: 'Buscar médicos', description: 'Encuentra profesionales por nombre o especialidad.', href: '/legacy/pages/medicos-especialidades.html' },
-      { icon: 'HI', title: 'Historial clínico', description: 'Revisa las observaciones de tus atenciones anteriores.', href: '/legacy/pages/historial-clinico.html' },
+      { icon: 'HI', title: 'Historial clínico', description: 'Revisa las observaciones de tus atenciones anteriores.', href: '/historial-clinico', reactRoute: true },
     ],
   },
 }

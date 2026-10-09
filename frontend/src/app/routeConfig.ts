@@ -18,6 +18,7 @@ import Perfil from '../pages/Perfil'
 import MedicosEspecialidades from '../pages/public/MedicosEspecialidades'
 import GestionCitas from '../pages/recepcion/GestionCitas'
 import Registro from '../pages/Registro'
+import HistorialClinico from '../pages/shared/HistorialClinico'
 
 export interface AppRoute {
   path: string
@@ -42,6 +43,7 @@ export const routeConfig: readonly AppRoute[] = [
   { path: ROUTES.appointmentManagement, component: GestionCitas, allowedRoles: ['ADMIN', 'RECEPTIONIST'] },
   { path: ROUTES.medicalSchedule, component: AgendaMedica, allowedRoles: ['DOCTOR'] },
   { path: ROUTES.clinicalObservation, component: ObservacionClinica, allowedRoles: ['DOCTOR'] },
+  { path: ROUTES.clinicalHistory, component: HistorialClinico, allowedRoles: ['DOCTOR', 'PATIENT'] },
   { path: ROUTES.requestAppointment, component: SolicitarCita, allowedRoles: ['PATIENT'] },
   { path: ROUTES.myAppointments, component: MisCitas, allowedRoles: ['PATIENT'] },
 ]
