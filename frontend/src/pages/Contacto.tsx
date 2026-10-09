@@ -1,5 +1,6 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
 import PublicLayout from '../components/layout/PublicLayout'
+import FormMessage from '../components/forms/FormMessage'
 import type { ContactErrors, ContactValues } from '../lib/types'
 import { validateContact } from '../lib/validations'
 
@@ -210,12 +211,7 @@ function Contacto() {
                   autoComplete="name"
                 />
 
-                <p
-                  className="mt-1 min-h-5 text-sm text-red-600"
-                  role="alert"
-                >
-                  {errors.nombre}
-                </p>
+                <FormMessage>{errors.nombre}</FormMessage>
               </div>
 
               <div>
@@ -236,12 +232,7 @@ function Contacto() {
                   autoComplete="email"
                 />
 
-                <p
-                  className="mt-1 min-h-5 text-sm text-red-600"
-                  role="alert"
-                >
-                  {errors.correo}
-                </p>
+                <FormMessage>{errors.correo}</FormMessage>
               </div>
             </div>
 
@@ -262,12 +253,7 @@ function Contacto() {
                 className="mt-2 w-full rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
               />
 
-              <p
-                className="mt-1 min-h-5 text-sm text-red-600"
-                role="alert"
-              >
-                {errors.asunto}
-              </p>
+              <FormMessage>{errors.asunto}</FormMessage>
             </div>
 
             <div className="mt-5">
@@ -287,12 +273,7 @@ function Contacto() {
                 className="mt-2 w-full resize-y rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
               />
 
-              <p
-                className="mt-1 min-h-5 text-sm text-red-600"
-                role="alert"
-              >
-                {errors.mensaje}
-              </p>
+              <FormMessage>{errors.mensaje}</FormMessage>
             </div>
 
             <button

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import FormMessage from '../components/forms/FormMessage'
 import SkipLink from '../components/ui/SkipLink'
 import { ROUTES } from '../constants/routes'
 import { getNextUserId, initializeBaseUsers, saveUser, userExists } from '../lib/storage'
@@ -112,7 +113,7 @@ function Registro() {
           }}
         />
         {field.name === 'run' && <p className="mt-1.5 text-xs text-muted" id="run-help">Escríbelo sin puntos y con guion.</p>}
-        <p className="mt-1.5 min-h-5 text-sm text-red-600" id={`${field.id}-error`} role="alert">{errors[field.name]}</p>
+        <FormMessage id={`${field.id}-error`}>{errors[field.name]}</FormMessage>
       </div>
     )
   }
@@ -145,7 +146,7 @@ function Registro() {
                 <input className="mt-1 size-4 accent-primary" id="terms" name="terms" type="checkbox" aria-describedby="terms-error" aria-invalid={Boolean(errors.terms)} checked={values.terms} disabled={submitted} onChange={(event) => changeField('terms', event.target.checked)} />
                 <label className="text-sm leading-6 text-muted" htmlFor="terms">Acepto los términos de uso y la política de privacidad.</label>
               </div>
-              <p className="mt-1.5 min-h-5 text-sm text-red-600" id="terms-error" role="alert">{errors.terms}</p>
+              <FormMessage id="terms-error">{errors.terms}</FormMessage>
             </div>
             <button className="w-full rounded-xl bg-primary px-6 py-3.5 font-semibold text-white shadow-sm transition hover:bg-primary-dark focus:ring-3 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60" type="submit" disabled={submitted}>Crear cuenta</button>
             <p className={`text-center text-sm font-medium ${submitted ? 'text-primary-dark' : 'text-red-600'}`} id="register-message" role="status">{message}</p>

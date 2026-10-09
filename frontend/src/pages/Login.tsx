@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import FormMessage from '../components/forms/FormMessage'
 import SkipLink from '../components/ui/SkipLink'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../hooks/useAuth'
@@ -114,7 +115,7 @@ function Login() {
                   onChange={(event) => updateField('email', event.target.value)}
                   onBlur={() => validateField('email')}
                 />
-                <p className="mt-1.5 min-h-5 text-sm text-red-600" id="email-error" role="alert">{errors.email}</p>
+                <FormMessage id="email-error">{errors.email}</FormMessage>
               </div>
 
               <div>
@@ -134,7 +135,7 @@ function Login() {
                   onChange={(event) => updateField('password', event.target.value)}
                   onBlur={() => validateField('password')}
                 />
-                <p className="mt-1.5 min-h-5 text-sm text-red-600" id="password-error" role="alert">{errors.password}</p>
+                <FormMessage id="password-error">{errors.password}</FormMessage>
               </div>
 
               <button className="w-full rounded-xl bg-primary px-6 py-3.5 font-semibold text-white shadow-sm transition hover:bg-primary-dark focus:ring-3 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60" type="submit" disabled={isSubmitting}>
