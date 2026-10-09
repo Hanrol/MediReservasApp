@@ -1,8 +1,10 @@
-import { BASE_USERS } from './data'
-import type { Role, Session, User } from './types'
+import { BASE_DOCTORS, BASE_SPECIALTIES, BASE_USERS } from './data'
+import type { Doctor, Role, Session, Specialty, User } from './types'
 
 const USERS_KEY = 'medireservas_users'
 const SESSION_KEY = 'medireservas_session'
+const DOCTORS_KEY = 'medireservas_doctors'
+const SPECIALTIES_KEY = 'medireservas_specialties'
 const legacyRoles: Record<string, Role> = {
   ADMINISTRADOR: 'ADMIN',
   RECEPCIONISTA: 'RECEPTIONIST',
@@ -103,4 +105,65 @@ export function getStoredItems<T>(key: string): T[] {
   } catch {
     return []
   }
+}
+
+export function getSpecialties(): Specialty[] {
+  return getStoredItems<Specialty>(SPECIALTIES_KEY).map((item, index) => ({ ...item, specialtyId: Number(item.specialtyId ?? index + 1) }))
+}
+
+export function initializeBaseSpecialties() {
+  if (!localStorage.getItem(SPECIALTIES_KEY)) localStorage.setItem(SPECIALTIES_KEY, JSON.stringify(BASE_SPECIALTIES))
+}
+
+export function getNextSpecialtyId() {
+  return getSpecialties().reduce((max, item) => Math.max(max, item.specialtyId), 0) + 1
+}
+
+export function saveSpecialty(specialty: Specialty) {
+  localStorage.setItem(SPECIALTIES_KEY, JSON.stringify([...getSpecialties(), specialty]))
+}
+
+export function updateSpecialty(specialtyId: number, changes: Partial<Omit<Specialty, 'specialtyId'>>) {
+  const items = getSpecialties()
+  const index = items.findIndex((item) => item.specialtyId === specialtyId)
+  if (index < 0) return null
+  items[index] = { ...items[index], ...changes, specialtyId }
+  localStorage.setItem(SPECIALTIES_KEY, JSON.stringify(items))
+  return items[index]
+}
+
+export function isSpecialtyNameTaken(name: string, excludedId?: number) {
+  const normalized = name.trim().toLowerCase()
+  return getSpecialties().some((item) => item.specialtyId !== excludedId && item.specialtyName.trim().toLowerCase() === normalized)
+}
+
+export function getDoctors(): Doctor[] {
+  return getStoredItems<Doctor>(DOCTORS_KEY).map((item, index) => ({ ...item, doctorId: Number(item.doctorId ?? index + 1), userId: Number(item.userId), specialtyIds: item.specialtyIds ?? [] }))
+}
+
+export function initializeBaseDoctors() {
+  if (!localStorage.getItem(DOCTORS_KEY)) localStorage.setItem(DOCTORS_KEY, JSON.stringify(BASE_DOCTORS))
+}
+
+export function getNextDoctorId() {
+  return getDoctors().reduce((max, item) => Math.max(max, item.doctorId), 0) + 1
+}
+
+export function saveDoctor(doctor: Doctor) {
+  localStorage.setItem(DOCTORS_KEY, JSON.stringify([...getDoctors(), doctor]))
+}
+
+export function updateDoctor(doctorId: number, changes: Partial<Omit<Doctor, 'doctorId'>>) {
+  const items = getDoctors()
+  const index = items.findIndex((item) => item.doctorId === doctorId)
+  if (index < 0) return null
+  items[index] = { ...items[index], ...changes, doctorId }
+  localStorage.setItem(DOCTORS_KEY, JSON.stringify(items))
+  return items[index]
+}
+
+export function isDoctorDataTaken(run: string, license: string, excludedId?: number) {
+  const normalizedRun = run.trim().toLowerCase()
+  const normalizedLicense = license.trim().toLowerCase()
+  return getDoctors().some((item) => item.doctorId !== excludedId && (item.run.trim().toLowerCase() === normalizedRun || item.medicalLicenseNumber.trim().toLowerCase() === normalizedLicense))
 }

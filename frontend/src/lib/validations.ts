@@ -1,12 +1,16 @@
 import type {
   ContactErrors,
   ContactValues,
+  Doctor,
+  DoctorErrors,
   LoginErrors,
   LoginValues,
   ManagedUserErrors,
   ManagedUserValues,
   RegistrationErrors,
   RegistrationValues,
+  SpecialtyErrors,
+  SpecialtyValues,
 } from './types'
 
 export function validateContact(values: ContactValues): ContactErrors {
@@ -106,5 +110,46 @@ export function validateManagedUser(values: ManagedUserValues, isEditing = false
   if (values.address.length > 150) errors.address = 'La dirección no puede superar 150 caracteres.'
   if (!isEditing && !values.password) errors.password = 'La contraseña temporal es obligatoria.'
   else if (values.password && (values.password.length < 6 || values.password.length > 100)) errors.password = 'La contraseña debe tener entre 6 y 100 caracteres.'
+  return errors
+}
+
+export function validateSpecialty(values: SpecialtyValues): SpecialtyErrors {
+  const errors: SpecialtyErrors = {}
+  const specialtyName = values.specialtyName.trim()
+  const description = values.description.trim()
+
+  if (!specialtyName) errors.specialtyName = 'El nombre de la especialidad es obligatorio.'
+  else if (specialtyName.length > 100) errors.specialtyName = 'El nombre no puede superar 100 caracteres.'
+  if (!description) errors.description = 'La descripción es obligatoria.'
+  else if (description.length > 300) errors.description = 'La descripción no puede superar 300 caracteres.'
+
+  return errors
+}
+
+export function validateDoctor(values: Doctor): DoctorErrors {
+  const errors: DoctorErrors = {}
+
+  if (!values.userId) errors.userId = 'Selecciona un usuario médico.'
+  if (!values.firstName.trim()) errors.firstName = 'El nombre es obligatorio.'
+  else if (values.firstName.length > 80) errors.firstName = 'El nombre no puede superar 80 caracteres.'
+  else if (!isValidName(values.firstName)) errors.firstName = 'El nombre contiene caracteres no permitidos.'
+  if (!values.lastName.trim()) errors.lastName = 'Los apellidos son obligatorios.'
+  else if (values.lastName.length > 80) errors.lastName = 'Los apellidos no pueden superar 80 caracteres.'
+  else if (!isValidName(values.lastName)) errors.lastName = 'Los apellidos contienen caracteres no permitidos.'
+  if (!values.run) errors.run = 'El RUN es obligatorio.'
+  else if (!isValidRun(values.run)) errors.run = 'Ingresa un RUN chileno válido.'
+  if (!values.email) errors.email = 'El correo electrónico es obligatorio.'
+  else if (values.email.length > 100) errors.email = 'El correo no puede superar 100 caracteres.'
+  else if (!isValidEmail(values.email)) errors.email = 'Ingresa un correo electrónico válido.'
+  if (values.phone) {
+    const digits = values.phone.replace(/\D/g, '')
+    if (digits.length < 9 || digits.length > 12) errors.phone = 'Ingresa un teléfono válido de 9 a 12 dígitos.'
+  }
+  if (!values.medicalLicenseNumber.trim()) errors.medicalLicenseNumber = 'El registro médico es obligatorio.'
+  else if (values.medicalLicenseNumber.length > 50) errors.medicalLicenseNumber = 'El registro médico no puede superar 50 caracteres.'
+  if (!values.specialtyIds.length) errors.specialtyId = 'Selecciona al menos una especialidad.'
+  if (!values.admissionDate) errors.admissionDate = 'La fecha de ingreso es obligatoria.'
+  else if (values.admissionDate > getLocalDateString()) errors.admissionDate = 'La fecha de ingreso no puede ser futura.'
+
   return errors
 }
