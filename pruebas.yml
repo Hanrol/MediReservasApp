@@ -1,0 +1,84 @@
+# CI/CD: en cada push o pull request se corren las pruebas de los tres ejemplos.
+# En main, si todas pasan, se compilan y se publican juntos en GitHub Pages:
+#   https://donkiwicl.github.io/fs2-react-ejemplos/              → portada (pages/index.html)
+#   https://donkiwicl.github.io/fs2-react-ejemplos/01-localstorage/ … y así cada ejemplo
+name: Pruebas y GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: # permite ejecutarlo a mano desde la pestaña "Actions"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  pruebas:
+    name: ${{ matrix.ejemplo }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ejemplo: [01-localstorage, 02-usuario, 03-spa]
+    defaults:
+      run:
+        working-directory: ${{ matrix.ejemplo }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ matrix.ejemplo }}/package-lock.json
+      - run: npm ci
+      - name: Pruebas unitarias y de componentes (Vitest)
+        run: npm run test:run
+      - name: Instalar navegador de Playwright
+        run: npx playwright install --with-deps chromium
+      - name: Pruebas end-to-end (Playwright)
+        run: npm run test:e2e
+      # Evidencia: informe HTML con capturas (y videos de las pruebas que fallen), 30 días.
+      - uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-${{ matrix.ejemplo }}
+          path: ${{ matrix.ejemplo }}/playwright-report/
+          retention-days: 30
+
+  build-pages:
+    if: github.ref == 'refs/heads/main'
+    needs: pruebas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Compilar los ejemplos y armar el sitio
+        run: |
+          mkdir -p _site
+          cp pages/index.html _site/
+          for ejemplo in 01-localstorage 02-usuario 03-spa; do
+            (cd "$ejemplo" && npm ci && npm run build)
+            cp -r "$ejemplo/dist" "_site/$ejemplo"
+          done
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: _site
+
+  deploy:
+    needs: build-pages
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar en GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
