@@ -83,25 +83,22 @@ function Contacto() {
             Información de atención
           </h2>
 
-          <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <article className="rounded-2xl border border-line bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-primary-dark">
+          <address className="mt-7 grid gap-5 not-italic sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-2xl border border-line bg-white p-6 shadow-sm">
+              <p className="text-lg font-bold text-primary-dark">
                 Dirección
-              </h3>
+              </p>
 
               <p className="mt-3 text-muted">
-                Av. Vicuña Mackenna 4917
-              </p>
-
-              <p className="text-muted">
+                Av. Vicuña Mackenna 4917<br />
                 San Joaquín, Santiago
               </p>
-            </article>
+            </div>
 
-            <article className="rounded-2xl border border-line bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-primary-dark">
+            <div className="rounded-2xl border border-line bg-white p-6 shadow-sm">
+              <p className="text-lg font-bold text-primary-dark">
                 Teléfono
-              </h3>
+              </p>
 
               <a
                 className="mt-3 inline-flex text-muted hover:text-primary"
@@ -109,12 +106,12 @@ function Contacto() {
               >
                 +56 2 2345 6789
               </a>
-            </article>
+            </div>
 
-            <article className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:col-span-2 lg:col-span-1">
-              <h3 className="text-lg font-bold text-primary-dark">
+            <div className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:col-span-2 lg:col-span-1">
+              <p className="text-lg font-bold text-primary-dark">
                 Correo electrónico
-              </h3>
+              </p>
 
               <a
                 className="mt-3 inline-flex break-all text-muted hover:text-primary"
@@ -122,8 +119,8 @@ function Contacto() {
               >
                 contacto@medireservas.cl
               </a>
-            </article>
-          </div>
+            </div>
+          </address>
         </section>
 
         <section
@@ -182,7 +179,7 @@ function Contacto() {
               </p>
 
               <p className="mt-2 text-sm leading-6 text-muted">
-                Lunes a viernes, de 08:00 a 18:00 horas.
+                Lunes a viernes, de <time dateTime="08:00">08:00</time> a <time dateTime="18:00">18:00</time> horas.
               </p>
             </div>
           </div>
