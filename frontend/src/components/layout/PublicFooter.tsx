@@ -34,9 +34,9 @@ function PublicFooter({
         <nav aria-label="Navegación del pie de página">
           <ul className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted md:justify-center">
             <li><Link className="hover:text-primary" to="/">Inicio</Link></li>
-            <li><a className="hover:text-primary" href={`${medicalDirectoryHref}#medicos`}>Médicos</a></li>
-            <li><a className="hover:text-primary" href={`${medicalDirectoryHref}#especialidades`}>Especialidades</a></li>
-            <li><a className="hover:text-primary" href={contactHref}>Contacto</a></li>
+            <li><Link className="hover:text-primary" to={`${medicalDirectoryHref}#medicos`}>Médicos</Link></li>
+            <li><Link className="hover:text-primary" to={`${medicalDirectoryHref}#especialidades`}>Especialidades</Link></li>
+            <li><Link className="hover:text-primary" to={contactHref}>Contacto</Link></li>
           </ul>
         </nav>
         <p className="text-sm text-muted md:text-right">© {year} MediReservas. Todos los derechos reservados.</p>

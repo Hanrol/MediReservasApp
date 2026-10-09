@@ -32,9 +32,9 @@ function PublicHeader({
 
         <ul className="hidden items-center gap-8 text-sm font-medium text-muted lg:flex">
           <li><Link className={desktopLink('home')} to="/" aria-current={currentPage === 'home' ? 'page' : undefined}>Inicio</Link></li>
-          <li><a className={desktopLink('directory')} href={`${medicalDirectoryHref}#especialidades`}>Especialidades</a></li>
-          <li><a className={desktopLink('directory')} href={`${medicalDirectoryHref}#medicos`}>Médicos</a></li>
-          <li><a className={desktopLink('contact')} href={contactHref} aria-current={currentPage === 'contact' ? 'page' : undefined}>Contacto</a></li>
+          <li><Link className={desktopLink('directory')} to={`${medicalDirectoryHref}#especialidades`}>Especialidades</Link></li>
+          <li><Link className={desktopLink('directory')} to={`${medicalDirectoryHref}#medicos`}>Médicos</Link></li>
+          <li><Link className={desktopLink('contact')} to={contactHref} aria-current={currentPage === 'contact' ? 'page' : undefined}>Contacto</Link></li>
         </ul>
 
         <div className="flex items-center gap-2 sm:gap-3">
@@ -64,9 +64,9 @@ function PublicHeader({
       <nav id="mobile-menu" className={`${menuOpen ? '' : 'hidden'} absolute inset-x-0 top-full z-10 border-t border-line bg-white px-4 py-5 shadow-xl lg:hidden`} aria-label="Navegación móvil">
         <ul className="space-y-2 font-medium">
           <li><Link className={mobileLink('home')} to="/" aria-current={currentPage === 'home' ? 'page' : undefined} onClick={closeMenu}>Inicio</Link></li>
-          <li><a className={mobileLink('directory')} href={`${medicalDirectoryHref}#especialidades`}>Especialidades</a></li>
-          <li><a className={mobileLink('directory')} href={`${medicalDirectoryHref}#medicos`}>Médicos</a></li>
-          <li><a className={mobileLink('contact')} href={contactHref} aria-current={currentPage === 'contact' ? 'page' : undefined}>Contacto</a></li>
+          <li><Link className={mobileLink('directory')} to={`${medicalDirectoryHref}#especialidades`} onClick={closeMenu}>Especialidades</Link></li>
+          <li><Link className={mobileLink('directory')} to={`${medicalDirectoryHref}#medicos`} onClick={closeMenu}>Médicos</Link></li>
+          <li><Link className={mobileLink('contact')} to={contactHref} aria-current={currentPage === 'contact' ? 'page' : undefined} onClick={closeMenu}>Contacto</Link></li>
         </ul>
         <div className={`mt-4 grid gap-3 border-t border-line pt-4 ${isAuthenticated ? '' : 'grid-cols-2'}`}>
           {isAuthenticated ? (

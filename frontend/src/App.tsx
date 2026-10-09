@@ -10,6 +10,7 @@ import Contacto from './pages/Contacto'
 import Dashboard from './pages/Dashboard'
 import Home from './pages/Home'
 import Login from './pages/Login'
+import MedicosEspecialidades from './pages/public/MedicosEspecialidades'
 import AgendaMedica from './pages/medico/Agenda-Medica'
 import ObservacionClinica from './pages/medico/Observacion-clinica'
 import MisCitas from './pages/paciente/Mis-citas'
@@ -25,6 +26,7 @@ function App() {
       <Route path="/contacto" element={<Contacto />} />
       <Route path="/login" element={<Login />} />
       <Route path="/registro" element={<Registro />} />
+      <Route path="/medicos-especialidades" element={<MedicosEspecialidades />} />
       <Route path="/acceso-denegado" element={<AccesoDenegado />} />
 
       <Route path="/dashboard" element={<AuthGuard><Dashboard /></AuthGuard>} />

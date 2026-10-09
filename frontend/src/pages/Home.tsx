@@ -3,8 +3,6 @@ import { Link } from 'react-router-dom'
 import PublicFooter from '../components/layout/PublicFooter'
 import PublicHeader from '../components/layout/PublicHeader'
 
-const legacyMedicalPage = '/legacy/pages/medicos-especialidades.html'
-
 function Home() {
   useEffect(() => {
     document.title = 'MediReservas | Reserva tu hora médica'
@@ -20,10 +18,7 @@ function Home() {
         Saltar al contenido principal
       </a>
 
-      <PublicHeader
-        currentPage="home"
-        medicalDirectoryHref={legacyMedicalPage}
-      />
+      <PublicHeader currentPage="home" />
 
       <main id="main-content" tabIndex={-1}>
         <section className="mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-2 lg:px-8 lg:py-28" aria-labelledby="hero-title">
@@ -34,8 +29,8 @@ function Home() {
               Encuentra especialistas, revisa sus horarios disponibles y solicita tu próxima atención desde cualquier dispositivo.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a className="inline-flex justify-center rounded-xl bg-primary px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-primary-dark" href={`${legacyMedicalPage}#medicos`}>Buscar un médico</a>
-              <a className="inline-flex justify-center rounded-xl border border-line bg-white px-6 py-3 font-semibold text-ink transition hover:border-primary hover:text-primary-dark" href={`${legacyMedicalPage}#especialidades`}>Ver especialidades</a>
+              <Link className="inline-flex justify-center rounded-xl bg-primary px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-primary-dark" to="/medicos-especialidades#medicos">Buscar un médico</Link>
+              <Link className="inline-flex justify-center rounded-xl border border-line bg-white px-6 py-3 font-semibold text-ink transition hover:border-primary hover:text-primary-dark" to="/medicos-especialidades#especialidades">Ver especialidades</Link>
             </div>
           </div>
 
@@ -62,7 +57,7 @@ function Home() {
                 <div className="mb-5 grid size-12 place-items-center rounded-xl bg-primary-light text-xl font-bold text-primary" aria-hidden="true">01</div>
                 <h3 className="text-xl font-bold">Encuentra especialistas</h3>
                 <p className="mt-3 leading-7 text-muted">Consulta médicos disponibles según el área de atención que necesitas.</p>
-                <a className="mt-5 inline-flex font-semibold text-primary-dark hover:text-primary" href={`${legacyMedicalPage}#medicos`}>Explorar médicos →</a>
+                <Link className="mt-5 inline-flex font-semibold text-primary-dark hover:text-primary" to="/medicos-especialidades#medicos">Explorar médicos →</Link>
               </article>
               <article className="rounded-2xl border border-line p-6 transition hover:-translate-y-1 hover:border-primary hover:shadow-lg">
                 <div className="mb-5 grid size-12 place-items-center rounded-xl bg-primary-light text-xl font-bold text-primary" aria-hidden="true">02</div>
@@ -86,7 +81,7 @@ function Home() {
               <p className="text-sm font-bold uppercase tracking-widest text-primary">Especialidades</p>
               <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl" id="specialties-title">Atención para distintas necesidades</h2>
             </div>
-            <a className="font-semibold text-primary-dark hover:text-primary" href={`${legacyMedicalPage}#especialidades`}>Conocer todas →</a>
+            <Link className="font-semibold text-primary-dark hover:text-primary" to="/medicos-especialidades#especialidades">Conocer todas →</Link>
           </div>
           <ul className="mt-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <li className="rounded-2xl border border-line bg-white p-6 font-semibold shadow-sm">Medicina general</li>
@@ -107,9 +102,7 @@ function Home() {
         </section>
       </main>
 
-      <PublicFooter
-        medicalDirectoryHref={legacyMedicalPage}
-      />
+      <PublicFooter />
     </div>
   )
 }
