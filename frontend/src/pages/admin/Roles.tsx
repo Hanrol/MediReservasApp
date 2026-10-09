@@ -1,8 +1,8 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { DASHBOARD_CONFIG, isValidRole, validateRoleChange } from '../lib/roles'
-import { getSession, getUsers, removeSession, updateUser } from '../lib/storage'
-import type { User } from '../lib/types'
+import { DASHBOARD_CONFIG, isValidRole, validateRoleChange } from '../../lib/roles.ts'
+import { getSession, getUsers, removeSession, updateUser } from '../../lib/storage.ts'
+import type { User } from '../../lib/types.ts'
 
 function Roles() {
   const navigate = useNavigate()
