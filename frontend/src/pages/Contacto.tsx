@@ -1,25 +1,22 @@
-import { useState, type FormEvent } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
+import PublicFooter from '../components/layout/PublicFooter'
+import PublicHeader from '../components/layout/PublicHeader'
+import type { ContactErrors, ContactValues } from '../lib/types'
+import { validateContact } from '../lib/validations'
+
+const emptyForm: ContactValues = { nombre: '', correo: '', asunto: '', mensaje: '' }
 
 function Contacto() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [form, setForm] = useState({
-    nombre: "",
-    correo: "",
-    asunto: "",
-    mensaje: "",
-  });
+  const [form, setForm] = useState<ContactValues>(emptyForm)
+  const [errors, setErrors] = useState<ContactErrors>({})
+  const [success, setSuccess] = useState('')
 
-  const [errors, setErrors] = useState({
-    nombre: "",
-    correo: "",
-    asunto: "",
-    mensaje: "",
-  });
-
-  const [success, setSuccess] = useState("");
+  useEffect(() => {
+    document.title = 'Contacto | MediReservas'
+  }, [])
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
 
@@ -28,39 +25,14 @@ function Contacto() {
       [name]: value,
     }));
 
-    setErrors((prev) => ({
-      ...prev,
-      [name]: "",
-    }));
+    setErrors((prev) => ({ ...prev, [name]: undefined }))
+    setSuccess('')
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const newErrors = {
-      nombre: "",
-      correo: "",
-      asunto: "",
-      mensaje: "",
-    };
-
-    if (!form.nombre.trim()) {
-      newErrors.nombre = "El nombre es obligatorio.";
-    }
-
-    if (!form.correo.trim()) {
-      newErrors.correo = "El correo electrónico es obligatorio.";
-    } else if (!/\S+@\S+\.\S+/.test(form.correo)) {
-      newErrors.correo = "Ingresa un correo electrónico válido.";
-    }
-
-    if (!form.asunto.trim()) {
-      newErrors.asunto = "El asunto es obligatorio.";
-    }
-
-    if (!form.mensaje.trim()) {
-      newErrors.mensaje = "El mensaje es obligatorio.";
-    }
+    const newErrors = validateContact(form)
 
     setErrors(newErrors);
 
@@ -71,22 +43,12 @@ function Contacto() {
       return;
     }
 
-    // Aquí posteriormente puedes conectar tu API/backend.
-    setSuccess(
-      "Tu mensaje ha sido enviado correctamente. Te responderemos a tu correo electrónico."
-    );
-
-    setForm({
-      nombre: "",
-      correo: "",
-      asunto: "",
-      mensaje: "",
-    });
+    setSuccess('El mensaje fue enviado correctamente.')
+    setForm(emptyForm)
   };
 
   return (
     <div className="min-h-screen bg-page text-ink antialiased">
-      {/* Skip link */}
       <a
         className="fixed left-4 top-4 z-50 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0"
         href="#main-content"
@@ -94,172 +56,9 @@ function Contacto() {
         Saltar al contenido principal
       </a>
 
-      {/* Header */}
-      <header className="relative z-30 border-b border-line bg-white">
-        <nav
-          className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8"
-          aria-label="Navegación principal"
-        >
-          <a
-            className="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl"
-            href="/"
-            aria-label="Ir al inicio de MediReservas"
-          >
-            <span
-              className="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white"
-              aria-hidden="true"
-            >
-              +
-            </span>
-
-            <span className="hidden sm:inline">MediReservas</span>
-          </a>
-
-          {/* Desktop navigation */}
-          <ul className="hidden items-center gap-8 text-sm font-medium text-muted lg:flex">
-            <li>
-              <a
-                className="transition hover:text-primary"
-                href="/"
-              >
-                Inicio
-              </a>
-            </li>
-
-            <li>
-              <a
-                className="transition hover:text-primary"
-                href="/medicos-especialidades#especialidades"
-              >
-                Especialidades
-              </a>
-            </li>
-
-            <li>
-              <a
-                className="transition hover:text-primary"
-                href="/medicos-especialidades#medicos"
-              >
-                Médicos
-              </a>
-            </li>
-
-            <li>
-              <a
-                className="text-primary-dark"
-                href="/contacto"
-                aria-current="page"
-              >
-                Contacto
-              </a>
-            </li>
-          </ul>
-
-          <div className="flex items-center gap-2 sm:gap-3">
-            <a
-              className="hidden rounded-lg px-4 py-2 text-sm font-semibold text-primary-dark transition hover:bg-primary-light sm:inline-flex"
-              href="/login"
-            >
-              Iniciar sesión
-            </a>
-
-            <a
-              className="hidden rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-dark sm:inline-flex"
-              href="/registro"
-            >
-              Crear cuenta
-            </a>
-
-            <button
-              className="grid size-10 place-items-center rounded-lg border border-line text-primary-dark lg:hidden"
-              type="button"
-              aria-expanded={menuOpen}
-              aria-controls="mobile-menu"
-              aria-label="Abrir menú principal"
-              onClick={() => setMenuOpen((prev) => !prev)}
-            >
-              <svg
-                className="size-6"
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              >
-                <path d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            </button>
-          </div>
-        </nav>
-
-        {/* Mobile menu */}
-        <nav
-          id="mobile-menu"
-          className={`absolute inset-x-0 top-full z-10 border-t border-line bg-white px-4 py-5 shadow-xl lg:hidden ${
-            menuOpen ? "block" : "hidden"
-          }`}
-          aria-label="Navegación móvil"
-        >
-          <ul className="space-y-2 font-medium">
-            <li>
-              <a
-                className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark"
-                href="/"
-              >
-                Inicio
-              </a>
-            </li>
-
-            <li>
-              <a
-                className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark"
-                href="/medicos-especialidades#especialidades"
-              >
-                Especialidades
-              </a>
-            </li>
-
-            <li>
-              <a
-                className="block rounded-lg px-4 py-3 text-muted hover:bg-page hover:text-primary-dark"
-                href="/medicos-especialidades#medicos"
-              >
-                Médicos
-              </a>
-            </li>
-
-            <li>
-              <a
-                className="block rounded-lg bg-primary-light px-4 py-3 text-primary-dark"
-                href="/contacto"
-                aria-current="page"
-              >
-                Contacto
-              </a>
-            </li>
-          </ul>
-
-          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-line pt-4">
-            <a
-              className="inline-flex justify-center rounded-lg border border-line px-4 py-2.5 text-sm font-semibold text-primary-dark"
-              href="/login"
-            >
-              Iniciar sesión
-            </a>
-
-            <a
-              className="inline-flex justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white"
-              href="/registro"
-            >
-              Crear cuenta
-            </a>
-          </div>
-        </nav>
-      </header>
+      <PublicHeader currentPage="contact" />
 
       <main id="main-content" tabIndex={-1}>
-        {/* Hero */}
         <section
           className="bg-primary-dark py-14 text-white sm:py-20"
           aria-labelledby="contact-title"
@@ -282,7 +81,6 @@ function Contacto() {
           </div>
         </section>
 
-        {/* Información */}
         <section
           className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8"
           aria-labelledby="contact-info-title"
@@ -338,7 +136,6 @@ function Contacto() {
           </div>
         </section>
 
-        {/* Ubicación */}
         <section
           className="border-y border-line bg-white py-14 sm:py-20"
           aria-labelledby="location-title"
@@ -371,7 +168,6 @@ function Contacto() {
           </div>
         </section>
 
-        {/* Formulario */}
         <section
           className="mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:grid-cols-[0.75fr_1.25fr] lg:items-start lg:gap-16 lg:px-8"
           aria-labelledby="form-title"
@@ -531,19 +327,8 @@ function Contacto() {
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-line bg-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-sm text-muted sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <p className="font-bold text-primary-dark">
-            MediReservas
-          </p>
-
-          <p>
-            &copy; 2026 MediReservas. Todos los derechos reservados.
-          </p>
-        </div>
-      </footer>
+      <PublicFooter compact />
     </div>
-  );
+  )
 }
 export default Contacto

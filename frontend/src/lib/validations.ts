@@ -1,4 +1,6 @@
 import type {
+  ContactErrors,
+  ContactValues,
   LoginErrors,
   LoginValues,
   ManagedUserErrors,
@@ -6,6 +8,16 @@ import type {
   RegistrationErrors,
   RegistrationValues,
 } from './types'
+
+export function validateContact(values: ContactValues): ContactErrors {
+  const errors: ContactErrors = {}
+  if (!values.nombre.trim()) errors.nombre = 'El nombre es obligatorio.'
+  if (!values.correo.trim()) errors.correo = 'El correo electrónico es obligatorio.'
+  else if (!isValidEmail(values.correo)) errors.correo = 'Ingresa un correo electrónico válido.'
+  if (!values.asunto.trim()) errors.asunto = 'El asunto es obligatorio.'
+  if (!values.mensaje.trim()) errors.mensaje = 'El mensaje es obligatorio.'
+  return errors
+}
 
 export function normalizeRun(value: string) {
   const clean = value.replace(/[^0-9kK]/g, '').toUpperCase()
