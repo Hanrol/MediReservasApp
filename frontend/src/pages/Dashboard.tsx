@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { Link, Navigate } from 'react-router-dom'
+import { ROUTES } from '../constants/routes'
 import { DASHBOARD_CONFIG, type DashboardAction } from '../lib/roles'
 import { getSession, getStoredItems, getUsers } from '../lib/storage'
 
@@ -83,13 +84,13 @@ function Dashboard() {
   }, [config])
 
 
-  if (!session || !config) return <Navigate to="/login" replace />
+  if (!session || !config) return <Navigate to={ROUTES.login} replace />
 
   const summary = getSummary(session.role, session.userId)
 
 
   return (
-    <DashboardLayout currentPath="/dashboard" mainClassName="px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
+    <DashboardLayout currentPath={ROUTES.dashboard} mainClassName="px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
 
       <section className="rounded-3xl bg-primary-dark p-6 text-white shadow-lg sm:p-8" aria-labelledby="welcome-title">
         <p className="text-sm font-bold uppercase tracking-widest text-emerald-200">Panel de {config.label.toLowerCase()}</p>

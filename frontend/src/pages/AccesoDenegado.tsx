@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import SkipLink from '../components/ui/SkipLink'
+import { ROUTES } from '../constants/routes'
 import { useAuth } from '../hooks/useAuth'
 
 function AccesoDenegado() {
@@ -41,7 +42,7 @@ function AccesoDenegado() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
               <Link
                 className="rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark"
-                to="/dashboard"
+                to={ROUTES.dashboard}
               >
                 Volver al panel
               </Link>
@@ -58,7 +59,7 @@ function AccesoDenegado() {
 
         <Link
           className="mx-auto mt-6 block w-fit text-sm font-semibold text-primary-dark hover:underline"
-          to="/"
+          to={ROUTES.home}
         >
           Ir al inicio de MediReservas
         </Link>

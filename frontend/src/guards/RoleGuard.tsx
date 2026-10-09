@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
+import { ROUTES } from '../constants/routes'
 import { useAuth } from '../hooks/useAuth'
 import type { Role } from '../lib/types'
 
@@ -13,11 +14,11 @@ function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
   const { isAuthenticated, user } = useAuth()
 
   if (!isAuthenticated || !user) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+    return <Navigate to={ROUTES.login} replace state={{ from: location.pathname }} />
   }
 
   if (!allowedRoles.includes(user.role)) {
-    return <Navigate to="/acceso-denegado" replace />
+    return <Navigate to={ROUTES.accessDenied} replace />
   }
 
   return children

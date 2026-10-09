@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { Navigate } from 'react-router-dom'
+import { ROUTES } from '../constants/routes'
 import Breadcrumbs from '../components/layout/Breadcrumbs'
 import { createProfileData } from '../lib/profile'
 import { DASHBOARD_CONFIG } from '../lib/roles'
@@ -17,14 +18,14 @@ function Perfil() {
   }, [profile])
 
 
-  if (!session || !config || !profile) return <Navigate to="/login" replace />
+  if (!session || !config || !profile) return <Navigate to={ROUTES.login} replace />
 
 
 
   return (
-    <DashboardLayout currentPath="/perfil" mainClassName="flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pb-14 sm:pt-8 lg:px-8 lg:pt-8">
+    <DashboardLayout currentPath={ROUTES.profile} mainClassName="flex-1 px-4 pb-10 pt-6 sm:px-6 sm:pb-14 sm:pt-8 lg:px-8 lg:pt-8">
 
-      <Breadcrumbs items={[{ label: 'Panel principal', href: '/dashboard' }, { label: 'Mi perfil' }]} />
+      <Breadcrumbs items={[{ label: 'Panel principal', href: ROUTES.dashboard }, { label: 'Mi perfil' }]} />
       <section className="mx-auto max-w-4xl" aria-labelledby="profile-title">
         <div className="mb-8">
           <p className="text-sm font-bold uppercase tracking-widest text-primary">Cuenta personal</p>

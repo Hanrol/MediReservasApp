@@ -5,6 +5,7 @@ import PublicHeader from '../../components/layout/PublicHeader'
 import EmptyState from '../../components/ui/EmptyState'
 import Modal from '../../components/ui/Modal'
 import SkipLink from '../../components/ui/SkipLink'
+import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
 import { getDoctors, getSpecialties, initializeBaseDoctors, initializeBaseSpecialties } from '../../lib/storage'
 import type { Doctor } from '../../lib/types'
@@ -129,7 +130,7 @@ function MedicosEspecialidades() {
           eyebrow="Profesional"
           title={`${selectedDoctor.firstName} ${selectedDoctor.lastName}`}
           onClose={() => setSelectedDoctor(null)}
-          footer={<Link className="inline-flex w-full justify-center rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark" to={isAuthenticated ? `/solicitar-cita?medico=${selectedDoctor.doctorId}` : '/login'}>{isAuthenticated ? 'Solicitar cita' : 'Iniciar sesión para reservar'}</Link>}
+          footer={<Link className="inline-flex w-full justify-center rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark" to={isAuthenticated ? `${ROUTES.requestAppointment}?medico=${selectedDoctor.doctorId}` : ROUTES.login}>{isAuthenticated ? 'Solicitar cita' : 'Iniciar sesión para reservar'}</Link>}
         >
             <dl className="space-y-4">
               <div><dt className="text-sm font-semibold text-muted">Especialidades</dt><dd className="mt-1">{doctorSpecialties(selectedDoctor).map((item) => item?.specialtyName).join(', ')}</dd></div>

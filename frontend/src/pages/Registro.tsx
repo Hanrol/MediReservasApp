@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import SkipLink from '../components/ui/SkipLink'
+import { ROUTES } from '../constants/routes'
 import { getNextUserId, initializeBaseUsers, saveUser, userExists } from '../lib/storage'
 import type { RegistrationErrors, RegistrationValues } from '../lib/types'
 import { getLocalDateString, normalizeRun, validateRegistration } from '../lib/validations'
@@ -84,7 +85,7 @@ function Registro() {
       setSubmitted(true)
       setValues(initialValues)
       setMessage('Cuenta creada correctamente. Ya puedes iniciar sesión.')
-      timerRef.current = setTimeout(() => navigate('/login'), 800)
+      timerRef.current = setTimeout(() => navigate(ROUTES.login), 800)
     } catch {
       setMessage('No se pudo guardar la cuenta. Intenta nuevamente.')
     }
@@ -121,11 +122,11 @@ function Registro() {
       <SkipLink />
       <header className="border-b border-line bg-white">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8" aria-label="Navegación de registro">
-          <Link className="flex items-center gap-2 text-xl font-bold text-primary-dark" to="/" aria-label="Volver al inicio de MediReservas">
+          <Link className="flex items-center gap-2 text-xl font-bold text-primary-dark" to={ROUTES.home} aria-label="Volver al inicio de MediReservas">
             <span className="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white" aria-hidden="true">+</span>
             <span>MediReservas</span>
           </Link>
-          <p className="text-sm text-muted"><span className="hidden sm:inline">¿Ya tienes una cuenta?</span><Link className="ml-1 font-semibold text-primary-dark hover:text-primary" to="/login">Inicia sesión</Link></p>
+          <p className="text-sm text-muted"><span className="hidden sm:inline">¿Ya tienes una cuenta?</span><Link className="ml-1 font-semibold text-primary-dark hover:text-primary" to={ROUTES.login}>Inicia sesión</Link></p>
         </nav>
       </header>
       <main className="px-4 py-10 sm:px-6 sm:py-14 lg:px-8" id="main-content" tabIndex={-1}>
@@ -153,7 +154,7 @@ function Registro() {
       </main>
       <footer className="px-4 pb-8 text-center text-sm text-muted">
         <p>&copy; {new Date().getFullYear()} MediReservas. Todos los derechos reservados.</p>
-        <Link className="mt-2 inline-flex font-semibold text-primary-dark hover:text-primary" to="/">Volver al inicio</Link>
+        <Link className="mt-2 inline-flex font-semibold text-primary-dark hover:text-primary" to={ROUTES.home}>Volver al inicio</Link>
       </footer>
     </div>
   )

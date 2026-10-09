@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import SkipLink from '../components/ui/SkipLink'
+import { ROUTES } from '../constants/routes'
 import { useAuth } from '../hooks/useAuth'
 import { authenticate } from '../lib/auth'
 import { initializeBaseUsers } from '../lib/storage'
@@ -22,7 +23,7 @@ function Login() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const requestedPath = typeof location.state?.from === 'string' && location.state.from.startsWith('/')
     ? location.state.from
-    : '/dashboard'
+    : ROUTES.dashboard
 
   useEffect(() => {
     document.title = 'Iniciar sesión | MediReservas'
@@ -77,13 +78,13 @@ function Login() {
       <SkipLink />
       <header className="border-b border-line bg-white">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8" aria-label="Navegación de inicio de sesión">
-          <Link className="flex items-center gap-2 text-xl font-bold text-primary-dark" to="/" aria-label="Volver al inicio de MediReservas">
+          <Link className="flex items-center gap-2 text-xl font-bold text-primary-dark" to={ROUTES.home} aria-label="Volver al inicio de MediReservas">
             <span className="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white" aria-hidden="true">+</span>
             <span>MediReservas</span>
           </Link>
           <p className="text-sm text-muted">
             <span className="hidden sm:inline">¿No tienes una cuenta?</span>
-            <Link className="ml-1 font-semibold text-primary-dark hover:text-primary" to="/registro">Regístrate</Link>
+            <Link className="ml-1 font-semibold text-primary-dark hover:text-primary" to={ROUTES.register}>Regístrate</Link>
           </p>
         </nav>
       </header>
@@ -143,7 +144,7 @@ function Login() {
             </form>
 
             <p className="mt-6 text-center text-sm text-muted sm:hidden">
-              ¿Aún no tienes una cuenta? <Link className="font-semibold text-primary-dark" to="/registro">Crear cuenta</Link>
+              ¿Aún no tienes una cuenta? <Link className="font-semibold text-primary-dark" to={ROUTES.register}>Crear cuenta</Link>
             </p>
           </div>
 
@@ -168,7 +169,7 @@ function Login() {
 
       <footer className="px-4 pb-8 text-center text-sm text-muted">
         <p>© {new Date().getFullYear()} MediReservas. Todos los derechos reservados.</p>
-        <Link className="mt-2 inline-flex font-semibold text-primary-dark hover:text-primary" to="/">Volver al inicio</Link>
+        <Link className="mt-2 inline-flex font-semibold text-primary-dark hover:text-primary" to={ROUTES.home}>Volver al inicio</Link>
       </footer>
     </div>
   )

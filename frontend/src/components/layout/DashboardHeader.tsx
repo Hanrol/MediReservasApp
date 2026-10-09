@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
 import { DASHBOARD_CONFIG } from '../../lib/roles'
 
@@ -26,13 +27,13 @@ function DashboardHeader({ menuOpen, onOpenMenu }: DashboardHeaderProps) {
           >
             ☰
           </button>
-          <Link className="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl" to="/" aria-label="Ir al inicio de MediReservas">
+          <Link className="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl" to={ROUTES.home} aria-label="Ir al inicio de MediReservas">
             <span className="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white" aria-hidden="true">+</span>
             <span className="hidden sm:inline">MediReservas</span>
           </Link>
         </div>
         <div className="flex items-center gap-3 sm:gap-5">
-          <Link className="text-right" to="/perfil" aria-label="Ver mi perfil">
+          <Link className="text-right" to={ROUTES.profile} aria-label="Ver mi perfil">
             <p className="text-sm font-semibold">{user.firstName} {user.lastName}</p>
             <p className="text-xs text-muted">{config.label}</p>
           </Link>

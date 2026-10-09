@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ROUTES } from '../constants/routes'
 import { createSession } from '../lib/auth'
 import { getSession, getUserById, removeSession } from '../lib/storage'
 import type { Session, User } from '../lib/types'
@@ -22,7 +23,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = useCallback(() => {
     removeSession()
     setSession(null)
-    navigate('/login', { replace: true })
+    navigate(ROUTES.login, { replace: true })
   }, [navigate])
 
   const refreshSession = useCallback(() => {
