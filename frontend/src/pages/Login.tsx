@@ -1,6 +1,10 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { authenticate, createSession } from '../lib/auth'
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import FormMessage from '../components/forms/FormMessage'
+import SkipLink from '../components/ui/SkipLink'
+import { ROUTES } from '../constants/routes'
+import { useAuth } from '../hooks/useAuth'
+import { authenticate } from '../lib/auth'
 import { initializeBaseUsers } from '../lib/storage'
 import type { LoginErrors, LoginValues } from '../lib/types'
 import { validateLogin } from '../lib/validations'
@@ -9,6 +13,8 @@ const initialValues: LoginValues = { email: '', password: '' }
 
 function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { isAuthenticated, startSession } = useAuth()
   const timerRef = useRef<number | null>(null)
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
@@ -16,6 +22,9 @@ function Login() {
   const [errors, setErrors] = useState<LoginErrors>({})
   const [message, setMessage] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const requestedPath = typeof location.state?.from === 'string' && location.state.from.startsWith('/')
+    ? location.state.from
+    : ROUTES.dashboard
 
   useEffect(() => {
     document.title = 'Iniciar sesión | MediReservas'
@@ -57,26 +66,26 @@ function Login() {
       return
     }
 
-    createSession(user)
+    startSession(user)
     setIsSubmitting(true)
     setMessage('Sesión iniciada. Redirigiendo al panel...')
-    timerRef.current = window.setTimeout(() => navigate('/dashboard'), 500)
+    timerRef.current = window.setTimeout(() => navigate(requestedPath, { replace: true }), 500)
   }
+
+  if (isAuthenticated) return <Navigate to={requestedPath} replace />
 
   return (
     <div className="min-h-screen bg-page text-ink antialiased">
-      <a className="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0" href="#main-content">
-        Saltar al contenido principal
-      </a>
+      <SkipLink />
       <header className="border-b border-line bg-white">
         <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8" aria-label="Navegación de inicio de sesión">
-          <Link className="flex items-center gap-2 text-xl font-bold text-primary-dark" to="/" aria-label="Volver al inicio de MediReservas">
+          <Link className="flex items-center gap-2 text-xl font-bold text-primary-dark" to={ROUTES.home} aria-label="Volver al inicio de MediReservas">
             <span className="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white" aria-hidden="true">+</span>
             <span>MediReservas</span>
           </Link>
           <p className="text-sm text-muted">
             <span className="hidden sm:inline">¿No tienes una cuenta?</span>
-            <Link className="ml-1 font-semibold text-primary-dark hover:text-primary" to="/registro">Regístrate</Link>
+            <Link className="ml-1 font-semibold text-primary-dark hover:text-primary" to={ROUTES.register}>Regístrate</Link>
           </p>
         </nav>
       </header>
@@ -106,7 +115,7 @@ function Login() {
                   onChange={(event) => updateField('email', event.target.value)}
                   onBlur={() => validateField('email')}
                 />
-                <p className="mt-1.5 min-h-5 text-sm text-red-600" id="email-error" role="alert">{errors.email}</p>
+                <FormMessage id="email-error">{errors.email}</FormMessage>
               </div>
 
               <div>
@@ -126,7 +135,7 @@ function Login() {
                   onChange={(event) => updateField('password', event.target.value)}
                   onBlur={() => validateField('password')}
                 />
-                <p className="mt-1.5 min-h-5 text-sm text-red-600" id="password-error" role="alert">{errors.password}</p>
+                <FormMessage id="password-error">{errors.password}</FormMessage>
               </div>
 
               <button className="w-full rounded-xl bg-primary px-6 py-3.5 font-semibold text-white shadow-sm transition hover:bg-primary-dark focus:ring-3 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60" type="submit" disabled={isSubmitting}>
@@ -136,7 +145,7 @@ function Login() {
             </form>
 
             <p className="mt-6 text-center text-sm text-muted sm:hidden">
-              ¿Aún no tienes una cuenta? <Link className="font-semibold text-primary-dark" to="/registro">Crear cuenta</Link>
+              ¿Aún no tienes una cuenta? <Link className="font-semibold text-primary-dark" to={ROUTES.register}>Crear cuenta</Link>
             </p>
           </div>
 
@@ -161,7 +170,7 @@ function Login() {
 
       <footer className="px-4 pb-8 text-center text-sm text-muted">
         <p>© {new Date().getFullYear()} MediReservas. Todos los derechos reservados.</p>
-        <Link className="mt-2 inline-flex font-semibold text-primary-dark hover:text-primary" to="/">Volver al inicio</Link>
+        <Link className="mt-2 inline-flex font-semibold text-primary-dark hover:text-primary" to={ROUTES.home}>Volver al inicio</Link>
       </footer>
     </div>
   )

@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
-import { Navigate } from 'react-router-dom'
-import { getSession, getUserById } from '../lib/storage'
+import { Navigate, useLocation } from 'react-router-dom'
+import { ROUTES } from '../constants/routes'
+import { useAuth } from '../hooks/useAuth'
 import type { Role } from '../lib/types'
 
 interface RoleGuardProps {
@@ -9,15 +10,15 @@ interface RoleGuardProps {
 }
 
 function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
-  const session = getSession()
-  const user = session ? getUserById(session.userId) : undefined
+  const location = useLocation()
+  const { isAuthenticated, user } = useAuth()
 
-  if (!session || !user || !user.active) {
-    return <Navigate to="/login" replace />
+  if (!isAuthenticated || !user) {
+    return <Navigate to={ROUTES.login} replace state={{ from: location.pathname }} />
   }
 
   if (!allowedRoles.includes(user.role)) {
-    return <Navigate to="/acceso-denegado" replace />
+    return <Navigate to={ROUTES.accessDenied} replace />
   }
 
   return children

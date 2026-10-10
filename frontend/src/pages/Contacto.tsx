@@ -1,6 +1,6 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
-import PublicFooter from '../components/layout/PublicFooter'
-import PublicHeader from '../components/layout/PublicHeader'
+import PublicLayout from '../components/layout/PublicLayout'
+import FormMessage from '../components/forms/FormMessage'
 import type { ContactErrors, ContactValues } from '../lib/types'
 import { validateContact } from '../lib/validations'
 
@@ -48,17 +48,7 @@ function Contacto() {
   };
 
   return (
-    <div className="min-h-screen bg-page text-ink antialiased">
-      <a
-        className="fixed left-4 top-4 z-50 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0"
-        href="#main-content"
-      >
-        Saltar al contenido principal
-      </a>
-
-      <PublicHeader currentPage="contact" />
-
-      <main id="main-content" tabIndex={-1}>
+    <PublicLayout currentPage="contact" compactFooter>
         <section
           className="bg-primary-dark py-14 text-white sm:py-20"
           aria-labelledby="contact-title"
@@ -93,25 +83,22 @@ function Contacto() {
             Información de atención
           </h2>
 
-          <div className="mt-7 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            <article className="rounded-2xl border border-line bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-primary-dark">
+          <address className="mt-7 grid gap-5 not-italic sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-2xl border border-line bg-white p-6 shadow-sm">
+              <p className="text-lg font-bold text-primary-dark">
                 Dirección
-              </h3>
+              </p>
 
               <p className="mt-3 text-muted">
-                Av. Vicuña Mackenna 4917
-              </p>
-
-              <p className="text-muted">
+                Av. Vicuña Mackenna 4917<br />
                 San Joaquín, Santiago
               </p>
-            </article>
+            </div>
 
-            <article className="rounded-2xl border border-line bg-white p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-primary-dark">
+            <div className="rounded-2xl border border-line bg-white p-6 shadow-sm">
+              <p className="text-lg font-bold text-primary-dark">
                 Teléfono
-              </h3>
+              </p>
 
               <a
                 className="mt-3 inline-flex text-muted hover:text-primary"
@@ -119,12 +106,12 @@ function Contacto() {
               >
                 +56 2 2345 6789
               </a>
-            </article>
+            </div>
 
-            <article className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:col-span-2 lg:col-span-1">
-              <h3 className="text-lg font-bold text-primary-dark">
+            <div className="rounded-2xl border border-line bg-white p-6 shadow-sm sm:col-span-2 lg:col-span-1">
+              <p className="text-lg font-bold text-primary-dark">
                 Correo electrónico
-              </h3>
+              </p>
 
               <a
                 className="mt-3 inline-flex break-all text-muted hover:text-primary"
@@ -132,8 +119,8 @@ function Contacto() {
               >
                 contacto@medireservas.cl
               </a>
-            </article>
-          </div>
+            </div>
+          </address>
         </section>
 
         <section
@@ -192,7 +179,7 @@ function Contacto() {
               </p>
 
               <p className="mt-2 text-sm leading-6 text-muted">
-                Lunes a viernes, de 08:00 a 18:00 horas.
+                Lunes a viernes, de <time dateTime="08:00">08:00</time> a <time dateTime="18:00">18:00</time> horas.
               </p>
             </div>
           </div>
@@ -221,12 +208,7 @@ function Contacto() {
                   autoComplete="name"
                 />
 
-                <p
-                  className="mt-1 min-h-5 text-sm text-red-600"
-                  role="alert"
-                >
-                  {errors.nombre}
-                </p>
+                <FormMessage>{errors.nombre}</FormMessage>
               </div>
 
               <div>
@@ -247,12 +229,7 @@ function Contacto() {
                   autoComplete="email"
                 />
 
-                <p
-                  className="mt-1 min-h-5 text-sm text-red-600"
-                  role="alert"
-                >
-                  {errors.correo}
-                </p>
+                <FormMessage>{errors.correo}</FormMessage>
               </div>
             </div>
 
@@ -273,12 +250,7 @@ function Contacto() {
                 className="mt-2 w-full rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
               />
 
-              <p
-                className="mt-1 min-h-5 text-sm text-red-600"
-                role="alert"
-              >
-                {errors.asunto}
-              </p>
+              <FormMessage>{errors.asunto}</FormMessage>
             </div>
 
             <div className="mt-5">
@@ -298,12 +270,7 @@ function Contacto() {
                 className="mt-2 w-full resize-y rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
               />
 
-              <p
-                className="mt-1 min-h-5 text-sm text-red-600"
-                role="alert"
-              >
-                {errors.mensaje}
-              </p>
+              <FormMessage>{errors.mensaje}</FormMessage>
             </div>
 
             <button
@@ -325,10 +292,7 @@ function Contacto() {
             )}
           </form>
         </section>
-      </main>
-
-      <PublicFooter compact />
-    </div>
+    </PublicLayout>
   )
 }
 export default Contacto

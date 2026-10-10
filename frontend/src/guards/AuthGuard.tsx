@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
-import { getSession, getUserById } from '../lib/storage'
+import { ROUTES } from '../constants/routes'
+import { useAuth } from '../hooks/useAuth'
 
 interface AuthGuardProps {
   children: ReactNode
@@ -8,11 +9,10 @@ interface AuthGuardProps {
 
 function AuthGuard({ children }: AuthGuardProps) {
   const location = useLocation()
-  const session = getSession()
-  const user = session ? getUserById(session.userId) : undefined
+  const { isAuthenticated } = useAuth()
 
-  if (!session || !user || !user.active) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  if (!isAuthenticated) {
+    return <Navigate to={ROUTES.login} replace state={{ from: location.pathname }} />
   }
 
   return children

@@ -1,4 +1,6 @@
-import { type ReactNode, useEffect, useState } from 'react'
+import { type ReactNode, useEffect } from 'react'
+import { useMobileMenu } from '../../hooks/useMobileMenu'
+import SkipLink from '../ui/SkipLink'
 import DashboardHeader from './DashboardHeader'
 import DashboardSidebar from './DashboardSidebar'
 
@@ -9,7 +11,7 @@ interface DashboardLayoutProps {
 }
 
 function DashboardLayout({ children, currentPath, mainClassName = 'px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12' }: DashboardLayoutProps) {
-  const [menuOpen, setMenuOpen] = useState(false)
+  const { menuOpen, closeMenu, openMenu } = useMobileMenu<HTMLElement>()
 
   useEffect(() => {
     document.body.classList.toggle('overflow-hidden', menuOpen)
@@ -18,10 +20,10 @@ function DashboardLayout({ children, currentPath, mainClassName = 'px-4 py-8 sm:
 
   return (
     <div className="flex min-h-screen flex-col bg-page text-ink antialiased">
-      <a className="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0" href="#main-content">Saltar al contenido principal</a>
-      <DashboardHeader menuOpen={menuOpen} onOpenMenu={() => setMenuOpen(true)} />
+      <SkipLink />
+      <DashboardHeader menuOpen={menuOpen} onOpenMenu={openMenu} />
       <div className="grid w-full flex-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <DashboardSidebar currentPath={currentPath} menuOpen={menuOpen} onCloseMenu={() => setMenuOpen(false)} />
+        <DashboardSidebar currentPath={currentPath} menuOpen={menuOpen} onCloseMenu={closeMenu} />
         <main className={`min-w-0 ${mainClassName}`} id="main-content" tabIndex={-1}>
           {children}
         </main>
