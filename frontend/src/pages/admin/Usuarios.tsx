@@ -1,17 +1,9 @@
 import {type FormEvent, useEffect, useMemo, useState} from 'react'
 import {Link, Navigate, useNavigate} from 'react-router-dom'
-import {DASHBOARD_CONFIG} from '../../lib/roles.ts'
-import {
-  getNextUserId,
-  getSession,
-  getUsers,
-  isUserDataTaken,
-  removeSession,
-  saveUser,
-  updateUser,
-  updateUserStatus
-} from '../../lib/storage.ts'
-import type {ManagedUserErrors, ManagedUserValues, User} from '../../lib/types.ts'
+import {DASHBOARD_CONFIG} from '../../constants/roles.ts'
+import {getSession, removeSession} from '../../lib/storage.ts'
+import {createUser, editUser, getUsers, isUserDataTaken, setUserStatus} from '../../services/users.service.ts'
+import type {ManagedUserErrors, ManagedUserValues, User} from '../../types/user.ts'
 import {normalizeRun, validateManagedUser} from '../../lib/validations.ts'
 
 const emptyForm: ManagedUserValues = {
@@ -126,10 +118,9 @@ function Usuarios() {
     }
     if (normalized.userId) {
       const {userId, password, ...changes} = normalized
-      updateUser(userId, password ? {...changes, password} : changes)
+      editUser(userId, password ? {...changes, password} : changes)
     } else {
-      const userId = getNextUserId()
-      saveUser({...normalized, userId, authUserId: userId, role: 'PATIENT', active: true})
+      createUser(normalized)
     }
     setFormOpen(false);
     refreshUsers()
@@ -137,7 +128,7 @@ function Usuarios() {
 
   function confirmStatusChange() {
     if (!statusUser) return
-    if (!updateUserStatus(statusUser.userId, !statusUser.active)) return
+    if (!setUserStatus(statusUser.userId, !statusUser.active)) return
     setStatusUser(null);
     refreshUsers()
   }

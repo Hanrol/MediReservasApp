@@ -1,8 +1,9 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router-dom'
-import { DASHBOARD_CONFIG, isValidRole, validateRoleChange } from '../../lib/roles.ts'
-import { getSession, getUsers, removeSession, updateUser } from '../../lib/storage.ts'
-import type { User } from '../../lib/types.ts'
+import { DASHBOARD_CONFIG, isValidRole, validateRoleChange } from '../../constants/roles.ts'
+import { getSession, removeSession } from '../../lib/storage.ts'
+import { changeUserRole, getUsers } from '../../services/users.service.ts'
+import type { User } from '../../types/user.ts'
 
 function Roles() {
   const navigate = useNavigate()
@@ -51,7 +52,7 @@ function Roles() {
   }
   function confirmRoleChange() {
     if (!selectedUser || !isValidRole(selectedRole)) return
-    updateUser(selectedUser.userId, { role: selectedRole })
+    changeUserRole(selectedUser.userId, selectedRole)
     setUsers(getUsers()); closeDialog()
   }
 
