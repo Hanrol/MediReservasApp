@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useAppointments } from "../../hooks/useAppointments";
@@ -57,25 +57,19 @@ function ObservacionClinica() {
     [observations],
   );
 
-  const [values, setValues] =
-    useState<ClinicalFormValues>(INITIAL_VALUES);
+  const [values, setValues] = useState<ClinicalFormValues>(() =>
+    existingObservation
+      ? {
+          diagnosis: existingObservation.diagnosis,
+          notes: existingObservation.notes,
+          treatment: existingObservation.treatment,
+        }
+      : INITIAL_VALUES,
+  );
   const [errors, setErrors] = useState<ClinicalFormErrors>({});
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    if (!existingObservation) {
-      setValues(INITIAL_VALUES);
-      return;
-    }
-
-    setValues({
-      diagnosis: existingObservation.diagnosis,
-      notes: existingObservation.notes,
-      treatment: existingObservation.treatment,
-    });
-  }, [existingObservation]);
 
   const updateField = (
     field: keyof ClinicalFormValues,

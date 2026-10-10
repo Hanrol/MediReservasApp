@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import {
   appointmentsService,
@@ -36,11 +36,12 @@ export function useAppointments(
     autoLoad = true,
   } = options;
 
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(autoLoad);
+  const [appointments, setAppointments] = useState<Appointment[]>(() =>
+    autoLoad ? appointmentsService.getAll(initialFilters) : [],
+  );
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filters, setFilters] =
-    useState<AppointmentFilters>(initialFilters);
+  const [filters] = useState<AppointmentFilters>(initialFilters);
 
   const refresh = useCallback(() => {
     setLoading(true);
@@ -55,12 +56,6 @@ export function useAppointments(
       setLoading(false);
     }
   }, [filters]);
-
-  useEffect(() => {
-    if (autoLoad) {
-      refresh();
-    }
-  }, [autoLoad, refresh]);
 
   const createAppointment = useCallback(
     (input: CreateAppointmentInput): Appointment | null => {

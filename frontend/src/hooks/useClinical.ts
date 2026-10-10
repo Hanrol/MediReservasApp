@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import {
   clinicalService,
@@ -33,10 +33,10 @@ export function useClinical(
 ): UseClinicalReturn {
   const { filters: initialFilters = {}, autoLoad = true } = options;
 
-  const [observations, setObservations] = useState<
-    ClinicalObservation[]
-  >([]);
-  const [loading, setLoading] = useState(autoLoad);
+  const [observations, setObservations] = useState<ClinicalObservation[]>(() =>
+    autoLoad ? clinicalService.getAll(initialFilters) : [],
+  );
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters] = useState<ClinicalFilters>(initialFilters);
 
@@ -53,12 +53,6 @@ export function useClinical(
       setLoading(false);
     }
   }, [filters]);
-
-  useEffect(() => {
-    if (autoLoad) {
-      refresh();
-    }
-  }, [autoLoad, refresh]);
 
   const createObservation = useCallback(
     (input: CreateObservationInput): ClinicalObservation | null => {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import {
   schedulesService,
@@ -35,8 +35,10 @@ export function useSchedules(
 ): UseSchedulesReturn {
   const { filters: initialFilters = {}, autoLoad = true } = options;
 
-  const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [loading, setLoading] = useState(autoLoad);
+  const [schedules, setSchedules] = useState<Schedule[]>(() =>
+    autoLoad ? schedulesService.getAll(initialFilters) : [],
+  );
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filters] = useState<ScheduleFilters>(initialFilters);
 
@@ -53,12 +55,6 @@ export function useSchedules(
       setLoading(false);
     }
   }, [filters]);
-
-  useEffect(() => {
-    if (autoLoad) {
-      refresh();
-    }
-  }, [autoLoad, refresh]);
 
   const getAvailableTimes = useCallback(
     (doctorId: string, date: string): string[] => {
