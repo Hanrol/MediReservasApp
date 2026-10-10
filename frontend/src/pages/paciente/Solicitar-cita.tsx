@@ -1,5 +1,7 @@
 import { useMemo, useState, type FormEvent } from "react";
+
 import { useAppointments } from "../../hooks/useAppointments";
+import { useSchedules } from "../../hooks/useSchedules";
 import type { AppointmentModality } from "../../types/appointment";
 
 interface DoctorOption {
@@ -43,8 +45,6 @@ const DOCTORS: DoctorOption[] = [
   },
 ];
 
-const DEMO_TIMES = ["09:00", "10:00", "11:30", "14:00", "15:00", "16:00"];
-
 const INITIAL_VALUES: FormValues = {
   specialtyId: "",
   doctorId: "",
@@ -65,12 +65,14 @@ function getLocalDateString(date: Date = new Date()): string {
 function SolicitarCita() {
   const {
     createAppointment,
-    loading,
+    loading: creatingAppointment,
     error: appointmentError,
   } = useAppointments({
     filters: { patientId: "patient-001" },
     autoLoad: false,
   });
+
+  const { getAvailableTimes } = useSchedules({ autoLoad: false });
 
   const [values, setValues] = useState<FormValues>(INITIAL_VALUES);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -83,23 +85,21 @@ function SolicitarCita() {
     if (!values.specialtyId) return [];
 
     return DOCTORS.filter(
-      (doctor) => doctor.specialtyId === values.specialtyId
+      (doctor) => doctor.specialtyId === values.specialtyId,
     );
   }, [values.specialtyId]);
 
-  // Opciones de demostración. Más adelante se reemplazarán
-  // por los horarios reales que entregue el servicio.
   const availableTimes = useMemo(() => {
     if (!values.doctorId || !values.date || values.date < today) {
       return [];
     }
 
-    return DEMO_TIMES;
-  }, [values.doctorId, values.date, today]);
+    return getAvailableTimes(values.doctorId, values.date);
+  }, [values.doctorId, values.date, today, getAvailableTimes]);
 
   const updateField = <K extends keyof FormValues>(
     field: K,
-    value: FormValues[K]
+    value: FormValues[K],
   ) => {
     setValues((previous) => ({
       ...previous,
@@ -181,7 +181,7 @@ function SolicitarCita() {
     }
 
     const selectedDoctor = DOCTORS.find(
-      (doctor) => doctor.id === values.doctorId
+      (doctor) => doctor.id === values.doctorId,
     );
 
     if (!values.doctorId) {
@@ -233,21 +233,23 @@ function SolicitarCita() {
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length > 0) {
-      setFormError("Revisa los campos indicados antes de continuar.");
+      setFormError(
+        "Revisa los campos indicados antes de continuar.",
+      );
       return;
     }
 
     const selectedSpecialty = SPECIALTIES.find(
-      (specialty) => specialty.id === values.specialtyId
+      (specialty) => specialty.id === values.specialtyId,
     );
 
     const selectedDoctor = DOCTORS.find(
-      (doctor) => doctor.id === values.doctorId
+      (doctor) => doctor.id === values.doctorId,
     );
 
     if (!selectedSpecialty || !selectedDoctor || !values.modality) {
       setFormError(
-        "No fue posible validar los datos. Revisa el formulario."
+        "No fue posible validar los datos. Revisa el formulario.",
       );
       return;
     }
@@ -268,7 +270,7 @@ function SolicitarCita() {
     if (!createdAppointment) {
       setFormError(
         appointmentError ??
-          "No fue posible registrar la cita. Inténtalo nuevamente."
+          "No fue posible registrar la cita. Inténtalo nuevamente.",
       );
       return;
     }
@@ -276,7 +278,7 @@ function SolicitarCita() {
     setValues(INITIAL_VALUES);
     setErrors({});
     setSuccessMessage(
-      "Tu solicitud de cita se registró correctamente y está pendiente de confirmación."
+      "Tu solicitud de cita se registró correctamente y está pendiente de confirmación.",
     );
   };
 
@@ -289,7 +291,6 @@ function SolicitarCita() {
 
   return (
     <div className="min-h-screen bg-page text-ink">
-      {/* Encabezado */}
       <header className="border-b border-line bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <a
@@ -335,7 +336,6 @@ function SolicitarCita() {
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Título */}
         <section className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
             Área del paciente
@@ -351,7 +351,6 @@ function SolicitarCita() {
           </p>
         </section>
 
-        {/* Mensaje de éxito */}
         {successMessage && (
           <div
             role="status"
@@ -370,7 +369,6 @@ function SolicitarCita() {
           </div>
         )}
 
-        {/* Error general */}
         {formError && (
           <div
             role="alert"
@@ -380,7 +378,6 @@ function SolicitarCita() {
           </div>
         )}
 
-        {/* Formulario */}
         <form
           onSubmit={handleSubmit}
           noValidate
@@ -394,7 +391,6 @@ function SolicitarCita() {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2">
-            {/* Especialidad */}
             <div>
               <label
                 htmlFor="especialidad"
@@ -413,7 +409,9 @@ function SolicitarCita() {
                 }
                 aria-invalid={Boolean(errors.specialtyId)}
                 aria-describedby={
-                  errors.specialtyId ? "especialidad-error" : undefined
+                  errors.specialtyId
+                    ? "especialidad-error"
+                    : undefined
                 }
                 className={`w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition focus:border-secondary ${
                   errors.specialtyId
@@ -440,7 +438,6 @@ function SolicitarCita() {
               )}
             </div>
 
-            {/* Médico */}
             <div>
               <label
                 htmlFor="medico"
@@ -489,13 +486,13 @@ function SolicitarCita() {
               )}
             </div>
 
-            {/* Fecha */}
             <div>
               <label
                 htmlFor="fecha"
                 className="mb-2 block text-sm font-medium"
               >
-                Fecha de atención <span className="text-red-600">*</span>
+                Fecha de atención{" "}
+                <span className="text-red-600">*</span>
               </label>
 
               <input
@@ -507,10 +504,12 @@ function SolicitarCita() {
                 value={values.date}
                 disabled={!values.doctorId}
                 onChange={(event) =>
-                  updateField("date", event.target.value)
+                 updateField("date", event.target.value)
                 }
                 aria-invalid={Boolean(errors.date)}
-                aria-describedby={errors.date ? "fecha-error" : undefined}
+                aria-describedby={
+                  errors.date ? "fecha-error" : undefined
+                }
                 className={`w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition focus:border-secondary disabled:cursor-not-allowed disabled:bg-gray-50 ${
                   errors.date ? "border-red-500" : "border-line"
                 }`}
@@ -526,13 +525,13 @@ function SolicitarCita() {
               )}
             </div>
 
-            {/* Hora */}
             <div>
               <label
                 htmlFor="hora"
                 className="mb-2 block text-sm font-medium"
               >
-                Hora de atención <span className="text-red-600">*</span>
+                Hora de atención{" "}
+                <span className="text-red-600">*</span>
               </label>
 
               <select
@@ -540,12 +539,16 @@ function SolicitarCita() {
                 name="hora"
                 required
                 value={values.time}
-                disabled={!values.date || availableTimes.length === 0}
+                disabled={
+                  !values.date || availableTimes.length === 0
+                }
                 onChange={(event) =>
                   updateField("time", event.target.value)
                 }
                 aria-invalid={Boolean(errors.time)}
-                aria-describedby={errors.time ? "hora-error" : undefined}
+                aria-describedby={
+                  errors.time ? "hora-error" : undefined
+                }
                 className={`w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition focus:border-secondary disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 ${
                   errors.time ? "border-red-500" : "border-line"
                 }`}
@@ -553,7 +556,9 @@ function SolicitarCita() {
                 <option value="">
                   {!values.date
                     ? "Primero seleccione una fecha"
-                    : "Seleccione una hora"}
+                    : availableTimes.length === 0
+                      ? "No hay horarios disponibles"
+                      : "Seleccione una hora"}
                 </option>
 
                 {availableTimes.map((time) => (
@@ -571,16 +576,25 @@ function SolicitarCita() {
                   {errors.time}
                 </p>
               )}
+
+              {values.date &&
+                values.doctorId &&
+                availableTimes.length === 0 && (
+                  <p className="mt-2 text-sm text-amber-700">
+                    No hay horarios disponibles para esta fecha.
+                    Prueba con otro día.
+                  </p>
+                )}
             </div>
           </div>
 
-          {/* Motivo */}
           <div className="mt-6">
             <label
               htmlFor="motivo"
               className="mb-2 block text-sm font-medium"
             >
-              Motivo de la consulta <span className="text-red-600">*</span>
+              Motivo de la consulta{" "}
+              <span className="text-red-600">*</span>
             </label>
 
             <textarea
@@ -623,7 +637,6 @@ function SolicitarCita() {
             </div>
           </div>
 
-          {/* Modalidad */}
           <fieldset className="mt-6">
             <legend className="mb-3 text-sm font-medium">
               Modalidad de atención{" "}
@@ -693,7 +706,6 @@ function SolicitarCita() {
             )}
           </fieldset>
 
-          {/* Botones */}
           <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:justify-end">
             <button
               type="button"
@@ -705,10 +717,12 @@ function SolicitarCita() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={creatingAppointment}
               className="rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white transition hover:bg-primary-dark disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? "Procesando solicitud..." : "Solicitar cita"}
+              {creatingAppointment
+                ? "Procesando solicitud..."
+                : "Solicitar cita"}
             </button>
           </div>
         </form>
@@ -728,4 +742,4 @@ function SolicitarCita() {
   );
 }
 
-export default SolicitarCita
+export default SolicitarCita;
