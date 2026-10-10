@@ -1,17 +1,9 @@
 import {type FormEvent, useEffect, useState} from 'react'
 import {Link, Navigate, useNavigate} from 'react-router-dom'
-import {DASHBOARD_CONFIG} from '../../lib/roles.ts'
-import {
-  getNextSpecialtyId,
-  getSession,
-  getSpecialties,
-  initializeBaseSpecialties,
-  isSpecialtyNameTaken,
-  removeSession,
-  saveSpecialty,
-  updateSpecialty,
-} from '../../lib/storage.ts'
-import type {Specialty, SpecialtyErrors, SpecialtyValues} from '../../lib/types.ts'
+import {DASHBOARD_CONFIG} from '../../constants/roles.ts'
+import {getSession, removeSession} from '../../lib/storage.ts'
+import {createSpecialty, editSpecialty, getSpecialties, initializeSpecialties, isSpecialtyNameTaken, setSpecialtyStatus} from '../../services/specialties.service.ts'
+import type {Specialty, SpecialtyErrors, SpecialtyValues} from '../../types/specialty.ts'
 import {validateSpecialty} from '../../lib/validations.ts'
 
 const emptyForm: SpecialtyValues = {
@@ -21,7 +13,7 @@ const emptyForm: SpecialtyValues = {
   active: true,
 }
 
-initializeBaseSpecialties()
+initializeSpecialties()
 
 function AdminEspecialidades() {
   const navigate = useNavigate()
@@ -96,12 +88,12 @@ function AdminEspecialidades() {
     }
     if (normalized.specialtyId) {
       const {specialtyId, ...changes} = normalized
-      if (!updateSpecialty(specialtyId, changes)) {
+      if (!editSpecialty(specialtyId, changes)) {
         setFormMessage('No fue posible encontrar la especialidad seleccionada.')
         return
       }
     } else {
-      saveSpecialty({...normalized, specialtyId: getNextSpecialtyId()})
+      createSpecialty(normalized)
     }
     setFormOpen(false)
     setSpecialties(getSpecialties())
@@ -109,7 +101,7 @@ function AdminEspecialidades() {
 
   function confirmStatusChange() {
     if (!statusSpecialty) return
-    if (!updateSpecialty(statusSpecialty.specialtyId, {active: !statusSpecialty.active})) {
+    if (!setSpecialtyStatus(statusSpecialty.specialtyId, !statusSpecialty.active)) {
       setStatusMessage('No fue posible encontrar la especialidad seleccionada.')
       return
     }
