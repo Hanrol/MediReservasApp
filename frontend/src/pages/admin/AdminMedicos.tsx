@@ -1,21 +1,13 @@
 import {type FormEvent, useEffect, useMemo, useState} from 'react'
 import {Link, Navigate, useNavigate} from 'react-router-dom'
-import {DASHBOARD_CONFIG} from '../../lib/roles.ts'
-import {
-  getDoctors,
-  getNextDoctorId,
-  getSession,
-  getSpecialties,
-  getUsers,
-  initializeBaseDoctors,
-  initializeBaseSpecialties,
-  initializeBaseUsers,
-  isDoctorDataTaken,
-  removeSession,
-  saveDoctor,
-  updateDoctor,
-} from '../../lib/storage.ts'
-import type {Doctor, DoctorErrors, DoctorValues, Specialty, User} from '../../lib/types.ts'
+import {DASHBOARD_CONFIG} from '../../constants/roles.ts'
+import {getSession, removeSession} from '../../lib/storage.ts'
+import {createDoctor, editDoctor, getDoctors, initializeDoctors, isDoctorDataTaken, setDoctorStatus} from '../../services/doctors.service.ts'
+import {getSpecialties, initializeSpecialties} from '../../services/specialties.service.ts'
+import {getUsers, initializeUsers} from '../../services/users.service.ts'
+import type {Doctor, DoctorErrors, DoctorValues} from '../../types/doctor.ts'
+import type {Specialty} from '../../types/specialty.ts'
+import type {User} from '../../types/user.ts'
 import {getLocalDateString, normalizeRun, validateDoctor} from '../../lib/validations.ts'
 
 const emptyForm: DoctorValues = {
@@ -33,9 +25,9 @@ const emptyForm: DoctorValues = {
   active: true,
 }
 
-initializeBaseUsers()
-initializeBaseSpecialties()
-initializeBaseDoctors()
+initializeUsers()
+initializeSpecialties()
+initializeDoctors()
 
 function AdminMedicos() {
   const navigate = useNavigate()
@@ -180,12 +172,12 @@ function AdminMedicos() {
     }
     if (normalized.doctorId) {
       const {doctorId, ...changes} = normalized
-      if (!updateDoctor(doctorId, changes)) {
+      if (!editDoctor(doctorId, changes)) {
         setFormMessage('No fue posible encontrar al médico seleccionado.')
         return
       }
     } else {
-      saveDoctor({...normalized, doctorId: getNextDoctorId()})
+      createDoctor(normalized)
     }
     setFormOpen(false)
     setDoctors(getDoctors())
@@ -193,7 +185,7 @@ function AdminMedicos() {
 
   function confirmStatusChange() {
     if (!statusDoctor) return
-    if (!updateDoctor(statusDoctor.doctorId, {active: !statusDoctor.active})) {
+    if (!setDoctorStatus(statusDoctor.doctorId, !statusDoctor.active)) {
       setStatusMessage('No fue posible encontrar al médico seleccionado.')
       return
     }
