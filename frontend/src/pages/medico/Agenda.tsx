@@ -5,7 +5,7 @@ import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_OPTIONS } from "../../constant
 import { AppointmentCard } from "../../components/appointments/AppointmentCard";
 import type { AppointmentStatus } from "../../types/appointment";
 
-function AgendaMedica() {
+function Agenda() {
   const {
     appointments,
     loading,
@@ -531,4 +531,4 @@ function AgendaMedica() {
   );
 }
 
-export default AgendaMedica;
+export default Agenda;

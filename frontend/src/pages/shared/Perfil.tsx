@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
-import DashboardLayout from '../components/layout/DashboardLayout'
+import DashboardLayout from '../../components/layout/DashboardLayout'
 import { Navigate } from 'react-router-dom'
-import { ROUTES } from '../constants/routes'
-import { useAuth } from '../hooks/useAuth'
-import Breadcrumbs from '../components/layout/Breadcrumbs'
-import { createProfileData } from '../lib/profile'
-import { DASHBOARD_CONFIG } from '../lib/roles'
+import { ROUTES } from '../../constants/routes'
+import { useAuth } from '../../hooks/useAuth'
+import Breadcrumbs from '../../components/layout/Breadcrumbs'
+import { createProfileData } from '../../lib/profile'
+import { DASHBOARD_CONFIG } from '../../lib/roles'
 
 function Perfil() {
   const { user } = useAuth()

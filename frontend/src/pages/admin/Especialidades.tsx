@@ -15,7 +15,7 @@ const emptyForm: SpecialtyValues = {
 
 initializeSpecialties()
 
-function AdminEspecialidades() {
+function Especialidades() {
   const navigate = useNavigate()
   const session = getSession()
   const config = session ? DASHBOARD_CONFIG[session.role] : null
@@ -322,4 +322,4 @@ function AdminEspecialidades() {
   )
 }
 
-export default AdminEspecialidades
+export default Especialidades

@@ -1,13 +1,13 @@
 import { type FormEvent, useEffect, useRef, useState } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
-import FormMessage from '../components/forms/FormMessage'
-import SkipLink from '../components/ui/SkipLink'
-import { ROUTES } from '../constants/routes'
-import { useAuth } from '../hooks/useAuth'
-import { authenticate } from '../lib/auth'
-import { initializeBaseUsers } from '../lib/storage'
-import type { LoginErrors, LoginValues } from '../lib/types'
-import { validateLogin } from '../lib/validations'
+import FormMessage from '../../components/forms/FormMessage'
+import SkipLink from '../../components/ui/SkipLink'
+import { ROUTES } from '../../constants/routes'
+import { useAuth } from '../../hooks/useAuth'
+import { authenticate } from '../../lib/auth'
+import { initializeBaseUsers } from '../../lib/storage'
+import type { LoginErrors, LoginValues } from '../../lib/types'
+import { validateLogin } from '../../lib/validations'
 
 const initialValues: LoginValues = { email: '', password: '' }
 

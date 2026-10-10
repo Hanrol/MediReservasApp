@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import SkipLink from '../components/ui/SkipLink'
-import { ROUTES } from '../constants/routes'
-import { useAuth } from '../hooks/useAuth'
+import SkipLink from '../../components/ui/SkipLink'
+import { ROUTES } from '../../constants/routes'
+import { useAuth } from '../../hooks/useAuth'
 
 function AccesoDenegado() {
   const { logout } = useAuth()

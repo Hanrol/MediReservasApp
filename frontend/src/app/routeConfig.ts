@@ -1,23 +1,23 @@
 import type { ComponentType } from 'react'
 import { ROUTES } from '../constants/routes'
 import type { Role } from '../lib/types'
-import AccesoDenegado from '../pages/AccesoDenegado'
-import AdminEspecialidades from '../pages/admin/AdminEspecialidades'
-import AdminMedicos from '../pages/admin/AdminMedicos'
+import AccesoDenegado from '../pages/shared/AccesoDenegado'
+import Especialidades from '../pages/admin/Especialidades'
+import Medicos from '../pages/admin/Medicos'
 import Roles from '../pages/admin/Roles'
 import Usuarios from '../pages/admin/Usuarios'
-import Contacto from '../pages/Contacto'
-import Dashboard from '../pages/Dashboard'
-import Home from '../pages/Home'
-import Login from '../pages/Login'
-import AgendaMedica from '../pages/medico/Agenda-Medica'
-import ObservacionClinica from '../pages/medico/Observacion-clinica'
-import MisCitas from '../pages/paciente/Mis-citas'
-import SolicitarCita from '../pages/paciente/Solicitar-cita'
-import Perfil from '../pages/Perfil'
+import Contacto from '../pages/public/Contacto'
+import Dashboard from '../pages/shared/Dashboard'
+import Home from '../pages/public/Home'
+import Login from '../pages/public/Login'
+import Agenda from '../pages/medico/Agenda'
+import ObservacionClinica from '../pages/medico/ObservacionClinica'
+import MisCitas from '../pages/paciente/MisCitas'
+import SolicitarCita from '../pages/paciente/SolicitarCita'
+import Perfil from '../pages/shared/Perfil'
 import MedicosEspecialidades from '../pages/public/MedicosEspecialidades'
 import GestionCitas from '../pages/recepcion/GestionCitas'
-import Registro from '../pages/Registro'
+import Registro from '../pages/public/Registro'
 import HistorialClinico from '../pages/shared/HistorialClinico'
 
 export interface AppRoute {
@@ -38,10 +38,10 @@ export const routeConfig: readonly AppRoute[] = [
   { path: ROUTES.profile, component: Perfil, requiresAuth: true },
   { path: ROUTES.users, component: Usuarios, allowedRoles: ['ADMIN'] },
   { path: ROUTES.roles, component: Roles, allowedRoles: ['ADMIN'] },
-  { path: ROUTES.adminDoctors, component: AdminMedicos, allowedRoles: ['ADMIN'] },
-  { path: ROUTES.adminSpecialties, component: AdminEspecialidades, allowedRoles: ['ADMIN'] },
+  { path: ROUTES.adminDoctors, component: Medicos, allowedRoles: ['ADMIN'] },
+  { path: ROUTES.adminSpecialties, component: Especialidades, allowedRoles: ['ADMIN'] },
   { path: ROUTES.appointmentManagement, component: GestionCitas, allowedRoles: ['ADMIN', 'RECEPTIONIST'] },
-  { path: ROUTES.medicalSchedule, component: AgendaMedica, allowedRoles: ['DOCTOR'] },
+  { path: ROUTES.medicalSchedule, component: Agenda, allowedRoles: ['DOCTOR'] },
   { path: ROUTES.clinicalObservation, component: ObservacionClinica, allowedRoles: ['DOCTOR'] },
   { path: ROUTES.clinicalHistory, component: HistorialClinico, allowedRoles: ['DOCTOR', 'PATIENT'] },
   { path: ROUTES.requestAppointment, component: SolicitarCita, allowedRoles: ['PATIENT'] },

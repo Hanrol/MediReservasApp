@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
-import DashboardLayout from '../components/layout/DashboardLayout'
-import SummaryCard from '../components/ui/SummaryCard'
+import DashboardLayout from '../../components/layout/DashboardLayout'
+import SummaryCard from '../../components/ui/SummaryCard'
 import { Link, Navigate } from 'react-router-dom'
-import { ROUTES } from '../constants/routes'
-import { useAuth } from '../hooks/useAuth'
-import { DASHBOARD_CONFIG, type DashboardAction } from '../lib/roles'
-import { getStoredItems, getUsers } from '../lib/storage'
+import { ROUTES } from '../../constants/routes'
+import { useAuth } from '../../hooks/useAuth'
+import { DASHBOARD_CONFIG, type DashboardAction } from '../../lib/roles'
+import { getStoredItems, getUsers } from '../../lib/storage'
 
 interface Appointment {
   appointmentStatus?: string

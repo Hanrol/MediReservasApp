@@ -29,7 +29,7 @@ initializeUsers()
 initializeSpecialties()
 initializeDoctors()
 
-function AdminMedicos() {
+function Medicos() {
   const navigate = useNavigate()
   const session = getSession()
   const config = session ? DASHBOARD_CONFIG[session.role] : null
@@ -487,4 +487,4 @@ function AdminMedicos() {
   )
 }
 
-export default AdminMedicos
+export default Medicos

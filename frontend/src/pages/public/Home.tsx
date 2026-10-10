@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import PublicLayout from '../components/layout/PublicLayout'
-import { ROUTES } from '../constants/routes'
+import PublicLayout from '../../components/layout/PublicLayout'
+import { ROUTES } from '../../constants/routes'
 
 function Home() {
   useEffect(() => {

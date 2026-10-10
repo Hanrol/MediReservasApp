@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import FormMessage from '../components/forms/FormMessage'
-import SkipLink from '../components/ui/SkipLink'
-import { ROUTES } from '../constants/routes'
-import { getNextUserId, initializeBaseUsers, saveUser, userExists } from '../lib/storage'
-import type { RegistrationErrors, RegistrationValues } from '../lib/types'
-import { getLocalDateString, normalizeRun, validateRegistration } from '../lib/validations'
+import FormMessage from '../../components/forms/FormMessage'
+import SkipLink from '../../components/ui/SkipLink'
+import { ROUTES } from '../../constants/routes'
+import { getNextUserId, initializeBaseUsers, saveUser, userExists } from '../../lib/storage'
+import type { RegistrationErrors, RegistrationValues } from '../../lib/types'
+import { getLocalDateString, normalizeRun, validateRegistration } from '../../lib/validations'
 
 const initialValues: RegistrationValues = {
   run: '', firstName: '', lastName: '', birthDate: '', phone: '', address: '',
