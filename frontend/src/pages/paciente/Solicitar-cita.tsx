@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from "react";
 
 import { useAppointments } from "../../hooks/useAppointments";
 import { useSchedules } from "../../hooks/useSchedules";
+import { ScheduleSelector } from "../../components/appointments/ScheduleSelector";
 import type { AppointmentModality } from "../../types/appointment";
 
 interface DoctorOption {
@@ -291,6 +292,7 @@ function SolicitarCita() {
 
   return (
     <div className="min-h-screen bg-page text-ink">
+      {/* Encabezado */}
       <header className="border-b border-line bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <a
@@ -336,6 +338,7 @@ function SolicitarCita() {
       </header>
 
       <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Título */}
         <section className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
             Área del paciente
@@ -351,6 +354,7 @@ function SolicitarCita() {
           </p>
         </section>
 
+        {/* Mensaje de éxito */}
         {successMessage && (
           <div
             role="status"
@@ -369,6 +373,7 @@ function SolicitarCita() {
           </div>
         )}
 
+        {/* Error general */}
         {formError && (
           <div
             role="alert"
@@ -378,6 +383,7 @@ function SolicitarCita() {
           </div>
         )}
 
+        {/* Formulario */}
         <form
           onSubmit={handleSubmit}
           noValidate
@@ -390,6 +396,7 @@ function SolicitarCita() {
             </p>
           </div>
 
+          {/* Especialidad y Médico */}
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <label
@@ -485,109 +492,24 @@ function SolicitarCita() {
                 </p>
               )}
             </div>
-
-            <div>
-              <label
-                htmlFor="fecha"
-                className="mb-2 block text-sm font-medium"
-              >
-                Fecha de atención{" "}
-                <span className="text-red-600">*</span>
-              </label>
-
-              <input
-                id="fecha"
-                name="fecha"
-                type="date"
-                required
-                min={today}
-                value={values.date}
-                disabled={!values.doctorId}
-                onChange={(event) =>
-                 updateField("date", event.target.value)
-                }
-                aria-invalid={Boolean(errors.date)}
-                aria-describedby={
-                  errors.date ? "fecha-error" : undefined
-                }
-                className={`w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition focus:border-secondary disabled:cursor-not-allowed disabled:bg-gray-50 ${
-                  errors.date ? "border-red-500" : "border-line"
-                }`}
-              />
-
-              {errors.date && (
-                <p
-                  id="fecha-error"
-                  className="mt-2 text-sm text-red-600"
-                >
-                  {errors.date}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="hora"
-                className="mb-2 block text-sm font-medium"
-              >
-                Hora de atención{" "}
-                <span className="text-red-600">*</span>
-              </label>
-
-              <select
-                id="hora"
-                name="hora"
-                required
-                value={values.time}
-                disabled={
-                  !values.date || availableTimes.length === 0
-                }
-                onChange={(event) =>
-                  updateField("time", event.target.value)
-                }
-                aria-invalid={Boolean(errors.time)}
-                aria-describedby={
-                  errors.time ? "hora-error" : undefined
-                }
-                className={`w-full rounded-xl border bg-white px-4 py-3 text-sm outline-none transition focus:border-secondary disabled:cursor-not-allowed disabled:bg-gray-50 disabled:text-gray-400 ${
-                  errors.time ? "border-red-500" : "border-line"
-                }`}
-              >
-                <option value="">
-                  {!values.date
-                    ? "Primero seleccione una fecha"
-                    : availableTimes.length === 0
-                      ? "No hay horarios disponibles"
-                      : "Seleccione una hora"}
-                </option>
-
-                {availableTimes.map((time) => (
-                  <option key={time} value={time}>
-                    {time}
-                  </option>
-                ))}
-              </select>
-
-              {errors.time && (
-                <p
-                  id="hora-error"
-                  className="mt-2 text-sm text-red-600"
-                >
-                  {errors.time}
-                </p>
-              )}
-
-              {values.date &&
-                values.doctorId &&
-                availableTimes.length === 0 && (
-                  <p className="mt-2 text-sm text-amber-700">
-                    No hay horarios disponibles para esta fecha.
-                    Prueba con otro día.
-                  </p>
-                )}
-            </div>
           </div>
 
+          {/* Fecha y Hora */}
+          <div className="mt-6">
+            <ScheduleSelector
+              date={values.date}
+              time={values.time}
+              availableTimes={availableTimes}
+              minDate={today}
+              disabled={!values.doctorId}
+              onDateChange={(date) => updateField("date", date)}
+              onTimeChange={(time) => updateField("time", time)}
+              dateError={errors.date}
+              timeError={errors.time}
+            />
+          </div>
+
+          {/* Motivo */}
           <div className="mt-6">
             <label
               htmlFor="motivo"
@@ -637,6 +559,7 @@ function SolicitarCita() {
             </div>
           </div>
 
+          {/* Modalidad */}
           <fieldset className="mt-6">
             <legend className="mb-3 text-sm font-medium">
               Modalidad de atención{" "}
@@ -706,6 +629,7 @@ function SolicitarCita() {
             )}
           </fieldset>
 
+          {/* Botones */}
           <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:justify-end">
             <button
               type="button"

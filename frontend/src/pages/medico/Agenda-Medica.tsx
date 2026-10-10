@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
+
 import { useAppointments } from "../../hooks/useAppointments";
-import { APPOINTMENT_STATUSES } from "../../constants/appointmentStatuses";
+import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_OPTIONS } from "../../constants/appointmentStatuses";
+import { AppointmentCard } from "../../components/appointments/AppointmentCard";
 import type { AppointmentStatus } from "../../types/appointment";
 
 function AgendaMedica() {
@@ -18,7 +20,9 @@ function AgendaMedica() {
   const [selectedStatus, setSelectedStatus] =
     useState<AppointmentStatus | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(
+    null,
+  );
 
   const normalizedSearch = searchTerm.trim().toLocaleLowerCase("es");
 
@@ -43,25 +47,25 @@ function AgendaMedica() {
     return {
       total: appointments.length,
       pending: appointments.filter(
-        (appointment) => appointment.status === "pending"
+        (appointment) => appointment.status === "pending",
       ).length,
       confirmed: appointments.filter(
-        (appointment) => appointment.status === "confirmed"
+        (appointment) => appointment.status === "confirmed",
       ).length,
       completed: appointments.filter(
-        (appointment) => appointment.status === "completed"
+        (appointment) => appointment.status === "completed",
       ).length,
     };
   }, [appointments]);
 
   const handleStatusChange = (
     appointmentId: string,
-    newStatus: AppointmentStatus
+    newStatus: AppointmentStatus,
   ) => {
     setActionMessage(null);
 
     const appointment = appointments.find(
-      (item) => item.id === appointmentId
+      (item) => item.id === appointmentId,
     );
 
     if (!appointment) {
@@ -74,7 +78,7 @@ function AgendaMedica() {
       appointment.status === "completed"
     ) {
       setActionMessage(
-        "No puedes modificar el estado de una cita cancelada o completada."
+        "No puedes modificar el estado de una cita cancelada o completada.",
       );
       return;
     }
@@ -88,9 +92,12 @@ function AgendaMedica() {
       return;
     }
 
-    if (newStatus === "completed" && appointment.status !== "confirmed") {
+    if (
+      newStatus === "completed" &&
+      appointment.status !== "confirmed"
+    ) {
       setActionMessage(
-        "Solo puedes marcar como completada una cita confirmada."
+        "Solo puedes marcar como completada una cita confirmada.",
       );
       return;
     }
@@ -114,7 +121,7 @@ function AgendaMedica() {
 
     if (updated) {
       setActionMessage(
-        `La cita de ${appointment.patientName} se actualizó a "${APPOINTMENT_STATUSES[newStatus]}".`
+        `La cita de ${appointment.patientName} se actualizó a "${APPOINTMENT_STATUSES[newStatus]}".`,
       );
     }
   };
@@ -126,16 +133,8 @@ function AgendaMedica() {
     setActionMessage(null);
   };
 
-  const statusStyles: Record<AppointmentStatus, string> = {
-    pending: "bg-amber-50 text-amber-800 ring-amber-200",
-    confirmed: "bg-blue-50 text-blue-800 ring-blue-200",
-    completed: "bg-primary-light text-primary-dark ring-primary/20",
-    cancelled: "bg-gray-100 text-gray-600 ring-gray-200",
-  };
-
   return (
     <div className="min-h-screen bg-page text-ink">
-      {/* Encabezado */}
       <header className="border-b border-line bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <a
@@ -181,7 +180,6 @@ function AgendaMedica() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Título */}
         <section className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
             Área médica
@@ -196,7 +194,6 @@ function AgendaMedica() {
           </p>
         </section>
 
-        {/* Mensaje de acción */}
         {actionMessage && (
           <div
             role="status"
@@ -216,41 +213,47 @@ function AgendaMedica() {
           </div>
         )}
 
-        {/* Resumen */}
         <section
           aria-label="Resumen de citas"
           className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
         >
           <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-muted">Total de citas</p>
+            <p className="text-sm font-medium text-muted">
+              Total de citas
+            </p>
             <p className="mt-3 text-3xl font-bold">
               {loading ? "—" : statusCounts.total}
             </p>
           </div>
 
           <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-muted">Pendientes</p>
+            <p className="text-sm font-medium text-muted">
+              Pendientes
+            </p>
             <p className="mt-3 text-3xl font-bold text-amber-700">
               {loading ? "—" : statusCounts.pending}
             </p>
           </div>
 
           <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-muted">Confirmadas</p>
+            <p className="text-sm font-medium text-muted">
+              Confirmadas
+            </p>
             <p className="mt-3 text-3xl font-bold text-blue-700">
               {loading ? "—" : statusCounts.confirmed}
             </p>
           </div>
 
           <div className="rounded-2xl border border-line bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-muted">Completadas</p>
+            <p className="text-sm font-medium text-muted">
+              Completadas
+            </p>
             <p className="mt-3 text-3xl font-bold text-primary">
               {loading ? "—" : statusCounts.completed}
             </p>
           </div>
         </section>
 
-        {/* Filtros */}
         <section className="mb-6 rounded-2xl border border-line bg-white p-5 shadow-sm">
           <div className="mb-5">
             <h2 className="text-lg font-semibold">Filtrar agenda</h2>
@@ -273,7 +276,9 @@ function AgendaMedica() {
                 type="search"
                 value={searchTerm}
                 maxLength={100}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) =>
+                  setSearchTerm(event.target.value)
+                }
                 placeholder="Buscar paciente..."
                 className="w-full rounded-xl border border-line px-4 py-3 text-sm outline-none transition focus:border-secondary"
               />
@@ -311,16 +316,18 @@ function AgendaMedica() {
                 value={selectedStatus}
                 onChange={(event) =>
                   setSelectedStatus(
-                    event.target.value as AppointmentStatus | "all"
+                    event.target.value as
+                      | AppointmentStatus
+                      | "all",
                   )
                 }
                 className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none transition focus:border-secondary"
               >
-                <option value="all">Todos los estados</option>
-                <option value="pending">Pendientes</option>
-                <option value="confirmed">Confirmadas</option>
-                <option value="completed">Completadas</option>
-                <option value="cancelled">Canceladas</option>
+                {APPOINTMENT_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -355,7 +362,6 @@ function AgendaMedica() {
           </div>
         </section>
 
-        {/* Error de carga */}
         {error && (
           <div
             role="alert"
@@ -378,7 +384,6 @@ function AgendaMedica() {
           </div>
         )}
 
-        {/* Carga */}
         {loading && (
           <div
             role="status"
@@ -396,7 +401,6 @@ function AgendaMedica() {
           </div>
         )}
 
-        {/* Lista */}
         {!loading && !error && (
           <>
             {filteredAppointments.length === 0 ? (
@@ -405,7 +409,6 @@ function AgendaMedica() {
                   className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-2xl"
                   aria-hidden="true"
                 >
-                  —
                 </div>
 
                 <h2 className="text-lg font-semibold">
@@ -436,74 +439,12 @@ function AgendaMedica() {
                 className="space-y-4"
               >
                 {filteredAppointments.map((appointment) => (
-                  <article
+                  <AppointmentCard
                     key={appointment.id}
-                    className="rounded-2xl border border-line bg-white p-5 shadow-sm transition hover:shadow-md sm:p-6"
-                  >
-                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-3">
-                          <h2 className="text-lg font-semibold">
-                            {appointment.patientName}
-                          </h2>
-
-                          <span
-                            className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${
-                              statusStyles[appointment.status]
-                            }`}
-                          >
-                            {APPOINTMENT_STATUSES[appointment.status]}
-                          </span>
-                        </div>
-
-                        <p className="mt-1 text-sm text-muted">
-                          {appointment.specialtyName}
-                        </p>
-
-                        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                          <div>
-                            <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                              Fecha
-                            </p>
-                            <p className="mt-1 font-medium">
-                              {appointment.date}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                              Hora
-                            </p>
-                            <p className="mt-1 font-medium">
-                              {appointment.time}
-                            </p>
-                          </div>
-
-                          <div>
-                            <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                              Modalidad
-                            </p>
-                            <p className="mt-1 font-medium">
-                              {appointment.modality === "online"
-                                ? "Virtual"
-                                : "Presencial"}
-                            </p>
-                          </div>
-                        </div>
-
-                        {appointment.reason && (
-                          <div className="mt-5 border-t border-line pt-4">
-                            <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                              Motivo de consulta
-                            </p>
-                            <p className="mt-1 whitespace-pre-wrap text-sm">
-                              {appointment.reason}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="flex shrink-0 flex-col gap-2 sm:flex-row lg:flex-col">
+                    appointment={appointment}
+                    counterpart="patient"
+                    actions={
+                      <>
                         {appointment.status === "pending" && (
                           <>
                             <button
@@ -511,7 +452,7 @@ function AgendaMedica() {
                               onClick={() =>
                                 handleStatusChange(
                                   appointment.id,
-                                  "confirmed"
+                                  "confirmed",
                                 )
                               }
                               className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-dark"
@@ -524,7 +465,7 @@ function AgendaMedica() {
                               onClick={() =>
                                 handleStatusChange(
                                   appointment.id,
-                                  "cancelled"
+                                  "cancelled",
                                 )
                               }
                               className="rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
@@ -541,7 +482,7 @@ function AgendaMedica() {
                               onClick={() =>
                                 handleStatusChange(
                                   appointment.id,
-                                  "completed"
+                                  "completed",
                                 )
                               }
                               className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-dark"
@@ -551,7 +492,7 @@ function AgendaMedica() {
 
                             <a
                               href={`/medico/observacion-clinica?cita=${encodeURIComponent(
-                                appointment.id
+                                appointment.id,
                               )}`}
                               className="rounded-xl border border-line px-4 py-3 text-center text-sm font-semibold transition hover:bg-gray-50"
                             >
@@ -571,9 +512,9 @@ function AgendaMedica() {
                             Cita cancelada
                           </p>
                         )}
-                      </div>
-                    </div>
-                  </article>
+                      </>
+                    }
+                  />
                 ))}
               </section>
             )}

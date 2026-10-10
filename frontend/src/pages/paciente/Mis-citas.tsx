@@ -1,6 +1,8 @@
 import { useMemo, useState } from "react";
+
 import { useAppointments } from "../../hooks/useAppointments";
-import { APPOINTMENT_STATUSES } from "../../constants/appointmentStatuses";
+import { APPOINTMENT_STATUS_OPTIONS } from "../../constants/appointmentStatuses";
+import { AppointmentCard } from "../../components/appointments/AppointmentCard";
 import type { AppointmentStatus } from "../../types/appointment";
 
 function MisCitas() {
@@ -17,7 +19,9 @@ function MisCitas() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] =
     useState<AppointmentStatus | "all">("all");
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState<string | null>(
+    null,
+  );
 
   const normalizedSearch = searchTerm.trim().toLocaleLowerCase("es");
 
@@ -39,7 +43,7 @@ function MisCitas() {
     setActionMessage(null);
 
     const appointment = appointments.find(
-      (item) => item.id === appointmentId
+      (item) => item.id === appointmentId,
     );
 
     if (!appointment) {
@@ -49,13 +53,13 @@ function MisCitas() {
 
     if (appointment.status !== "pending") {
       setActionMessage(
-        "Solo puedes cancelar citas que estén pendientes."
+        "Solo puedes cancelar citas que estén pendientes.",
       );
       return;
     }
 
     const confirmed = window.confirm(
-      "¿Estás seguro de que deseas cancelar esta cita?"
+      "¿Estás seguro de que deseas cancelar esta cita?",
     );
 
     if (!confirmed) return;
@@ -75,7 +79,6 @@ function MisCitas() {
 
   return (
     <div className="min-h-screen bg-page text-ink">
-      {/* Encabezado */}
       <header className="border-b border-line bg-white">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
           <a
@@ -119,9 +122,7 @@ function MisCitas() {
         </div>
       </header>
 
-      {/* Contenido */}
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Título */}
         <section className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
             Área del paciente
@@ -132,12 +133,11 @@ function MisCitas() {
           </h1>
 
           <p className="mt-3 max-w-2xl text-muted">
-            Consulta tus próximas citas, revisa sus estados y cancela las
-            solicitudes que todavía estén pendientes.
+            Consulta tus próximas citas, revisa sus estados y cancela
+            las solicitudes que todavía estén pendientes.
           </p>
         </section>
 
-        {/* Mensaje de acción */}
         {actionMessage && (
           <div
             role="status"
@@ -157,7 +157,6 @@ function MisCitas() {
           </div>
         )}
 
-        {/* Filtros */}
         <section
           aria-label="Filtros de citas"
           className="mb-6 rounded-2xl border border-line bg-white p-5 shadow-sm"
@@ -182,7 +181,9 @@ function MisCitas() {
                 id="searchDoctor"
                 type="search"
                 value={searchTerm}
-                onChange={(event) => setSearchTerm(event.target.value)}
+                onChange={(event) =>
+                  setSearchTerm(event.target.value)
+                }
                 placeholder="Ej.: María González"
                 maxLength={100}
                 className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none transition placeholder:text-gray-400 focus:border-secondary"
@@ -202,16 +203,16 @@ function MisCitas() {
                 value={selectedStatus}
                 onChange={(event) =>
                   setSelectedStatus(
-                    event.target.value as AppointmentStatus | "all"
+                    event.target.value as AppointmentStatus | "all",
                   )
                 }
                 className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none transition focus:border-secondary"
               >
-                <option value="all">Todos los estados</option>
-                <option value="pending">Pendientes</option>
-                <option value="confirmed">Confirmadas</option>
-                <option value="completed">Completadas</option>
-                <option value="cancelled">Canceladas</option>
+                {APPOINTMENT_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -246,7 +247,6 @@ function MisCitas() {
           </div>
         </section>
 
-        {/* Error de carga */}
         {error && (
           <div
             role="alert"
@@ -268,7 +268,6 @@ function MisCitas() {
           </div>
         )}
 
-        {/* Cargando */}
         {loading && (
           <div
             role="status"
@@ -285,7 +284,6 @@ function MisCitas() {
           </div>
         )}
 
-        {/* Lista de citas */}
         {!loading && !error && (
           <>
             {filteredAppointments.length === 0 ? (
@@ -332,103 +330,34 @@ function MisCitas() {
                 {filteredAppointments.map((appointment) => {
                   const canCancel = appointment.status === "pending";
 
-                  const statusStyles: Record<AppointmentStatus, string> = {
-                    pending: "bg-amber-50 text-amber-800 ring-amber-200",
-                    confirmed: "bg-blue-50 text-blue-800 ring-blue-200",
-                    completed: "bg-primary-light text-primary-dark ring-primary/20",
-                    cancelled: "bg-gray-100 text-gray-600 ring-gray-200",
-                  };
-
                   return (
-                    <article
+                    <AppointmentCard
                       key={appointment.id}
-                      className="rounded-2xl border border-line bg-white p-5 shadow-sm transition hover:shadow-md sm:p-6"
-                    >
-                      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-3">
-                            <h2 className="text-lg font-semibold">
-                              {appointment.doctorName}
-                            </h2>
-
-                            <span
-                              className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${
-                                statusStyles[appointment.status]
-                              }`}
-                            >
-                              {APPOINTMENT_STATUSES[appointment.status]}
-                            </span>
-                          </div>
-
-                          <p className="mt-1 text-sm text-muted">
-                            {appointment.specialtyName}
+                      appointment={appointment}
+                      counterpart="doctor"
+                      actions={
+                        canCancel ? (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleCancel(appointment.id)
+                            }
+                            className="w-full rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 sm:w-auto"
+                          >
+                            Cancelar cita
+                          </button>
+                        ) : (
+                          <p className="text-sm text-muted">
+                            {appointment.status === "confirmed" &&
+                              "Cita confirmada"}
+                            {appointment.status === "completed" &&
+                              "Cita completada"}
+                            {appointment.status === "cancelled" &&
+                              "Cita cancelada"}
                           </p>
-
-                          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                            <div>
-                              <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                                Fecha
-                              </p>
-                              <p className="mt-1 font-medium">
-                                {appointment.date}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                                Hora
-                              </p>
-                              <p className="mt-1 font-medium">
-                                {appointment.time}
-                              </p>
-                            </div>
-
-                            <div>
-                              <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                                Modalidad
-                              </p>
-                              <p className="mt-1 font-medium">
-                                {appointment.modality === "online"
-                                  ? "Virtual"
-                                  : "Presencial"}
-                              </p>
-                            </div>
-                          </div>
-
-                          {appointment.reason && (
-                            <div className="mt-5 border-t border-line pt-4">
-                              <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                                Motivo de consulta
-                              </p>
-                              <p className="mt-1 whitespace-pre-wrap text-sm">
-                                {appointment.reason}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="shrink-0">
-                          {canCancel ? (
-                            <button
-                              type="button"
-                              onClick={() => handleCancel(appointment.id)}
-                              className="w-full rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 sm:w-auto"
-                            >
-                              Cancelar cita
-                            </button>
-                          ) : (
-                            <p className="text-sm text-muted">
-                              {appointment.status === "confirmed" &&
-                                "Cita confirmada"}
-                              {appointment.status === "completed" &&
-                                "Cita completada"}
-                              {appointment.status === "cancelled" &&
-                                "Cita cancelada"}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </article>
+                        )
+                      }
+                    />
                   );
                 })}
               </section>
@@ -437,7 +366,6 @@ function MisCitas() {
         )}
       </main>
 
-      {/* Pie de página */}
       <footer className="mt-12 border-t border-line bg-white">
         <div className="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-muted sm:px-6 lg:px-8">
           MediReservas · Gestión de citas médicas
@@ -447,4 +375,4 @@ function MisCitas() {
   );
 }
 
-export default MisCitas
+export default MisCitas;
