@@ -18,7 +18,8 @@ export function useMobileMenu<T extends HTMLElement>() {
     }
 
     function closeOnOutsideClick(event: MouseEvent) {
-      if (!menuContainer.current?.contains(event.target as Node)) closeMenu()
+      const container = menuContainer.current
+      if (container && !container.contains(event.target as Node)) closeMenu()
     }
 
     document.addEventListener('keydown', closeOnEscape)

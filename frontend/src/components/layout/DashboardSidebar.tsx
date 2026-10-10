@@ -1,5 +1,6 @@
 import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
+import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
 import { DASHBOARD_CONFIG, type DashboardAction } from '../../lib/roles'
 
@@ -10,14 +11,14 @@ interface DashboardSidebarProps {
 }
 
 function DashboardSidebar({ currentPath, menuOpen, onCloseMenu }: DashboardSidebarProps) {
-  const { session } = useAuth()
-  const config = session ? DASHBOARD_CONFIG[session.role] : null
+  const { user } = useAuth()
+  const config = user ? DASHBOARD_CONFIG[user.role] : null
 
   if (!config) return null
 
   const navigation: DashboardAction[] = [
-    { icon: '⌂', title: 'Panel principal', href: '/dashboard', reactRoute: true, description: '' },
-    { icon: 'MI', title: 'Mi perfil', href: '/perfil', reactRoute: true, description: '' },
+    { icon: '⌂', title: 'Panel principal', href: ROUTES.dashboard, reactRoute: true, description: '' },
+    { icon: 'MI', title: 'Mi perfil', href: ROUTES.profile, reactRoute: true, description: '' },
     ...config.actions,
   ]
 

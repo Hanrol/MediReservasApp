@@ -1,8 +1,11 @@
 import { useEffect } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
+import SummaryCard from '../components/ui/SummaryCard'
 import { Link, Navigate } from 'react-router-dom'
+import { ROUTES } from '../constants/routes'
+import { useAuth } from '../hooks/useAuth'
 import { DASHBOARD_CONFIG, type DashboardAction } from '../lib/roles'
-import { getSession, getStoredItems, getUsers } from '../lib/storage'
+import { getStoredItems, getUsers } from '../lib/storage'
 
 interface Appointment {
   appointmentStatus?: string
@@ -75,25 +78,25 @@ function getSummary(role: string, userId: number) {
 }
 
 function Dashboard() {
-  const session = getSession()
-  const config = session ? DASHBOARD_CONFIG[session.role] : null
+  const { user } = useAuth()
+  const config = user ? DASHBOARD_CONFIG[user.role] : null
 
   useEffect(() => {
     if (config) document.title = `Panel de ${config.label} | MediReservas`
   }, [config])
 
 
-  if (!session || !config) return <Navigate to="/login" replace />
+  if (!user || !config) return <Navigate to={ROUTES.login} replace />
 
-  const summary = getSummary(session.role, session.userId)
+  const summary = getSummary(user.role, user.userId)
 
 
   return (
-    <DashboardLayout currentPath="/dashboard" mainClassName="px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
+    <DashboardLayout currentPath={ROUTES.dashboard} mainClassName="px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
 
       <section className="rounded-3xl bg-primary-dark p-6 text-white shadow-lg sm:p-8" aria-labelledby="welcome-title">
         <p className="text-sm font-bold uppercase tracking-widest text-emerald-200">Panel de {config.label.toLowerCase()}</p>
-        <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl" id="welcome-title">Hola, {session.firstName}</h1>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl" id="welcome-title">Hola, {user.firstName}</h1>
         <p className="mt-3 max-w-2xl leading-7 text-emerald-50">{config.description}</p>
       </section>
 
@@ -109,10 +112,7 @@ function Dashboard() {
         <h2 className="text-2xl font-bold" id="summary-title">Resumen</h2>
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           {summary.map((item) => (
-            <article className="rounded-2xl border border-line bg-white p-5 shadow-sm" key={item.label}>
-              <p className="text-3xl font-bold text-primary-dark">{item.value}</p>
-              <p className="mt-1 text-sm text-muted">{item.label}</p>
-            </article>
+            <SummaryCard key={item.label} value={item.value} label={item.label} />
           ))}
         </div>
       </section>
