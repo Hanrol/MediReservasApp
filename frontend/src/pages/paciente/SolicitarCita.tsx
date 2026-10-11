@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useAppointments } from "../../hooks/useAppointments";
@@ -24,6 +24,8 @@ const INITIAL_VALUES: AppointmentFormValues = {
 
 function SolicitarCita() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const requestedDoctorId = searchParams.get("medico");
   const {
     createAppointment,
     loading: creatingAppointment,
@@ -35,8 +37,6 @@ function SolicitarCita() {
 
   const { getAvailableTimes } = useSchedules({ autoLoad: false });
 
-  const [values, setValues] = useState<AppointmentFormValues>(INITIAL_VALUES);
-  const [errors, setErrors] = useState<AppointmentFormErrors>({});
   const [specialties] = useState(() => {
     initializeSpecialties();
     return getSpecialties().filter((specialty) => specialty.active);
@@ -45,6 +45,26 @@ function SolicitarCita() {
     initializeDoctors();
     return getDoctors().filter((doctor) => doctor.active);
   });
+  const [values, setValues] = useState<AppointmentFormValues>(() => {
+    if (!requestedDoctorId) return INITIAL_VALUES;
+
+    const requestedDoctor = doctors.find(
+      (doctor) => doctor.doctorId === Number(requestedDoctorId),
+    );
+    const requestedSpecialty = requestedDoctor?.specialtyIds.find((id) =>
+      specialties.some((specialty) => specialty.specialtyId === id),
+    );
+
+    if (!requestedDoctor || !requestedSpecialty) return INITIAL_VALUES;
+
+    return {
+      ...INITIAL_VALUES,
+      specialtyId: String(requestedSpecialty),
+      doctorId: String(requestedDoctor.doctorId),
+    };
+  });
+  const [errors, setErrors] = useState<AppointmentFormErrors>({});
+
   const [successMessage, setSuccessMessage] = useState("");
   const [formError, setFormError] = useState("");
 

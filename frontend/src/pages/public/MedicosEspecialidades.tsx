@@ -6,8 +6,19 @@ import Modal from '../../components/ui/Modal'
 import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
 import { getDoctors, initializeDoctors } from '../../services/doctors.service'
+import { schedulesService } from '../../services/schedules.service'
 import { getSpecialties, initializeSpecialties } from '../../services/specialties.service'
 import type { Doctor } from '../../types/doctor'
+import { getLocalDateString } from '../../utils/validations'
+
+function formatScheduleDate(date: string) {
+  return new Intl.DateTimeFormat('es-CL', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(new Date(`${date}T00:00:00Z`))
+}
 
 function MedicosEspecialidades() {
   const location = useLocation()
@@ -40,6 +51,11 @@ function MedicosEspecialidades() {
   const visibleDoctors = doctors
     .filter((doctor) => `${doctor.firstName} ${doctor.lastName}`.toLowerCase().includes(doctorSearchTerm))
     .filter((doctor) => !selectedSpecialtyId || doctor.specialtyIds.includes(selectedSpecialtyId))
+  const selectedDoctorSchedules = selectedDoctor
+    ? schedulesService.getAll({ doctorId: selectedDoctor.doctorId, available: true })
+      .filter((schedule) => schedule.date >= getLocalDateString())
+      .slice(0, 3)
+    : []
 
   function filterDoctors(selectedSpecialtyId: number) {
     setSpecialtyId(String(selectedSpecialtyId))
@@ -129,6 +145,20 @@ function MedicosEspecialidades() {
             <dl className="space-y-4">
               <div><dt className="text-sm font-semibold text-muted">Especialidades</dt><dd className="mt-1">{doctorSpecialties(selectedDoctor).map((item) => item?.specialtyName).join(', ')}</dd></div>
               <div><dt className="text-sm font-semibold text-muted">Registro médico</dt><dd className="mt-1">{selectedDoctor.medicalLicenseNumber}</dd></div>
+              <div>
+                <dt className="text-sm font-semibold text-muted">Próximos horarios disponibles</dt>
+                <dd className="mt-2">
+                  {selectedDoctorSchedules.length ? (
+                    <ul className="flex flex-wrap gap-2">
+                      {selectedDoctorSchedules.map((schedule) => (
+                        <li className="rounded-lg bg-primary-light px-3 py-2 text-sm font-semibold text-primary-dark" key={schedule.id}>
+                          {formatScheduleDate(schedule.date)} · {schedule.time} hrs
+                        </li>
+                      ))}
+                    </ul>
+                  ) : 'No hay horarios disponibles por el momento.'}
+                </dd>
+              </div>
               <div><dt className="text-sm font-semibold text-muted">Descripción</dt><dd className="mt-1 leading-7">{doctorSpecialties(selectedDoctor).map((item) => item?.description).join(' ')}</dd></div>
             </dl>
         </Modal>

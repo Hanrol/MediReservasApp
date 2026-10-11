@@ -5,15 +5,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthContext } from '../../contexts/auth-context'
 import { mockDoctors } from '../../data/mockDoctors'
+import { mockSpecialties } from '../../data/mockSpecialties'
 import { mockUsers } from '../../data/mockUsers'
 import Agenda from '../../pages/medico/Agenda'
 import GestionCitas from '../../pages/recepcion/GestionCitas'
+import MedicosEspecialidades from '../../pages/public/MedicosEspecialidades'
 import MisCitas from '../../pages/paciente/MisCitas'
 import ObservacionClinica from '../../pages/medico/ObservacionClinica'
+import SolicitarCita from '../../pages/paciente/SolicitarCita'
 import { appointmentsStorage } from '../../storage/appointments.storage'
 import { clinicalStorage } from '../../storage/clinical.storage'
 import { schedulesStorage } from '../../storage/schedules.storage'
 import { saveDoctors } from '../../storage/doctors.storage'
+import { saveSpecialties } from '../../storage/specialties.storage'
 import { saveUsers } from '../../storage/users.storage'
 import type { User } from '../../types/user'
 
@@ -49,6 +53,7 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     schedulesStorage.reset()
     saveUsers(mockUsers)
     saveDoctors(mockDoctors)
+    saveSpecialties(mockSpecialties)
   })
 
   afterEach(() => {
@@ -120,5 +125,34 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     expect(screen.queryByRole('button', { name: 'Confirmar cita' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Cancelar cita' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Marcar completada' })).not.toBeInTheDocument()
+  })
+
+  it('CP-076 · RF-13 · detalle del médico presenta horarios referenciales y acceso a reserva', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-11T12:00:00'))
+    const patient = mockUsers.find((item) => item.role === 'PATIENT')!
+
+    renderAs(patient, <MedicosEspecialidades />)
+
+    const doctorCard = screen.getByRole('heading', { name: 'Daniela Rojas' }).closest('article')!
+    fireEvent.click(within(doctorCard).getByRole('button', { name: 'Ver detalle' }))
+
+    expect(screen.getByText('Próximos horarios disponibles')).toBeInTheDocument()
+    expect(screen.getByText(/11:30 hrs/)).toBeInTheDocument()
+    expect(screen.getByText(/14:00 hrs/)).toBeInTheDocument()
+    expect(screen.getByText(/15:00 hrs/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Solicitar cita' })).toHaveAttribute(
+      'href',
+      '/solicitar-cita?medico=1',
+    )
+  })
+
+  it('CP-077 · RF-13/RF-15 · reserva preselecciona médico y especialidad del detalle', async () => {
+    const patient = mockUsers.find((item) => item.role === 'PATIENT')!
+
+    renderAs(patient, <SolicitarCita />, '/solicitar-cita?medico=1')
+
+    expect(await screen.findByLabelText(/Médico/)).toHaveValue('1')
+    expect(screen.getByLabelText(/Especialidad/)).toHaveValue('1')
   })
 })
