@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 
 import {
   appointmentsService,
@@ -37,16 +37,11 @@ export function useAppointments(
   const { filters = {}, autoLoad = true } = options;
   const { patientUserId, doctorId, date, appointmentStatus, searchTerm } = filters;
 
-  const [revision, setRevision] = useState(0);
+  const [, setRevision] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const appointments = useMemo(() => {
-    void revision;
-    return autoLoad
-      ? appointmentsService.getAll({ patientUserId, doctorId, date, appointmentStatus, searchTerm })
-      : [];
-  },
-    [appointmentStatus, autoLoad, date, doctorId, patientUserId, revision, searchTerm],
-  );
+  const appointments = autoLoad
+    ? appointmentsService.getAll({ patientUserId, doctorId, date, appointmentStatus, searchTerm })
+    : [];
 
   const refresh = useCallback(() => {
     setError(null);

@@ -36,7 +36,7 @@ describe('Catálogo y administración médica', () => {
     })
   })
 
-  it('CP-027 · RF-13 · relaciona la cuenta autenticada con su ficha médica', () => {
+  it('CP-027 · RF-23 · relaciona la cuenta autenticada con su ficha médica para filtrar la agenda', () => {
     expect(getDoctorForUser(mockUsers[2])).toMatchObject({ doctorId: 1, userId: 3 })
     expect(getDoctorForUser(null)).toBeNull()
   })

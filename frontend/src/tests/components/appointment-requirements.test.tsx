@@ -176,6 +176,7 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     fireEvent.click(within(appointmentRow).getByRole('button', { name: 'Confirmar' }))
 
     expect(appointmentsStorage.getAll().find((item) => item.appointmentId === 2)?.appointmentStatus).toBe('CONFIRMED')
+    expect(within(appointmentRow).getByText('Confirmada')).toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('fue confirmada')
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar mensaje' }))
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
@@ -354,6 +355,8 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     const doctor = mockUsers.find((item) => item.role === 'DOCTOR')!
     renderAs(doctor, <Agenda />)
 
+    expect(screen.getByText('Control general')).toBeInTheDocument()
+    expect(screen.queryByText('Control preventivo')).not.toBeInTheDocument()
     await user.type(screen.getByLabelText('Nombre del paciente'), 'Paula')
     fireEvent.change(screen.getByLabelText('Fecha'), { target: { value: '2026-10-09' } })
     await user.selectOptions(screen.getByLabelText('Estado'), 'CONFIRMED')
@@ -485,7 +488,7 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     appointmentsStorage.saveAll([])
     await user.click(screen.getByRole('button', { name: 'Guardar observación' }))
 
-    expect(screen.getByRole('alert')).toHaveTextContent('No fue posible completar la cita.')
+    expect(screen.getByRole('alert')).toHaveTextContent('No se encontró la cita seleccionada.')
     expect(clinicalStorage.getAll()).toHaveLength(0)
   })
 })

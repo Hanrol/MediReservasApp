@@ -108,14 +108,14 @@ describe('Hooks de dominio', () => {
     })
   })
 
-  it('CP-059 · RF-23 · useSchedules filtra y consulta horas disponibles', () => {
+  it('CP-059 · RF-15/RF-16 · useSchedules filtra y consulta horas disponibles', () => {
     const { result } = renderHook(() => useSchedules({ filters: { doctorId: 1, available: true } }))
 
     expect(result.current.schedules.every((item) => item.doctorId === 1 && item.available)).toBe(true)
     expect(result.current.getAvailableTimes(1, '2026-10-13')).toEqual(['14:00', '15:00'])
   })
 
-  it('CP-060 · RF-23 · useSchedules ocupa y libera horarios', () => {
+  it('CP-060 · RF-15/RF-18 · useSchedules ocupa y libera horarios', () => {
     const { result } = renderHook(() => useSchedules())
 
     act(() => {
@@ -126,7 +126,7 @@ describe('Hooks de dominio', () => {
     expect(result.current.error).toBeNull()
   })
 
-  it('CP-061 · RF-23/RNF-07 · useSchedules informa un horario inexistente', () => {
+  it('CP-061 · RF-15/RF-16/RNF-07 · useSchedules informa un horario inexistente', () => {
     const { result } = renderHook(() => useSchedules())
 
     act(() => {

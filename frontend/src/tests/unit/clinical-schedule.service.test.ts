@@ -29,11 +29,11 @@ describe('Agenda e historial clínico', () => {
     saveUsers(mockUsers)
   })
 
-  it('CP-035 · RF-23 · muestra solo horarios disponibles del médico y fecha', () => {
+  it('CP-035 · RF-15/RF-16 · muestra solo horarios disponibles del médico y fecha', () => {
     expect(schedulesService.getAvailableTimes(1, '2026-10-13')).toEqual(['14:00', '15:00'])
   })
 
-  it('CP-036 · RF-23 · permite ocupar y liberar un horario médico', () => {
+  it('CP-036 · RF-15/RF-18 · permite ocupar y liberar un horario médico', () => {
     schedulesService.markUnavailable(1, '2026-10-12', '11:30')
     expect(schedulesService.getById(3)?.available).toBe(false)
 
