@@ -1,6 +1,6 @@
 # MediReservasApp — Frontend
 
-SPA web para pacientes, médicos, recepción y administración. La interfaz se está migrando de `legacy/` a React + TypeScript; **la aplicación activa es `src/`**. La carpeta `legacy/` se conserva como referencia de comportamiento mientras termina la verificación de paridad.
+SPA web para pacientes, médicos, recepción y administración.
 
 ## Estado y alcance
 
@@ -8,7 +8,6 @@ SPA web para pacientes, médicos, recepción y administración. La interfaz se e
 - Los servicios usan datos simulados y `localStorage` separados por dominio. **El frontend todavía no está integrado con la API ni con la base de datos del backend.**
 - Los roles y rutas principales están implementados con guards de autenticación y autorización.
 - El detalle del médico permite revisar horarios referenciales y comenzar una reserva con médico/especialidad preseleccionados.
-- El Excel de requisitos de `Eva 1` es la fuente de verdad para los códigos RF y criterios de aceptación; el PDF ERS está desactualizado.
 
 ## Tecnologías
 
@@ -95,7 +94,3 @@ Estas credenciales solo sirven para la versión local con datos simulados; no so
 | Recepción | `recepcion@medireservas.cl` | `Recepcion123` |
 | Médico | `medico@medireservas.cl` | `Medico123` |
 | Paciente | `paciente@medireservas.cl` | `Paciente123` |
-
-## Migración desde `legacy/`
-
-Las vistas y flujos HTML/JavaScript se trasladan a las páginas y servicios React/TypeScript correspondientes. Antes de retirar `legacy/`, completar la revisión de criterios del Excel, mantener la trazabilidad CP/RF y validar los recorridos por rol y los tamaños de pantalla requeridos.
