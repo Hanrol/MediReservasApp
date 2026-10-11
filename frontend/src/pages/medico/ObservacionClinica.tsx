@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import Breadcrumbs from "../../components/layout/Breadcrumbs";
 import { ROUTES } from "../../constants/routes";
 import { useAppointments } from "../../hooks/useAppointments";
 import { useClinical } from "../../hooks/useClinical";
@@ -190,6 +191,7 @@ function ObservacionClinica() {
   if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
     return (
       <DashboardLayout currentPath={ROUTES.clinicalObservation}>
+        <Breadcrumbs items={[{ label: 'Panel principal', href: ROUTES.dashboard }, { label: 'Mi agenda médica', href: ROUTES.medicalSchedule }, { label: 'Observación clínica' }]} />
         <div className="mx-auto max-w-3xl py-8">
           <div
             role="alert"
@@ -217,6 +219,7 @@ function ObservacionClinica() {
 
   return (
     <DashboardLayout currentPath={ROUTES.clinicalObservation}>
+      <Breadcrumbs items={[{ label: 'Panel principal', href: ROUTES.dashboard }, { label: 'Mi agenda médica', href: ROUTES.medicalSchedule }, { label: 'Observación clínica' }]} />
       <div className="mx-auto max-w-4xl">
         <section className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">

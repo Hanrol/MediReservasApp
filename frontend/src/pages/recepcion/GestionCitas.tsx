@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { AppointmentStatus } from '../../components/appointments/AppointmentStatus'
 import DashboardLayout from '../../components/layout/DashboardLayout'
+import Breadcrumbs from '../../components/layout/Breadcrumbs'
 import Modal from '../../components/ui/Modal'
 import { APPOINTMENT_STATUS_OPTIONS } from '../../constants/appointmentStatuses'
 import { ROUTES } from '../../constants/routes'
@@ -125,6 +126,7 @@ function GestionCitas() {
 
   return (
     <DashboardLayout currentPath={ROUTES.appointmentManagement}>
+      <Breadcrumbs items={[{ label: 'Panel principal', href: ROUTES.dashboard }, { label: 'Gestión de citas' }]} />
       <section className="mx-auto max-w-7xl" aria-labelledby="appointments-title">
         <header>
           <p className="text-sm font-bold uppercase tracking-widest text-primary">Recepción</p>

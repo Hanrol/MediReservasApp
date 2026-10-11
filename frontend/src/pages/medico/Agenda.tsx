@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import Breadcrumbs from "../../components/layout/Breadcrumbs";
 import { useAppointments } from "../../hooks/useAppointments";
 import { useAuth } from "../../hooks/useAuth";
 import { getDoctorForUser } from "../../services/doctors.service";
@@ -71,6 +72,7 @@ function Agenda() {
 
   return (
     <DashboardLayout currentPath={ROUTES.medicalSchedule}>
+      <Breadcrumbs items={[{ label: 'Panel principal', href: ROUTES.dashboard }, { label: 'Mi agenda médica' }]} />
       <div className="mx-auto max-w-7xl">
         <section className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">

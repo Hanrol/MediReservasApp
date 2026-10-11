@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import DashboardLayout from '../../components/layout/DashboardLayout.tsx'
+import Breadcrumbs from '../../components/layout/Breadcrumbs.tsx'
 import { DASHBOARD_CONFIG } from '../../constants/roles.ts'
 import { ROUTES } from '../../constants/routes.ts'
 import {createUser, editUser, getUsers, isUserDataTaken, setUserStatus} from '../../services/users.service.ts'
@@ -117,6 +118,7 @@ function Usuarios() {
 
   return (
     <DashboardLayout currentPath={ROUTES.users}>
+      <Breadcrumbs items={[{ label: 'Panel principal', href: ROUTES.dashboard }, { label: 'Gestión de usuarios' }]} />
       <section className="mx-auto max-w-7xl" aria-labelledby="users-title">
             <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
               <div><p className="text-sm font-bold uppercase tracking-widest text-primary">Administración</p><h1

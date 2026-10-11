@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import { DASHBOARD_CONFIG, isValidRole, validateRoleChange } from '../../constants/roles.ts'
 import DashboardLayout from '../../components/layout/DashboardLayout.tsx'
+import Breadcrumbs from '../../components/layout/Breadcrumbs.tsx'
 import { ROUTES } from '../../constants/routes.ts'
 import { changeUserRole, getUsers } from '../../services/users.service.ts'
 import type { User } from '../../types/user.ts'
@@ -43,6 +44,7 @@ function Roles() {
 
   return (
     <DashboardLayout currentPath={ROUTES.roles}>
+      <Breadcrumbs items={[{ label: 'Panel principal', href: ROUTES.dashboard }, { label: 'Roles y permisos' }]} />
       <section className="mx-auto max-w-7xl" aria-labelledby="roles-title">
             <header><p className="text-sm font-bold uppercase tracking-widest text-primary">Administración</p><h1 className="mt-3 text-3xl font-bold sm:text-4xl" id="roles-title">Roles y permisos</h1><p className="mt-3 text-muted">Asigna a cada usuario el perfil que corresponda a sus funciones.</p></header>
             <aside className="mt-8 rounded-2xl border border-emerald-200 bg-primary-light p-5 sm:p-6" aria-labelledby="roles-information-title"><h2 className="font-bold text-primary-dark" id="roles-information-title">Perfiles disponibles</h2><ul className="mt-4 grid gap-3 text-sm text-muted sm:grid-cols-2"><li><strong className="text-ink">Administrador:</strong> acceso a la configuración y gestión completa.</li><li><strong className="text-ink">Recepcionista:</strong> gestión de solicitudes y estados de citas.</li><li><strong className="text-ink">Médico:</strong> acceso a agenda, pacientes y observaciones clínicas.</li><li><strong className="text-ink">Paciente:</strong> reserva y consulta de sus propias atenciones.</li></ul></aside>
