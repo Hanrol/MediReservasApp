@@ -155,4 +155,79 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     expect(await screen.findByLabelText(/Médico/)).toHaveValue('1')
     expect(screen.getByLabelText(/Especialidad/)).toHaveValue('1')
   })
+
+  it('CP-094 · RF-20 · recepción confirma una solicitud pendiente', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const receptionist = mockUsers.find((item) => item.role === 'RECEPTIONIST')!
+    renderAs(receptionist, <GestionCitas />)
+
+    const appointmentRow = screen.getByText('Control preventivo').closest('tr')!
+    fireEvent.click(within(appointmentRow).getByRole('button', { name: 'Confirmar' }))
+
+    expect(appointmentsStorage.getAll().find((item) => item.appointmentId === 2)?.appointmentStatus).toBe('CONFIRMED')
+    expect(screen.getByRole('status')).toHaveTextContent('fue confirmada')
+  })
+
+  it('CP-095 · RF-21 · recepción reagenda y reserva el nuevo horario', async () => {
+    const user = userEvent.setup()
+    const receptionist = mockUsers.find((item) => item.role === 'RECEPTIONIST')!
+    renderAs(receptionist, <GestionCitas />)
+
+    const appointmentRow = screen.getByText('Control preventivo').closest('tr')!
+    await user.click(within(appointmentRow).getByRole('button', { name: 'Reagendar' }))
+    await user.selectOptions(screen.getByLabelText('Nueva fecha'), '2026-10-12')
+    await user.selectOptions(screen.getByLabelText('Nueva hora'), '11:30')
+    await user.click(screen.getByRole('button', { name: 'Guardar nueva fecha' }))
+
+    expect(appointmentsStorage.getAll().find((item) => item.appointmentId === 2)).toMatchObject({
+      date: '2026-10-12',
+      time: '11:30',
+      scheduleSlotId: 7,
+      appointmentStatus: 'PENDING',
+    })
+    expect(schedulesStorage.getAll().find((item) => item.id === 6)?.available).toBe(true)
+    expect(schedulesStorage.getAll().find((item) => item.id === 7)?.available).toBe(false)
+  })
+
+  it('CP-096 · RF-22 · recepción confirma la cancelación de una cita y libera el horario', () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const receptionist = mockUsers.find((item) => item.role === 'RECEPTIONIST')!
+    renderAs(receptionist, <GestionCitas />)
+
+    const appointmentRow = screen.getByText('Control general').closest('tr')!
+    fireEvent.click(within(appointmentRow).getByRole('button', { name: 'Cancelar' }))
+
+    expect(appointmentsStorage.getAll().find((item) => item.appointmentId === 1)?.appointmentStatus).toBe('CANCELLED')
+    expect(schedulesStorage.getAll().find((item) => item.id === 1)?.available).toBe(true)
+    expect(screen.getByRole('status')).toHaveTextContent('fue cancelada')
+  })
+
+  it('CP-097 · RF-15/RF-16 · paciente valida el formulario y registra una cita', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-10-11T12:00:00'))
+    const patient = mockUsers.find((item) => item.role === 'PATIENT')!
+    renderAs(patient, <SolicitarCita />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Solicitar cita' }))
+    expect(screen.getByText('Revisa los campos indicados antes de continuar.')).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText(/Especialidad/), { target: { value: '1' } })
+    fireEvent.change(screen.getByLabelText(/Médico/), { target: { value: '1' } })
+    fireEvent.change(screen.getByLabelText(/Fecha de atención/), { target: { value: '2026-10-12' } })
+    fireEvent.change(screen.getByLabelText(/Hora de atención/), { target: { value: '11:30' } })
+    fireEvent.change(screen.getByLabelText(/Motivo de la consulta/), { target: { value: 'Control cardiológico' } })
+    fireEvent.click(screen.getByLabelText(/Presencial/))
+    fireEvent.click(screen.getByRole('button', { name: 'Solicitar cita' }))
+
+    expect(screen.getByRole('status')).toHaveTextContent('Tu solicitud de cita se registró correctamente')
+    expect(appointmentsStorage.getAll()).toHaveLength(6)
+    expect(appointmentsStorage.getAll().at(-1)).toMatchObject({
+      doctorId: 1,
+      date: '2026-10-12',
+      time: '11:30',
+      reason: 'Control cardiológico',
+      appointmentStatus: 'PENDING',
+    })
+    expect(schedulesStorage.getAll().find((item) => item.id === 3)?.available).toBe(false)
+  })
 })
