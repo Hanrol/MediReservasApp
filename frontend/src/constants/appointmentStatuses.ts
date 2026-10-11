@@ -4,10 +4,11 @@ export const APPOINTMENT_STATUSES: Record<
   AppointmentStatus,
   string
 > = {
-  pending: "Pendiente",
-  confirmed: "Confirmada",
-  completed: "Completada",
-  cancelled: "Cancelada",
+  PENDING: "Pendiente",
+  CONFIRMED: "Confirmada",
+  COMPLETED: "Completada",
+  CANCELLED: "Cancelada",
+  NO_SHOW: "No asistió",
 };
 
 export const APPOINTMENT_STATUS_OPTIONS: {
@@ -15,8 +16,9 @@ export const APPOINTMENT_STATUS_OPTIONS: {
   label: string;
 }[] = [
   { value: "all", label: "Todos los estados" },
-  { value: "pending", label: "Pendientes" },
-  { value: "confirmed", label: "Confirmadas" },
-  { value: "completed", label: "Completadas" },
-  { value: "cancelled", label: "Canceladas" },
+  { value: "PENDING", label: "Pendientes" },
+  { value: "CONFIRMED", label: "Confirmadas" },
+  { value: "COMPLETED", label: "Completadas" },
+  { value: "CANCELLED", label: "Canceladas" },
+  { value: "NO_SHOW", label: "No asistió" },
 ];

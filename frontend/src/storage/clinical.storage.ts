@@ -1,17 +1,31 @@
 import type { ClinicalObservation } from "../types/clinical";
+import { STORAGE_KEYS } from "./storageKeys";
 
-const STORAGE_KEY = "medireservas_clinical_observations";
+function isClinicalCollection(value: unknown): value is ClinicalObservation[] {
+  return Array.isArray(value) && value.every((item) => {
+    if (!item || typeof item !== 'object') return false
+    const observation = item as Partial<ClinicalObservation>
+    return typeof observation.id === 'string' &&
+      typeof observation.appointmentId === 'number' &&
+      typeof observation.patientId === 'number' &&
+      typeof observation.doctorId === 'number' &&
+      typeof observation.diagnosis === 'string' &&
+      typeof observation.notes === 'string' &&
+      typeof observation.treatment === 'string' &&
+      typeof observation.createdAt === 'string'
+  })
+}
 
 export const clinicalStorage = {
   getAll(): ClinicalObservation[] {
     try {
-      const storedData = localStorage.getItem(STORAGE_KEY);
+      const storedData = localStorage.getItem(STORAGE_KEYS.clinicalObservations);
 
       if (storedData !== null) {
         const parsedData: unknown = JSON.parse(storedData);
 
-        if (Array.isArray(parsedData)) {
-          return parsedData as ClinicalObservation[];
+        if (isClinicalCollection(parsedData)) {
+          return parsedData;
         }
       }
 
@@ -22,10 +36,10 @@ export const clinicalStorage = {
   },
 
   saveAll(observations: ClinicalObservation[]): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(observations));
+    localStorage.setItem(STORAGE_KEYS.clinicalObservations, JSON.stringify(observations));
   },
 
   reset(): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.clinicalObservations, JSON.stringify([]));
   },
 };

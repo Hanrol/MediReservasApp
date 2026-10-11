@@ -7,10 +7,6 @@ export function getDoctors(): Doctor[] {
   return readDoctors()
 }
 
-export function getDoctorById(doctorId: number): Doctor | null {
-  return readDoctors().find((doctor) => doctor.doctorId === Number(doctorId)) ?? null
-}
-
 export function getDoctorForUser(user: User | null | undefined): Doctor | null {
   if (!user) return null
 

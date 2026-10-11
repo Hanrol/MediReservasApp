@@ -1,201 +1,190 @@
-import type {
-  Appointment,
-  AppointmentStatus,
-} from "../types/appointment";
-import { appointmentsStorage } from "../storage/appointments.storage";
+import { appointmentsStorage } from '../storage/appointments.storage'
+import { schedulesStorage } from '../storage/schedules.storage'
+import type { Appointment, AppointmentStatus } from '../types/appointment'
 
-export interface CreateAppointmentInput {
-  patientId: string;
-  patientName: string;
-  doctorId: string;
-  doctorName: string;
-  specialtyId: string;
-  specialtyName: string;
-  date: string;
-  time: string;
-  reason: string;
-  modality: Appointment["modality"];
-}
+export type CreateAppointmentInput = Omit<Appointment, 'appointmentId' | 'appointmentStatus'>
 
 export interface AppointmentFilters {
-  patientId?: string;
-  doctorId?: string;
-  date?: string;
-  status?: AppointmentStatus;
-  searchTerm?: string;
+  patientUserId?: number
+  doctorId?: number
+  date?: string
+  appointmentStatus?: AppointmentStatus
+  searchTerm?: string
 }
 
-function generateAppointmentId(): string {
-  return `appointment-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2, 8)}`;
+function getNextAppointmentId(appointments: Appointment[]) {
+  return appointments.reduce((maximum, appointment) => Math.max(maximum, appointment.appointmentId), 0) + 1
 }
 
 export const appointmentsService = {
-  /**
-   * Obtiene todas las citas, con filtros opcionales.
-   */
   getAll(filters: AppointmentFilters = {}): Appointment[] {
-    let appointments = appointmentsStorage.getAll();
+    let appointments = appointmentsStorage.getAll()
 
-    if (filters.patientId) {
-      appointments = appointments.filter(
-        (appointment) => appointment.patientId === filters.patientId,
-      );
+    if (filters.patientUserId) {
+      appointments = appointments.filter((appointment) => appointment.patientUserId === filters.patientUserId)
     }
-
     if (filters.doctorId) {
-      appointments = appointments.filter(
-        (appointment) => appointment.doctorId === filters.doctorId,
-      );
+      appointments = appointments.filter((appointment) => appointment.doctorId === filters.doctorId)
     }
-
     if (filters.date) {
-      appointments = appointments.filter(
-        (appointment) => appointment.date === filters.date,
-      );
+      appointments = appointments.filter((appointment) => appointment.date === filters.date)
     }
-
-    if (filters.status) {
-      appointments = appointments.filter(
-        (appointment) => appointment.status === filters.status,
-      );
+    if (filters.appointmentStatus) {
+      appointments = appointments.filter((appointment) => appointment.appointmentStatus === filters.appointmentStatus)
     }
-
     if (filters.searchTerm?.trim()) {
-      const search = filters.searchTerm.trim().toLocaleLowerCase("es");
-
-      appointments = appointments.filter((appointment) =>
-        appointment.doctorName.toLocaleLowerCase("es").includes(search),
-      );
+      const search = filters.searchTerm.trim().toLocaleLowerCase('es')
+      appointments = appointments.filter((appointment) => appointment.doctorName.toLocaleLowerCase('es').includes(search))
     }
 
-    return appointments.sort((a, b) => {
-      const dateComparison = a.date.localeCompare(b.date);
-
-      return dateComparison !== 0
-        ? dateComparison
-        : a.time.localeCompare(b.time);
-    });
+    return appointments.sort((first, second) => {
+      const dateComparison = first.date.localeCompare(second.date)
+      return dateComparison !== 0 ? dateComparison : first.time.localeCompare(second.time)
+    })
   },
 
-  /**
-   * Busca una cita por su identificador.
-   */
-  getById(id: string): Appointment | undefined {
-    return appointmentsStorage
-      .getAll()
-      .find((appointment) => appointment.id === id);
+  getById(appointmentId: number): Appointment | undefined {
+    return appointmentsStorage.getAll().find((appointment) => appointment.appointmentId === appointmentId)
   },
 
-  /**
-   * Obtiene las citas de un paciente.
-   */
-  getByPatient(patientId: string): Appointment[] {
-    return this.getAll({ patientId });
+  getByPatient(patientUserId: number): Appointment[] {
+    return this.getAll({ patientUserId })
   },
 
-  /**
-   * Obtiene las citas de un médico, opcionalmente para una fecha.
-   */
-  getByDoctor(doctorId: string, date?: string): Appointment[] {
-    return this.getAll({ doctorId, date });
+  getByDoctor(doctorId: number, date?: string): Appointment[] {
+    return this.getAll({ doctorId, date })
   },
 
-  /**
-   * Crea una cita nueva con estado pendiente.
-   */
   create(input: CreateAppointmentInput): Appointment {
-    const appointments = appointmentsStorage.getAll();
+    const appointments = appointmentsStorage.getAll()
+    const schedules = schedulesStorage.getAll()
+    const scheduleIndex = schedules.findIndex((schedule) => schedule.id === input.scheduleSlotId)
+    const schedule = schedules[scheduleIndex]
 
-    const slotTaken = appointments.some(
-      (appointment) =>
-        appointment.doctorId === input.doctorId &&
-        appointment.date === input.date &&
-        appointment.time === input.time &&
-        appointment.status !== "cancelled",
-    );
-
-    if (slotTaken) {
-      throw new Error("El horario seleccionado ya está ocupado.");
+    if (!schedule || !schedule.available || schedule.doctorId !== input.doctorId || schedule.date !== input.date || schedule.time !== input.time) {
+      throw new Error('El horario seleccionado ya no está disponible.')
     }
+
+    const slotTaken = appointments.some((appointment) =>
+      appointment.scheduleSlotId === input.scheduleSlotId && appointment.appointmentStatus !== 'CANCELLED')
+
+    if (slotTaken) throw new Error('El horario seleccionado ya está ocupado.')
 
     const appointment: Appointment = {
       ...input,
-      id: generateAppointmentId(),
-      status: "pending",
-    };
-
-    appointmentsStorage.saveAll([...appointments, appointment]);
-
-    return appointment;
+      appointmentId: getNextAppointmentId(appointments),
+      appointmentStatus: 'PENDING',
+    }
+    appointmentsStorage.saveAll([...appointments, appointment])
+    const updatedSchedules = [...schedules]
+    updatedSchedules[scheduleIndex] = { ...schedule, available: false }
+    schedulesStorage.saveAll(updatedSchedules)
+    return appointment
   },
 
-  /**
-   * Actualiza los datos de una cita existente.
-   */
   update(
-    id: string,
-    changes: Partial<Omit<Appointment, "id">>,
+    appointmentId: number,
+    changes: Partial<Omit<Appointment, 'appointmentId'>>,
   ): Appointment {
-    const appointments = appointmentsStorage.getAll();
-    const index = appointments.findIndex(
-      (appointment) => appointment.id === id,
-    );
+    const appointments = appointmentsStorage.getAll()
+    const index = appointments.findIndex((appointment) => appointment.appointmentId === appointmentId)
+    if (index === -1) throw new Error('No se encontró la cita solicitada.')
 
-    if (index === -1) {
-      throw new Error("No se encontró la cita solicitada.");
+    const currentAppointment = appointments[index]
+    if (!currentAppointment) throw new Error('No se pudo recuperar la cita.')
+
+    const updatedAppointment: Appointment = { ...currentAppointment, ...changes, appointmentId }
+    const slotTaken = updatedAppointment.appointmentStatus !== 'CANCELLED' && appointments.some((appointment) =>
+      appointment.appointmentId !== appointmentId &&
+      appointment.scheduleSlotId === updatedAppointment.scheduleSlotId &&
+      appointment.appointmentStatus !== 'CANCELLED')
+    if (slotTaken) throw new Error('El horario seleccionado ya está ocupado.')
+
+    const updatedAppointments = [...appointments]
+    updatedAppointments[index] = updatedAppointment
+    appointmentsStorage.saveAll(updatedAppointments)
+    return updatedAppointment
+  },
+
+  cancel(appointmentId: number): Appointment {
+    const appointment = this.getById(appointmentId)
+    if (!appointment) throw new Error('No se encontró la cita solicitada.')
+    if (appointment.appointmentStatus !== 'PENDING' && appointment.appointmentStatus !== 'CONFIRMED') {
+      throw new Error('Solo se pueden cancelar citas pendientes o confirmadas.')
+    }
+    return this.cancelByStaff(appointmentId)
+  },
+
+  confirm(appointmentId: number): Appointment {
+    const appointment = this.getById(appointmentId)
+    if (!appointment) throw new Error('No se encontró la cita solicitada.')
+    if (appointment.appointmentStatus !== 'PENDING') {
+      throw new Error('Solo se pueden confirmar citas pendientes.')
+    }
+    return this.update(appointmentId, { appointmentStatus: 'CONFIRMED' })
+  },
+
+  cancelByStaff(appointmentId: number): Appointment {
+    const appointments = appointmentsStorage.getAll()
+    const index = appointments.findIndex((appointment) => appointment.appointmentId === appointmentId)
+    const appointment = appointments[index]
+    if (!appointment) throw new Error('No se encontró la cita solicitada.')
+    if (appointment.appointmentStatus !== 'PENDING' && appointment.appointmentStatus !== 'CONFIRMED') {
+      throw new Error('Solo se pueden cancelar citas pendientes o confirmadas.')
     }
 
-    const currentAppointment = appointments[index];
+    const updatedAppointment = { ...appointment, appointmentStatus: 'CANCELLED' as const }
+    const updatedAppointments = [...appointments]
+    updatedAppointments[index] = updatedAppointment
 
-    if (!currentAppointment) {
-      throw new Error("No se pudo recuperar la cita.");
+    const updatedSchedules = schedulesStorage.getAll().map((schedule) =>
+      schedule.id === appointment.scheduleSlotId ? { ...schedule, available: true } : schedule)
+
+    appointmentsStorage.saveAll(updatedAppointments)
+    schedulesStorage.saveAll(updatedSchedules)
+    return updatedAppointment
+  },
+
+  reschedule(appointmentId: number, scheduleSlotId: number): Appointment {
+    const appointments = appointmentsStorage.getAll()
+    const appointmentIndex = appointments.findIndex((appointment) => appointment.appointmentId === appointmentId)
+    const appointment = appointments[appointmentIndex]
+    if (!appointment) throw new Error('No se encontró la cita solicitada.')
+    if (appointment.appointmentStatus !== 'PENDING') {
+      throw new Error('Solo se pueden reagendar citas pendientes.')
     }
+
+    const schedules = schedulesStorage.getAll()
+    const newScheduleIndex = schedules.findIndex((schedule) => schedule.id === scheduleSlotId)
+    const newSchedule = schedules[newScheduleIndex]
+    if (!newSchedule || !newSchedule.available || newSchedule.doctorId !== appointment.doctorId) {
+      throw new Error('El horario seleccionado ya no está disponible.')
+    }
+
+    const slotTaken = appointments.some((item) =>
+      item.appointmentId !== appointmentId &&
+      item.scheduleSlotId === scheduleSlotId &&
+      item.appointmentStatus !== 'CANCELLED')
+    if (slotTaken) throw new Error('El horario seleccionado ya está ocupado.')
 
     const updatedAppointment: Appointment = {
-      ...currentAppointment,
-      ...changes,
-      id: currentAppointment.id,
-    };
-
-    if (
-      updatedAppointment.status !== "cancelled" &&
-      appointments.some(
-        (appointment) =>
-          appointment.id !== id &&
-          appointment.doctorId === updatedAppointment.doctorId &&
-          appointment.date === updatedAppointment.date &&
-          appointment.time === updatedAppointment.time &&
-          appointment.status !== "cancelled",
-      )
-    ) {
-      throw new Error("El horario seleccionado ya está ocupado.");
+      ...appointment,
+      scheduleSlotId: newSchedule.id,
+      date: newSchedule.date,
+      time: newSchedule.time,
+      appointmentStatus: 'PENDING',
     }
+    const updatedAppointments = [...appointments]
+    updatedAppointments[appointmentIndex] = updatedAppointment
 
-    const updatedAppointments = [...appointments];
-    updatedAppointments[index] = updatedAppointment;
+    const updatedSchedules = schedules.map((schedule) => {
+      if (schedule.id === appointment.scheduleSlotId) return { ...schedule, available: true }
+      if (schedule.id === newSchedule.id) return { ...schedule, available: false }
+      return schedule
+    })
 
-    appointmentsStorage.saveAll(updatedAppointments);
-
-    return updatedAppointment;
+    appointmentsStorage.saveAll(updatedAppointments)
+    schedulesStorage.saveAll(updatedSchedules)
+    return updatedAppointment
   },
-
-  /**
-   * Cancela una cita que todavía está pendiente.
-   */
-  cancel(id: string): Appointment {
-    const appointment = this.getById(id);
-
-    if (!appointment) {
-      throw new Error("No se encontró la cita solicitada.");
-    }
-
-    if (appointment.status !== "pending") {
-      throw new Error("Solo se pueden cancelar citas pendientes.");
-    }
-
-    return this.update(id, { status: "cancelled" });
-  },
-};
-
+}

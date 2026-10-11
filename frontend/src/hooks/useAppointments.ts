@@ -21,41 +21,32 @@ interface UseAppointmentsReturn {
   createAppointment: (
     input: CreateAppointmentInput,
   ) => Appointment | null;
-  cancelAppointment: (id: string) => boolean;
+  cancelAppointment: (id: number) => boolean;
+  confirmAppointment: (id: number) => Appointment | null;
+  cancelAppointmentByStaff: (id: number) => Appointment | null;
+  rescheduleAppointment: (id: number, scheduleSlotId: number) => Appointment | null;
   updateAppointment: (
-    id: string,
-    changes: Partial<Omit<Appointment, "id">>,
+    id: number,
+    changes: Partial<Omit<Appointment, "appointmentId">>,
   ) => Appointment | null;
 }
 
 export function useAppointments(
   options: UseAppointmentsOptions = {},
 ): UseAppointmentsReturn {
-  const {
-    filters: initialFilters = {},
-    autoLoad = true,
-  } = options;
+  const { filters = {}, autoLoad = true } = options;
+  const { patientUserId, doctorId, date, appointmentStatus, searchTerm } = filters;
 
-  const [appointments, setAppointments] = useState<Appointment[]>(() =>
-    autoLoad ? appointmentsService.getAll(initialFilters) : [],
-  );
-  const [loading, setLoading] = useState(false);
+  const [, setRevision] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [filters] = useState<AppointmentFilters>(initialFilters);
+  const appointments = autoLoad
+    ? appointmentsService.getAll({ patientUserId, doctorId, date, appointmentStatus, searchTerm })
+    : [];
 
   const refresh = useCallback(() => {
-    setLoading(true);
     setError(null);
-
-    try {
-      const results = appointmentsService.getAll(filters);
-      setAppointments(results);
-    } catch {
-      setError("No se pudieron cargar las citas médicas.");
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
+    setRevision((current) => current + 1);
+  }, []);
 
   const createAppointment = useCallback(
     (input: CreateAppointmentInput): Appointment | null => {
@@ -79,7 +70,7 @@ export function useAppointments(
   );
 
   const cancelAppointment = useCallback(
-    (id: string): boolean => {
+    (id: number): boolean => {
       setError(null);
 
       try {
@@ -101,8 +92,8 @@ export function useAppointments(
 
   const updateAppointment = useCallback(
     (
-      id: string,
-      changes: Partial<Omit<Appointment, "id">>,
+      id: number,
+      changes: Partial<Omit<Appointment, "appointmentId">>,
     ): Appointment | null => {
       setError(null);
 
@@ -123,13 +114,56 @@ export function useAppointments(
     [refresh],
   );
 
+  const runAppointmentAction = useCallback(
+    (action: () => Appointment, fallbackMessage: string): Appointment | null => {
+      setError(null);
+
+      try {
+        const updated = action();
+        refresh();
+        return updated;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : fallbackMessage);
+        return null;
+      }
+    },
+    [refresh],
+  );
+
+  const confirmAppointment = useCallback(
+    (id: number) => runAppointmentAction(
+      () => appointmentsService.confirm(id),
+      "No se pudo confirmar la cita médica.",
+    ),
+    [runAppointmentAction],
+  );
+
+  const cancelAppointmentByStaff = useCallback(
+    (id: number) => runAppointmentAction(
+      () => appointmentsService.cancelByStaff(id),
+      "No se pudo cancelar la cita médica.",
+    ),
+    [runAppointmentAction],
+  );
+
+  const rescheduleAppointment = useCallback(
+    (id: number, scheduleSlotId: number) => runAppointmentAction(
+      () => appointmentsService.reschedule(id, scheduleSlotId),
+      "No se pudo reagendar la cita médica.",
+    ),
+    [runAppointmentAction],
+  );
+
   return {
     appointments,
-    loading,
+    loading: false,
     error,
     refresh,
     createAppointment,
     cancelAppointment,
+    confirmAppointment,
+    cancelAppointmentByStaff,
+    rescheduleAppointment,
     updateAppointment,
   };
 }

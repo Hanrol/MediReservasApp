@@ -1,6 +1,6 @@
 export interface Schedule {
-  id: string;
-  doctorId: string;
+  id: number;
+  doctorId: number;
   date: string;
   time: string;
   available: boolean;

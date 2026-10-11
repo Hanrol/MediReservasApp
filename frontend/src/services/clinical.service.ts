@@ -1,22 +1,29 @@
 import type {
+  ClinicalConsultation,
   ClinicalObservation,
-  ClinicalHistory,
 } from "../types/clinical";
 import { clinicalStorage } from "../storage/clinical.storage";
+import { appointmentsService } from "./appointments.service";
+import { getUsers } from "./users.service";
 
 export interface CreateObservationInput {
-  appointmentId: string;
-  patientId: string;
-  doctorId: string;
+  appointmentId: number;
+  patientId: number;
+  doctorId: number;
   diagnosis: string;
   notes: string;
   treatment: string;
 }
 
 export interface ClinicalFilters {
-  patientId?: string;
-  doctorId?: string;
-  appointmentId?: string;
+  patientId?: number;
+  doctorId?: number;
+  appointmentId?: number;
+}
+
+interface ConsultationFilters {
+  patientId?: number;
+  doctorId?: number;
 }
 
 function generateObservationId(): string {
@@ -59,23 +66,41 @@ export const clinicalService = {
       .find((observation) => observation.id === id);
   },
 
-  getByAppointment(appointmentId: string): ClinicalObservation[] {
+  getByAppointment(appointmentId: number): ClinicalObservation[] {
     return this.getAll({ appointmentId });
   },
 
-  getByPatient(patientId: string): ClinicalObservation[] {
+  getByPatient(patientId: number): ClinicalObservation[] {
     return this.getAll({ patientId });
   },
 
-  getByDoctor(doctorId: string): ClinicalObservation[] {
+  getByDoctor(doctorId: number): ClinicalObservation[] {
     return this.getAll({ doctorId });
   },
 
-  getHistory(patientId: string): ClinicalHistory {
-    return {
-      patientId,
-      observations: this.getByPatient(patientId),
-    };
+  getConsultations(filters: ConsultationFilters): ClinicalConsultation[] {
+    return this.getAll(filters)
+      .map((observation): ClinicalConsultation | null => {
+        const appointment = appointmentsService.getById(observation.appointmentId);
+        if (!appointment) return null;
+
+        const patient = getUsers().find((user) => user.userId === observation.patientId);
+
+        return {
+          id: observation.id,
+          patientName: appointment.patientName,
+          patientRun: patient?.run ?? "Sin información",
+          doctorName: appointment.doctorName,
+          specialtyName: appointment.specialtyName,
+          date: appointment.date,
+          reason: appointment.reason || "Sin información",
+          diagnosis: observation.diagnosis,
+          observations: observation.notes,
+          treatment: observation.treatment,
+        };
+      })
+      .filter((consultation): consultation is ClinicalConsultation => consultation !== null)
+      .sort((first, second) => second.date.localeCompare(first.date));
   },
 
   create(input: CreateObservationInput): ClinicalObservation {
@@ -103,50 +128,4 @@ export const clinicalService = {
     return observation;
   },
 
-  update(
-    id: string,
-    changes: Partial<Omit<ClinicalObservation, "id" | "createdAt">>,
-  ): ClinicalObservation {
-    const observations = clinicalStorage.getAll();
-    const index = observations.findIndex(
-      (observation) => observation.id === id,
-    );
-
-    if (index === -1) {
-      throw new Error("No se encontró la observación solicitada.");
-    }
-
-    const currentObservation = observations[index];
-
-    if (!currentObservation) {
-      throw new Error("No se pudo recuperar la observación.");
-    }
-
-    const updatedObservation: ClinicalObservation = {
-      ...currentObservation,
-      ...changes,
-      id: currentObservation.id,
-      createdAt: currentObservation.createdAt,
-    };
-
-    const updatedObservations = [...observations];
-    updatedObservations[index] = updatedObservation;
-
-    clinicalStorage.saveAll(updatedObservations);
-
-    return updatedObservation;
-  },
-
-  remove(id: string): void {
-    const observations = clinicalStorage.getAll();
-    const filtered = observations.filter(
-      (observation) => observation.id !== id,
-    );
-
-    if (filtered.length === observations.length) {
-      throw new Error("No se encontró la observación solicitada.");
-    }
-
-    clinicalStorage.saveAll(filtered);
-  },
 };

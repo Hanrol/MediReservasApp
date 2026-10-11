@@ -24,8 +24,9 @@ concurrency:
 
 jobs:
   validate:
-    name: Lint y build
+    name: Lint, tests y build frontend
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: frontend
@@ -46,6 +47,27 @@ jobs:
 
       - name: Ejecutar lint
         run: npm run lint
+
+      - name: Ejecutar tests unitarios y medir cobertura
+        run: npm run test:coverage
+
+      - name: Instalar Chromium para Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Ejecutar pruebas E2E
+        run: npm run test:e2e
+
+      - name: Publicar reportes de testing
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-testing-reports-${{ github.run_number }}
+          path: |
+            frontend/coverage/
+            frontend/playwright-report/
+            frontend/test-results/
+          if-no-files-found: warn
+          retention-days: 14
 
       - name: Compilar frontend
         run: npm run build

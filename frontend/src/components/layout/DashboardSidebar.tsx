@@ -1,16 +1,17 @@
-import { Fragment } from 'react'
-import { Link } from 'react-router-dom'
+import { Fragment, type RefObject } from 'react'
+import DashboardActionLink from '../dashboard/DashboardActionLink'
 import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
-import { DASHBOARD_CONFIG, type DashboardAction } from '../../lib/roles'
+import { DASHBOARD_CONFIG, type DashboardAction } from '../../constants/roles'
 
 interface DashboardSidebarProps {
   currentPath: string
   menuOpen: boolean
+  menuContainer: RefObject<HTMLElement | null>
   onCloseMenu: () => void
 }
 
-function DashboardSidebar({ currentPath, menuOpen, onCloseMenu }: DashboardSidebarProps) {
+function DashboardSidebar({ currentPath, menuOpen, menuContainer, onCloseMenu }: DashboardSidebarProps) {
   const { user } = useAuth()
   const config = user ? DASHBOARD_CONFIG[user.role] : null
 
@@ -31,6 +32,7 @@ function DashboardSidebar({ currentPath, menuOpen, onCloseMenu }: DashboardSideb
         onClick={onCloseMenu}
       />
       <aside
+        ref={menuContainer}
         className={`fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto border-r border-line bg-white px-5 py-5 shadow-xl transition-transform duration-300 lg:static lg:z-auto lg:w-auto lg:translate-x-0 lg:overflow-visible lg:px-5 lg:py-8 lg:shadow-none ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}
         aria-label="Menú del panel"
       >
@@ -43,13 +45,9 @@ function DashboardSidebar({ currentPath, menuOpen, onCloseMenu }: DashboardSideb
           <ul className="flex flex-col gap-2">
             {navigation.map((item) => {
               const current = item.href === currentPath
-              const className = `flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold transition hover:bg-primary-light hover:text-primary-dark ${current ? 'bg-primary-light text-primary-dark' : 'text-muted'}`
-              const content = <><span className="grid size-7 shrink-0 place-items-center rounded-lg bg-page text-xs font-bold text-primary-dark" aria-hidden="true">{item.icon}</span>{item.title}</>
               return (
                 <li key={item.title}>
-                  {item.reactRoute
-                    ? <Link className={className} to={item.href} aria-current={current ? 'page' : undefined} onClick={onCloseMenu}>{content}</Link>
-                    : <a className={className} href={item.href} onClick={onCloseMenu}>{content}</a>}
+                  <DashboardActionLink action={item} compact current={current} onClick={onCloseMenu} />
                 </li>
               )
             })}

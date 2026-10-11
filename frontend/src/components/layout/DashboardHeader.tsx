@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
-import { DASHBOARD_CONFIG } from '../../lib/roles'
+import { DASHBOARD_CONFIG } from '../../constants/roles'
 
 interface DashboardHeaderProps {
   menuOpen: boolean
