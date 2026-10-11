@@ -1,11 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { mockUsers } from '../../data/mockUsers'
+import { mockSchedules } from '../../data/mockSchedules'
 import { clinicalService } from '../../services/clinical.service'
 import { schedulesService } from '../../services/schedules.service'
 import { appointmentsStorage } from '../../storage/appointments.storage'
 import { clinicalStorage } from '../../storage/clinical.storage'
 import { schedulesStorage } from '../../storage/schedules.storage'
+import { STORAGE_KEYS } from '../../storage/storageKeys'
 import { saveUsers } from '../../storage/users.storage'
 import { validateClinicalForm } from '../../utils/clinicalForm'
 
@@ -37,6 +39,16 @@ describe('Agenda e historial clínico', () => {
 
     schedulesService.markAvailable(1, '2026-10-12', '11:30')
     expect(schedulesService.getById(3)?.available).toBe(true)
+  })
+
+  it('CP-127 · RF-23 · recupera la agenda base cuando el almacenamiento local está inválido', () => {
+    localStorage.setItem(STORAGE_KEYS.schedules, JSON.stringify({ invalid: true }))
+
+    expect(schedulesStorage.getAll()).toEqual(mockSchedules)
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.schedules) ?? 'null')).toEqual(mockSchedules)
+
+    localStorage.setItem(STORAGE_KEYS.schedules, '{invalid-json')
+    expect(schedulesStorage.getAll()).toEqual(mockSchedules)
   })
 
   it('CP-037 · RF-24 · informa campos clínicos obligatorios', () => {

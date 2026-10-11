@@ -10,6 +10,7 @@ import Home from '../../pages/public/Home'
 import Login from '../../pages/public/Login'
 import Registro from '../../pages/public/Registro'
 import { getUsers } from '../../services/users.service'
+import * as usersService from '../../services/users.service'
 import { saveUsers } from '../../storage/users.storage'
 
 function anonymousAuth() {
@@ -84,6 +85,8 @@ describe('Requisitos de las páginas públicas', () => {
 
     expect(screen.getByText('El correo electrónico es obligatorio.')).toBeInTheDocument()
     expect(screen.getByText('La contraseña es obligatoria.')).toBeInTheDocument()
+    await user.type(screen.getByLabelText('Correo electrónico'), 'paciente@medireservas.cl')
+    expect(screen.queryByText('El correo electrónico es obligatorio.')).not.toBeInTheDocument()
   })
 
   it('CP-081 · RF-03 · login informa credenciales incorrectas', async () => {
@@ -139,6 +142,7 @@ describe('Requisitos de las páginas públicas', () => {
     renderPublic(<Registro />)
 
     fireEvent.change(screen.getByLabelText('RUN'), { target: { value: '12345678-5' } })
+    fireEvent.blur(screen.getByLabelText('RUN'))
     fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Camila' } })
     fireEvent.change(screen.getByLabelText('Apellidos'), { target: { value: 'Torres' } })
     fireEvent.change(screen.getByLabelText('Fecha de nacimiento'), { target: { value: '1990-05-10' } })
@@ -157,5 +161,69 @@ describe('Requisitos de las páginas públicas', () => {
       role: 'PATIENT',
       active: true,
     }))
+  })
+
+  it('CP-123 · RF-03/RNF-02 · login enfoca la contraseña cuando falta', async () => {
+    const user = userEvent.setup()
+    renderPublic(<Login />)
+
+    await user.type(screen.getByLabelText('Correo electrónico'), 'paciente@medireservas.cl')
+    await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+
+    expect(screen.getByLabelText('Contraseña')).toHaveFocus()
+    expect(screen.getByText('La contraseña es obligatoria.')).toBeInTheDocument()
+  })
+
+  it('CP-125 · RF-03 · login redirige al panel si ya existe una sesión activa', () => {
+    const patient = mockUsers.find((item) => item.role === 'PATIENT')!
+    const authValue = {
+      session: {
+        token: 'test-token',
+        userId: patient.userId,
+        firstName: patient.firstName,
+        lastName: patient.lastName,
+        email: patient.email,
+        role: patient.role,
+      },
+      user: patient,
+      isAuthenticated: true,
+      startSession: vi.fn(),
+      logout: vi.fn(),
+      refreshSession: vi.fn(),
+    }
+
+    render(
+      <MemoryRouter initialEntries={['/login']}>
+        <AuthContext.Provider value={authValue}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/dashboard" element={<p>Sesión ya iniciada</p>} />
+          </Routes>
+        </AuthContext.Provider>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByText('Sesión ya iniciada')).toBeInTheDocument()
+  })
+
+  it('CP-126 · RF-02/RNF-07 · registro informa cuando no se puede persistir la cuenta', () => {
+    vi.spyOn(usersService, 'createUser').mockImplementationOnce(() => {
+      throw new Error('storage unavailable')
+    })
+    renderPublic(<Registro />)
+
+    fireEvent.change(screen.getByLabelText('RUN'), { target: { value: '12345678-5' } })
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Camila' } })
+    fireEvent.change(screen.getByLabelText('Apellidos'), { target: { value: 'Torres' } })
+    fireEvent.change(screen.getByLabelText('Fecha de nacimiento'), { target: { value: '1990-05-10' } })
+    fireEvent.change(screen.getByLabelText('Teléfono'), { target: { value: '912345678' } })
+    fireEvent.change(screen.getByLabelText('Dirección'), { target: { value: 'Santiago Centro' } })
+    fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'camila.failure@example.cl' } })
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Paciente123' } })
+    fireEvent.change(screen.getByLabelText('Confirmar contraseña'), { target: { value: 'Paciente123' } })
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+
+    expect(screen.getByText('No se pudo guardar la cuenta. Intenta nuevamente.')).toBeInTheDocument()
   })
 })

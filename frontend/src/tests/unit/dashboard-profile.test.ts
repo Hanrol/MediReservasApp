@@ -77,4 +77,10 @@ describe('Resumen de dashboard y perfil', () => {
       address: 'Sin información',
     })
   })
+
+  it('CP-124 · RF-06 · perfil formatea la fecha de nacimiento disponible', () => {
+    expect(createProfileData({ ...mockUsers[3], birthDate: '1990-05-10' }, 'Paciente')).toMatchObject({
+      birthDate: '10 de mayo de 1990',
+    })
+  })
 })

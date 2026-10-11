@@ -185,7 +185,7 @@ function ObservacionClinica() {
   };
 
   const loading = loadingAppointment || loadingObservations;
-  const loadError = appointmentError ?? observationError;
+  const loadError = formError ? null : appointmentError ?? observationError;
 
   if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
     return (
