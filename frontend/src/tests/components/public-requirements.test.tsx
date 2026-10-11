@@ -206,6 +206,35 @@ describe('Requisitos de las páginas públicas', () => {
     expect(screen.getByText('Sesión ya iniciada')).toBeInTheDocument()
   })
 
+  it('CP-139 · RF-03/RF-29 · login evita reutilizar una ruta exclusiva de otro rol', async () => {
+    vi.useFakeTimers()
+    const startSession = vi.fn()
+
+    render(
+      <MemoryRouter initialEntries={[{ pathname: '/login', state: { from: '/solicitar-cita' } }]}>
+        <AuthContext.Provider value={{ ...anonymousAuth(), startSession }}>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/dashboard" element={<p>Panel de usuario</p>} />
+            <Route path="/solicitar-cita" element={<p>Solicitar cita</p>} />
+            <Route path="/acceso-denegado" element={<p>Acceso denegado</p>} />
+          </Routes>
+        </AuthContext.Provider>
+      </MemoryRouter>,
+    )
+
+    fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'medico@medireservas.cl' } })
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Medico123' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+
+    expect(startSession).toHaveBeenCalledWith(expect.objectContaining({ role: 'DOCTOR' }))
+    await act(async () => {
+      vi.advanceTimersByTime(500)
+    })
+    expect(screen.getByText('Panel de usuario')).toBeInTheDocument()
+    expect(screen.queryByText('Acceso denegado')).not.toBeInTheDocument()
+  })
+
   it('CP-126 · RF-02/RNF-07 · registro informa cuando no se puede persistir la cuenta', () => {
     vi.spyOn(usersService, 'createUser').mockImplementationOnce(() => {
       throw new Error('storage unavailable')

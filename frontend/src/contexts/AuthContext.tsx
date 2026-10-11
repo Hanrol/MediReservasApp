@@ -26,7 +26,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = useCallback(() => {
     removeSession()
     setSession(null)
-    navigate(ROUTES.login, { replace: true })
+    navigate(ROUTES.login, { replace: true, state: null })
   }, [navigate])
 
   const refreshSession = useCallback(() => {
