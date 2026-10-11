@@ -5,7 +5,10 @@ const baseURL = 'http://127.0.0.1:4173'
 export default defineConfig({
   testDir: './e2e',
   fullyParallel: true,
-  reporter: 'list',
+  reporter: [
+    ['list'],
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
+  ],
   use: {
     baseURL,
     trace: 'retain-on-failure',
