@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import DashboardLayout from '../../components/layout/DashboardLayout.tsx'
+import Breadcrumbs from '../../components/layout/Breadcrumbs.tsx'
 import { ROUTES } from '../../constants/routes.ts'
 import {createDoctor, editDoctor, getDoctors, initializeDoctors, isDoctorDataTaken, setDoctorStatus} from '../../services/doctors.service.ts'
 import {getSpecialties, initializeSpecialties} from '../../services/specialties.service.ts'
@@ -183,6 +184,7 @@ function Medicos() {
 
   return (
     <DashboardLayout currentPath={ROUTES.adminDoctors}>
+      <Breadcrumbs items={[{ label: 'Panel principal', href: ROUTES.dashboard }, { label: 'Gestión de médicos' }]} />
       <section className="mx-auto max-w-7xl" aria-labelledby="doctors-title">
             <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
               <div><p className="text-sm font-bold uppercase tracking-widest text-primary">Administración</p><h1

@@ -363,7 +363,7 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     expect(screen.getByText('2 citas encontradas')).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
-    expect(screen.getByText('Mi agenda médica')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Mi agenda médica' })).toBeInTheDocument()
   })
 
   it('CP-112 · RF-24 · bloquea el registro de observaciones para citas no confirmadas', () => {

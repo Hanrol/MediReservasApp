@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
+import Breadcrumbs from "../../components/layout/Breadcrumbs";
 import { useAppointments } from "../../hooks/useAppointments";
 import { useSchedules } from "../../hooks/useSchedules";
 import { useAuth } from "../../hooks/useAuth";
@@ -231,6 +232,7 @@ function SolicitarCita() {
 
   return (
     <DashboardLayout currentPath={ROUTES.requestAppointment}>
+      <Breadcrumbs items={[{ label: 'Panel principal', href: ROUTES.dashboard }, { label: 'Solicitar cita' }]} />
       <div className="mx-auto max-w-4xl">
         <section className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">

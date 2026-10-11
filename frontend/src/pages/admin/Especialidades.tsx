@@ -1,5 +1,6 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import DashboardLayout from '../../components/layout/DashboardLayout.tsx'
+import Breadcrumbs from '../../components/layout/Breadcrumbs.tsx'
 import { ROUTES } from '../../constants/routes.ts'
 import {createSpecialty, editSpecialty, getSpecialties, initializeSpecialties, isSpecialtyNameTaken, setSpecialtyStatus} from '../../services/specialties.service.ts'
 import type {Specialty, SpecialtyErrors, SpecialtyValues} from '../../types/specialty.ts'
@@ -92,6 +93,7 @@ function Especialidades() {
 
   return (
     <DashboardLayout currentPath={ROUTES.adminSpecialties}>
+      <Breadcrumbs items={[{ label: 'Panel principal', href: ROUTES.dashboard }, { label: 'Gestión de especialidades' }]} />
       <section className="mx-auto max-w-5xl" aria-labelledby="specialties-title">
             <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
               <div><p className="text-sm font-bold uppercase tracking-widest text-primary">Administración</p><h1
