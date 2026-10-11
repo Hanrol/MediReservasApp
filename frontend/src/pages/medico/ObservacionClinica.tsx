@@ -26,6 +26,7 @@ function ObservacionClinica() {
     loading: loadingAppointment,
     error: appointmentError,
     refresh: refreshAppointments,
+    updateAppointment,
   } = useAppointments({
     filters: { doctorId: doctor?.doctorId },
   });
@@ -129,6 +130,16 @@ function ObservacionClinica() {
 
     setSaving(true);
 
+    const completedAppointment = updateAppointment(appointment.appointmentId, {
+      appointmentStatus: "COMPLETED",
+    });
+
+    if (!completedAppointment) {
+      setSaving(false);
+      setFormError("No fue posible completar la cita. Inténtalo nuevamente.");
+      return;
+    }
+
     const created = createObservation({
       appointmentId: appointment.appointmentId,
       patientId: appointment.patientUserId,
@@ -141,6 +152,9 @@ function ObservacionClinica() {
     setSaving(false);
 
     if (!created) {
+      updateAppointment(appointment.appointmentId, {
+        appointmentStatus: "CONFIRMED",
+      });
       setFormError(
         "No fue posible guardar la observación. Inténtalo nuevamente.",
       );

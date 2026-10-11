@@ -56,9 +56,12 @@ function MisCitas() {
       return;
     }
 
-    if (appointment.appointmentStatus !== "PENDING") {
+    if (
+      appointment.appointmentStatus !== "PENDING" &&
+      appointment.appointmentStatus !== "CONFIRMED"
+    ) {
       setActionMessage(
-        "Solo puedes cancelar citas que estén pendientes.",
+        "Solo puedes cancelar citas pendientes o confirmadas.",
       );
       return;
     }
@@ -96,7 +99,7 @@ function MisCitas() {
 
           <p className="mt-3 max-w-2xl text-muted">
             Consulta tus próximas citas, revisa sus estados y cancela
-            las solicitudes que todavía estén pendientes.
+            las citas pendientes o confirmadas.
           </p>
         </section>
 
@@ -290,7 +293,9 @@ function MisCitas() {
                 className="space-y-4"
               >
                 {filteredAppointments.map((appointment) => {
-                  const canCancel = appointment.appointmentStatus === "PENDING";
+                  const canCancel =
+                    appointment.appointmentStatus === "PENDING" ||
+                    appointment.appointmentStatus === "CONFIRMED";
 
                   return (
                     <AppointmentCard

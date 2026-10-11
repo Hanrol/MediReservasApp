@@ -5,10 +5,11 @@ import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useAppointments } from "../../hooks/useAppointments";
 import { useAuth } from "../../hooks/useAuth";
 import { getDoctorForUser } from "../../services/doctors.service";
-import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_OPTIONS } from "../../constants/appointmentStatuses";
+import { APPOINTMENT_STATUS_OPTIONS } from "../../constants/appointmentStatuses";
 import { AppointmentCard } from "../../components/appointments/AppointmentCard";
 import type { AppointmentStatus } from "../../types/appointment";
 import { ROUTES } from "../../constants/routes";
+import { getLocalDateString } from "../../utils/validations";
 
 function Agenda() {
   const { user } = useAuth();
@@ -18,7 +19,6 @@ function Agenda() {
     loading,
     error,
     refresh,
-    updateAppointment,
   } = useAppointments({
     filters: { doctorId: doctor?.doctorId },
   });
@@ -27,11 +27,9 @@ function Agenda() {
   const [selectedStatus, setSelectedStatus] =
     useState<AppointmentStatus | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
-  const [actionMessage, setActionMessage] = useState<string | null>(
-    null,
-  );
 
   const normalizedSearch = searchTerm.trim().toLocaleLowerCase("es");
+  const today = getLocalDateString();
 
   const filteredAppointments = useMemo(() => {
     return appointments.filter((appointment) => {
@@ -65,79 +63,10 @@ function Agenda() {
     };
   }, [appointments]);
 
-  const handleStatusChange = (
-    appointmentId: number,
-    newStatus: AppointmentStatus,
-  ) => {
-    setActionMessage(null);
-
-    const appointment = appointments.find(
-      (item) => item.appointmentId === appointmentId,
-    );
-
-    if (!appointment) {
-      setActionMessage("No se encontró la cita seleccionada.");
-      return;
-    }
-
-    if (
-      appointment.appointmentStatus === "CANCELLED" ||
-      appointment.appointmentStatus === "COMPLETED"
-    ) {
-      setActionMessage(
-        "No puedes modificar el estado de una cita cancelada o completada.",
-      );
-      return;
-    }
-
-    if (
-      newStatus !== "CONFIRMED" &&
-      newStatus !== "CANCELLED" &&
-      newStatus !== "COMPLETED"
-    ) {
-      setActionMessage("El estado seleccionado no es válido.");
-      return;
-    }
-
-    if (
-      newStatus === "COMPLETED" &&
-      appointment.appointmentStatus !== "CONFIRMED"
-    ) {
-      setActionMessage(
-        "Solo puedes marcar como completada una cita confirmada.",
-      );
-      return;
-    }
-
-    const confirmationText: Record<
-      "CONFIRMED" | "CANCELLED" | "COMPLETED",
-      string
-    > = {
-      CONFIRMED: "¿Deseas confirmar esta cita?",
-      CANCELLED: "¿Deseas cancelar esta cita?",
-      COMPLETED: "¿Deseas marcar esta cita como completada?",
-    };
-
-    if (!window.confirm(confirmationText[newStatus])) {
-      return;
-    }
-
-    const updated = updateAppointment(appointmentId, {
-      appointmentStatus: newStatus,
-    });
-
-    if (updated) {
-      setActionMessage(
-        `La cita de ${appointment.patientName} se actualizó a "${APPOINTMENT_STATUSES[newStatus]}".`,
-      );
-    }
-  };
-
   const clearFilters = () => {
     setSelectedDate("");
     setSelectedStatus("all");
     setSearchTerm("");
-    setActionMessage(null);
   };
 
   return (
@@ -153,28 +82,9 @@ function Agenda() {
           </h1>
 
           <p className="mt-3 text-muted">
-            Consulta las citas de tus pacientes y gestiona su estado.
+            Consulta las citas de tus pacientes y registra las observaciones de cada atención.
           </p>
         </section>
-
-        {actionMessage && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="mb-6 flex items-start justify-between gap-3 rounded-xl border border-primary/20 bg-primary-light p-4 text-sm text-primary-dark"
-          >
-            <p>{actionMessage}</p>
-
-            <button
-              type="button"
-              onClick={() => setActionMessage(null)}
-              aria-label="Cerrar mensaje"
-              className="shrink-0 rounded px-2 font-bold hover:bg-white/60"
-            >
-              ×
-            </button>
-          </div>
-        )}
 
         <section
           aria-label="Resumen de citas"
@@ -407,75 +317,28 @@ function Agenda() {
                     appointment={appointment}
                     counterpart="patient"
                     actions={
-                      <>
-                        {appointment.appointmentStatus === "PENDING" && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleStatusChange(
-                                  appointment.appointmentId,
-                                  "CONFIRMED",
-                                )
-                              }
-                              className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-dark"
-                            >
-                              Confirmar cita
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleStatusChange(
-                                  appointment.appointmentId,
-                                  "CANCELLED",
-                                )
-                              }
-                              className="rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
-                            >
-                              Cancelar cita
-                            </button>
-                          </>
-                        )}
-
-                        {appointment.appointmentStatus === "CONFIRMED" && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                handleStatusChange(
-                                  appointment.appointmentId,
-                                  "COMPLETED",
-                                )
-                              }
-                              className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-dark"
-                            >
-                              Marcar completada
-                            </button>
-
-                            <Link
-                              to={`${ROUTES.clinicalObservation}?cita=${encodeURIComponent(
-                                appointment.appointmentId,
-                              )}`}
-                              className="rounded-xl border border-line px-4 py-3 text-center text-sm font-semibold transition hover:bg-gray-50"
-                            >
-                              Registrar observación
-                            </Link>
-                          </>
-                        )}
-
-                        {appointment.appointmentStatus === "COMPLETED" && (
-                          <p className="text-sm text-muted">
-                            Atención completada
-                          </p>
-                        )}
-
-                        {appointment.appointmentStatus === "CANCELLED" && (
-                          <p className="text-sm text-muted">
-                            Cita cancelada
-                          </p>
-                        )}
-                      </>
+                      appointment.appointmentStatus === "CONFIRMED" &&
+                      appointment.date <= today ? (
+                        <Link
+                          to={`${ROUTES.clinicalObservation}?cita=${encodeURIComponent(
+                            appointment.appointmentId,
+                          )}`}
+                          className="rounded-xl border border-line px-4 py-3 text-center text-sm font-semibold transition hover:bg-gray-50"
+                        >
+                          Registrar observación
+                        </Link>
+                      ) : (
+                        <p className="text-sm text-muted">
+                          {appointment.appointmentStatus === "PENDING" &&
+                            "Pendiente de confirmación"}
+                          {appointment.appointmentStatus === "CONFIRMED" &&
+                            "Cita confirmada"}
+                          {appointment.appointmentStatus === "COMPLETED" &&
+                            "Atención completada"}
+                          {appointment.appointmentStatus === "CANCELLED" &&
+                            "Cita cancelada"}
+                        </p>
+                      )
                     }
                   />
                 ))}

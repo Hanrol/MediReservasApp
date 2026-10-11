@@ -168,7 +168,7 @@ function GestionCitas() {
             <table className="w-full min-w-4xl border-collapse text-left">
               <caption className="sr-only">Solicitudes de citas médicas</caption>
               <thead className="border-b border-line bg-page text-xs uppercase tracking-wider text-muted">
-                <tr>{['Paciente', 'RUN', 'Especialidad', 'Médico', 'Fecha', 'Hora', 'Estado', 'Acciones'].map((heading) => <th className={`px-5 py-4 font-semibold ${heading === 'Acciones' ? 'text-right' : ''}`} scope="col" key={heading}>{heading}</th>)}</tr>
+                <tr>{['Paciente', 'RUN', 'Especialidad', 'Médico', 'Fecha', 'Hora', 'Motivo', 'Estado', 'Acciones'].map((heading) => <th className={`px-5 py-4 font-semibold ${heading === 'Acciones' ? 'text-right' : ''}`} scope="col" key={heading}>{heading}</th>)}</tr>
               </thead>
               <tbody>
                 {filteredAppointments.map((appointment) => (
@@ -179,6 +179,7 @@ function GestionCitas() {
                     <td className="px-5 py-4">{appointment.doctorName}</td>
                     <td className="px-5 py-4">{appointment.date}</td>
                     <td className="px-5 py-4">{appointment.time}</td>
+                    <td className="px-5 py-4">{appointment.reason}</td>
                     <td className="px-5 py-4"><AppointmentStatus status={appointment.appointmentStatus} /></td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap justify-end gap-2">

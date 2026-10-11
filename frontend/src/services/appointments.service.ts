@@ -109,8 +109,8 @@ export const appointmentsService = {
   cancel(appointmentId: number): Appointment {
     const appointment = this.getById(appointmentId)
     if (!appointment) throw new Error('No se encontró la cita solicitada.')
-    if (appointment.appointmentStatus !== 'PENDING') {
-      throw new Error('Solo se pueden cancelar citas pendientes.')
+    if (appointment.appointmentStatus !== 'PENDING' && appointment.appointmentStatus !== 'CONFIRMED') {
+      throw new Error('Solo se pueden cancelar citas pendientes o confirmadas.')
     }
     return this.cancelByStaff(appointmentId)
   },

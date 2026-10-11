@@ -56,7 +56,7 @@ describe('Gestión de citas y horarios', () => {
   })
 
   it('CP-022 · RF-18 · impide cancelar una cita completada', () => {
-    expect(() => appointmentsService.cancel(4)).toThrow('Solo se pueden cancelar citas pendientes.')
+    expect(() => appointmentsService.cancel(4)).toThrow('Solo se pueden cancelar citas pendientes o confirmadas.')
   })
 
   it('CP-023 · RF-20 · confirma una cita pendiente', () => {
@@ -74,6 +74,13 @@ describe('Gestión de citas y horarios', () => {
 
   it('CP-025 · RF-22 · recepción cancela una cita confirmada', () => {
     const cancelled = appointmentsService.cancelByStaff(1)
+
+    expect(cancelled.appointmentStatus).toBe('CANCELLED')
+    expect(schedulesStorage.getAll().find((schedule) => schedule.id === 1)?.available).toBe(true)
+  })
+
+  it('CP-070 · RF-18 · paciente cancela una cita confirmada y libera el horario', () => {
+    const cancelled = appointmentsService.cancel(1)
 
     expect(cancelled.appointmentStatus).toBe('CANCELLED')
     expect(schedulesStorage.getAll().find((schedule) => schedule.id === 1)?.available).toBe(true)
