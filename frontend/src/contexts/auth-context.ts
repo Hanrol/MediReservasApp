@@ -1,7 +1,8 @@
 import { createContext } from 'react'
-import type { Session, User } from '../lib/types'
+import type { Session } from '../types/auth'
+import type { User } from '../types/user'
 
-export interface AuthContextValue {
+interface AuthContextValue {
   session: Session | null
   user: User | undefined
   isAuthenticated: boolean

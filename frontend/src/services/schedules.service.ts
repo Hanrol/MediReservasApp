@@ -2,7 +2,7 @@ import type { Schedule } from "../types/schedule";
 import { schedulesStorage } from "../storage/schedules.storage";
 
 export interface ScheduleFilters {
-  doctorId?: string;
+  doctorId?: number;
   date?: string;
   available?: boolean;
 }
@@ -38,23 +38,23 @@ export const schedulesService = {
     });
   },
 
-  getById(id: string): Schedule | undefined {
+  getById(id: number): Schedule | undefined {
     return schedulesStorage
       .getAll()
       .find((schedule) => schedule.id === id);
   },
 
-  getByDoctor(doctorId: string, date?: string): Schedule[] {
+  getByDoctor(doctorId: number, date?: string): Schedule[] {
     return this.getAll({ doctorId, date, available: true });
   },
 
-  getAvailableTimes(doctorId: string, date: string): string[] {
+  getAvailableTimes(doctorId: number, date: string): string[] {
     return this.getByDoctor(doctorId, date).map(
       (schedule) => schedule.time,
     );
   },
 
-  markUnavailable(doctorId: string, date: string, time: string): void {
+  markUnavailable(doctorId: number, date: string, time: string): void {
     const schedules = schedulesStorage.getAll();
     const index = schedules.findIndex(
       (schedule) =>
@@ -84,7 +84,7 @@ export const schedulesService = {
     schedulesStorage.saveAll(updatedSchedules);
   },
 
-  markAvailable(doctorId: string, date: string, time: string): void {
+  markAvailable(doctorId: number, date: string, time: string): void {
     const schedules = schedulesStorage.getAll();
     const index = schedules.findIndex(
       (schedule) =>

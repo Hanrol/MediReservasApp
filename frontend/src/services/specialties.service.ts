@@ -6,10 +6,6 @@ export function getSpecialties(): Specialty[] {
   return readSpecialties()
 }
 
-export function getSpecialtyById(specialtyId: number): Specialty | null {
-  return readSpecialties().find((specialty) => specialty.specialtyId === Number(specialtyId)) ?? null
-}
-
 export function createSpecialty(values: SpecialtyValues): Specialty {
   const created: Specialty = { ...values, specialtyId: getNextSpecialtyId() }
   saveSpecialties([...readSpecialties(), created])

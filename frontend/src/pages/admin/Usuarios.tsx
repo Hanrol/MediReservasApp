@@ -1,10 +1,10 @@
-import {type FormEvent, useEffect, useMemo, useState} from 'react'
-import {Link, Navigate, useNavigate} from 'react-router-dom'
-import {DASHBOARD_CONFIG} from '../../constants/roles.ts'
-import {getSession, removeSession} from '../../lib/storage.ts'
+import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import DashboardLayout from '../../components/layout/DashboardLayout.tsx'
+import { DASHBOARD_CONFIG } from '../../constants/roles.ts'
+import { ROUTES } from '../../constants/routes.ts'
 import {createUser, editUser, getUsers, isUserDataTaken, setUserStatus} from '../../services/users.service.ts'
 import type {ManagedUserErrors, ManagedUserValues, User} from '../../types/user.ts'
-import {normalizeRun, validateManagedUser} from '../../lib/validations.ts'
+import {normalizeRun, validateManagedUser} from '../../utils/validations.ts'
 
 const emptyForm: ManagedUserValues = {
   userId: 0,
@@ -18,13 +18,9 @@ const emptyForm: ManagedUserValues = {
 }
 
 function Usuarios() {
-  const navigate = useNavigate()
-  const session = getSession()
-  const config = session ? DASHBOARD_CONFIG[session.role] : null
   const [users, setUsers] = useState<User[]>(getUsers())
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
-  const [menuOpen, setMenuOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [statusUser, setStatusUser] = useState<User | null>(null)
   const [values, setValues] = useState<ManagedUserValues>(emptyForm)
@@ -35,10 +31,10 @@ function Usuarios() {
     document.title = 'Gestión de usuarios | MediReservas'
   }, [])
   useEffect(() => {
-    const locked = menuOpen || formOpen || Boolean(statusUser)
+    const locked = formOpen || Boolean(statusUser)
     document.body.classList.toggle('overflow-hidden', locked)
     return () => document.body.classList.remove('overflow-hidden')
-  }, [menuOpen, formOpen, statusUser])
+  }, [formOpen, statusUser])
 
   const filteredUsers = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -48,22 +44,8 @@ function Usuarios() {
     })
   }, [query, status, users])
 
-  if (!session || !config) return <Navigate to="/login" replace/>
-  if (session.role !== 'ADMIN') return <Navigate to="/dashboard" replace/>
-
-  const navigation = [
-    {icon: '⌂', title: 'Panel principal', href: '/dashboard', reactRoute: true},
-    {icon: 'MI', title: 'Mi perfil', href: '/perfil', reactRoute: true},
-    ...config.actions,
-  ]
-
   function refreshUsers() {
     setUsers(getUsers())
-  }
-
-  function logout() {
-    removeSession();
-    navigate('/login', {replace: true})
   }
 
   function openCreate() {
@@ -134,71 +116,8 @@ function Usuarios() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-page text-ink antialiased">
-      <a
-        className="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0"
-        href="#main-content">Saltar al contenido principal</a>
-      <header className="relative z-30 border-b border-line bg-white">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8"
-             aria-label="Barra superior de MediReservas">
-          <div className="flex items-center gap-3 lg:pl-8">
-            <button
-              className="grid size-10 place-items-center rounded-xl border border-line text-xl text-primary-dark lg:hidden"
-              type="button" aria-label="Abrir menú de navegación" aria-expanded={menuOpen}
-              onClick={() => setMenuOpen(true)}>☰
-            </button>
-            <Link className="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl" to="/"><span
-              className="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white">+</span><span
-              className="hidden sm:inline">MediReservas</span></Link>
-          </div>
-          <div className="flex items-center gap-3 sm:gap-5">
-            <Link className="text-right" to="/perfil"><p
-              className="text-sm font-semibold">{session.firstName} {session.lastName}</p><p
-              className="text-xs text-muted">{config.label}</p></Link>
-            <button
-              className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm font-semibold text-primary-dark hover:bg-red-50 hover:text-red-600"
-              type="button" onClick={logout}><span className="sm:hidden">Salir</span><span className="hidden sm:inline">Cerrar sesión</span>
-            </button>
-          </div>
-        </nav>
-      </header>
-
-      <button className={`fixed inset-0 z-40 bg-slate-950/45 lg:hidden ${menuOpen ? '' : 'hidden'}`} type="button"
-              aria-label="Cerrar menú" onClick={() => setMenuOpen(false)}/>
-      <div className="grid w-full flex-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside
-          className={`fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto border-r border-line bg-white px-5 py-5 shadow-xl transition-transform lg:static lg:z-auto lg:w-auto lg:translate-x-0 lg:px-5 lg:py-8 lg:shadow-none ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <header className="mb-6 flex items-center justify-between border-b border-line pb-5 lg:hidden"><p
-            className="font-bold text-primary-dark">Menú principal</p>
-            <button className="grid size-10 place-items-center rounded-xl border border-line text-xl" type="button"
-                    onClick={() => setMenuOpen(false)}>×
-            </button>
-          </header>
-          <nav className="lg:sticky lg:top-8"><p
-            className="mb-3 hidden px-3 text-xs font-bold uppercase tracking-widest text-muted lg:block">Navegación</p>
-            <ul className="flex flex-col gap-2">
-              {navigation.map((item) => <li key={item.title}>{item.reactRoute ? <Link
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold ${item.href === '/usuarios' ? 'bg-primary-light text-primary-dark' : 'text-muted hover:bg-primary-light'}`}
-                to={item.href} onClick={() => setMenuOpen(false)}><span
-                className="grid size-7 place-items-center rounded-lg bg-page text-xs font-bold text-primary-dark">{item.icon}</span>{item.title}
-              </Link> : <a
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted hover:bg-primary-light"
-                href={item.href}><span
-                className="grid size-7 place-items-center rounded-lg bg-page text-xs font-bold text-primary-dark">{item.icon}</span>{item.title}
-              </a>}</li>)}
-            </ul>
-          </nav>
-        </aside>
-
-        <main className="min-w-0 px-4 pb-10 pt-6 sm:px-6 sm:pb-12 sm:pt-8 lg:px-8" id="main-content" tabIndex={-1}>
-          <nav className="mb-6 text-sm" aria-label="Ruta de navegación">
-            <ol className="flex gap-2 text-muted">
-              <li><Link className="font-semibold text-primary-dark" to="/dashboard">Panel principal</Link></li>
-              <li>/</li>
-              <li className="font-semibold text-ink">Gestión de usuarios</li>
-            </ol>
-          </nav>
-          <section className="mx-auto max-w-7xl" aria-labelledby="users-title">
+    <DashboardLayout currentPath={ROUTES.users}>
+      <section className="mx-auto max-w-7xl" aria-labelledby="users-title">
             <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
               <div><p className="text-sm font-bold uppercase tracking-widest text-primary">Administración</p><h1
                 className="mt-3 text-3xl font-bold sm:text-4xl" id="users-title">Gestión de usuarios</h1><p
@@ -261,9 +180,7 @@ function Usuarios() {
               </div> :
               <p className="mt-6 rounded-2xl border border-line bg-white p-8 text-center text-muted">No se encontraron
                 usuarios con los filtros seleccionados.</p>}
-          </section>
-        </main>
-      </div>
+      </section>
 
       {formOpen &&
         <div className="fixed inset-0 z-60 grid place-items-center overflow-y-auto bg-slate-950/55 p-4" role="dialog"
@@ -332,9 +249,7 @@ function Usuarios() {
           </section>
         </div>}
 
-      <footer className="border-t border-line bg-white px-4 py-5 text-center text-sm text-muted">
-        <p>© {new Date().getFullYear()} MediReservas. Todos los derechos reservados.</p></footer>
-    </div>
+    </DashboardLayout>
   )
 }
 

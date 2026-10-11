@@ -15,8 +15,23 @@ export interface User {
   address?: string
 }
 
+export interface RegistrationValues {
+  run: string
+  firstName: string
+  lastName: string
+  birthDate: string
+  phone: string
+  address: string
+  email: string
+  password: string
+  passwordConfirmation: string
+  terms: boolean
+}
+
+export type RegistrationErrors = Partial<Record<keyof RegistrationValues, string>>
+
 export interface ManagedUserValues {
-  userId: number
+  userId?: number
   run: string
   firstName: string
   lastName: string
@@ -24,6 +39,7 @@ export interface ManagedUserValues {
   phone: string
   address: string
   password: string
+  birthDate?: string
 }
 
 export type ManagedUserErrors = Partial<Record<Exclude<keyof ManagedUserValues, 'userId'>, string>>

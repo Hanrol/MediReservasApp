@@ -1,52 +1,19 @@
 import { useMemo, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 
+import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useAppointments } from "../../hooks/useAppointments";
 import { useSchedules } from "../../hooks/useSchedules";
+import { useAuth } from "../../hooks/useAuth";
+import { schedulesService } from "../../services/schedules.service";
+import { getDoctors, initializeDoctors } from "../../services/doctors.service";
+import { getSpecialties, initializeSpecialties } from "../../services/specialties.service";
 import { ScheduleSelector } from "../../components/appointments/ScheduleSelector";
-import type { AppointmentModality } from "../../types/appointment";
+import { ROUTES } from "../../constants/routes";
+import { getLocalDateString } from "../../utils/validations";
+import { validateAppointmentForm, type AppointmentFormErrors, type AppointmentFormValues } from "../../utils/appointmentForm";
 
-interface DoctorOption {
-  id: string;
-  name: string;
-  specialtyId: string;
-}
-
-interface FormValues {
-  specialtyId: string;
-  doctorId: string;
-  date: string;
-  time: string;
-  reason: string;
-  modality: AppointmentModality | "";
-}
-
-type FormErrors = Partial<Record<keyof FormValues, string>>;
-
-const SPECIALTIES = [
-  { id: "specialty-001", name: "Medicina General" },
-  { id: "specialty-002", name: "Cardiología" },
-  { id: "specialty-003", name: "Dermatología" },
-];
-
-const DOCTORS: DoctorOption[] = [
-  {
-    id: "doctor-001",
-    name: "Dra. María González",
-    specialtyId: "specialty-001",
-  },
-  {
-    id: "doctor-002",
-    name: "Dr. Carlos Rodríguez",
-    specialtyId: "specialty-002",
-  },
-  {
-    id: "doctor-003",
-    name: "Dra. Laura Fernández",
-    specialtyId: "specialty-003",
-  },
-];
-
-const INITIAL_VALUES: FormValues = {
+const INITIAL_VALUES: AppointmentFormValues = {
   specialtyId: "",
   doctorId: "",
   date: "",
@@ -55,28 +22,29 @@ const INITIAL_VALUES: FormValues = {
   modality: "",
 };
 
-function getLocalDateString(date: Date = new Date()): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-
-  return `${year}-${month}-${day}`;
-}
-
 function SolicitarCita() {
+  const { user } = useAuth();
   const {
     createAppointment,
     loading: creatingAppointment,
     error: appointmentError,
   } = useAppointments({
-    filters: { patientId: "patient-001" },
+    filters: { patientUserId: user?.userId },
     autoLoad: false,
   });
 
   const { getAvailableTimes } = useSchedules({ autoLoad: false });
 
-  const [values, setValues] = useState<FormValues>(INITIAL_VALUES);
-  const [errors, setErrors] = useState<FormErrors>({});
+  const [values, setValues] = useState<AppointmentFormValues>(INITIAL_VALUES);
+  const [errors, setErrors] = useState<AppointmentFormErrors>({});
+  const [specialties] = useState(() => {
+    initializeSpecialties();
+    return getSpecialties().filter((specialty) => specialty.active);
+  });
+  const [doctors] = useState(() => {
+    initializeDoctors();
+    return getDoctors().filter((doctor) => doctor.active);
+  });
   const [successMessage, setSuccessMessage] = useState("");
   const [formError, setFormError] = useState("");
 
@@ -85,22 +53,22 @@ function SolicitarCita() {
   const availableDoctors = useMemo(() => {
     if (!values.specialtyId) return [];
 
-    return DOCTORS.filter(
-      (doctor) => doctor.specialtyId === values.specialtyId,
+    return doctors.filter(
+      (doctor) => doctor.specialtyIds.includes(Number(values.specialtyId)),
     );
-  }, [values.specialtyId]);
+  }, [doctors, values.specialtyId]);
 
   const availableTimes = useMemo(() => {
     if (!values.doctorId || !values.date || values.date < today) {
       return [];
     }
 
-    return getAvailableTimes(values.doctorId, values.date);
+    return getAvailableTimes(Number(values.doctorId), values.date);
   }, [values.doctorId, values.date, today, getAvailableTimes]);
 
-  const updateField = <K extends keyof FormValues>(
+  const updateField = <K extends keyof AppointmentFormValues>(
     field: K,
-    value: FormValues[K],
+    value: AppointmentFormValues[K],
   ) => {
     setValues((previous) => ({
       ...previous,
@@ -174,63 +142,14 @@ function SolicitarCita() {
     setFormError("");
   };
 
-  const validateForm = (): FormErrors => {
-    const newErrors: FormErrors = {};
-
-    if (!values.specialtyId) {
-      newErrors.specialtyId = "Seleccione una especialidad.";
-    }
-
-    const selectedDoctor = DOCTORS.find(
-      (doctor) => doctor.id === values.doctorId,
-    );
-
-    if (!values.doctorId) {
-      newErrors.doctorId = "Seleccione un médico.";
-    } else if (
-      !selectedDoctor ||
-      selectedDoctor.specialtyId !== values.specialtyId
-    ) {
-      newErrors.doctorId =
-        "El médico seleccionado no corresponde a la especialidad.";
-    }
-
-    if (!values.date) {
-      newErrors.date = "Seleccione una fecha.";
-    } else if (values.date < today) {
-      newErrors.date = "Seleccione una fecha desde hoy en adelante.";
-    }
-
-    if (!values.time) {
-      newErrors.time = "Seleccione una hora disponible.";
-    } else if (!availableTimes.includes(values.time)) {
-      newErrors.time = "Seleccione una hora válida.";
-    }
-
-    if (!values.reason.trim()) {
-      newErrors.reason = "Ingrese el motivo de la consulta.";
-    } else if (values.reason.trim().length < 5) {
-      newErrors.reason =
-        "El motivo debe contener al menos 5 caracteres.";
-    } else if (values.reason.trim().length > 500) {
-      newErrors.reason =
-        "El motivo no puede superar los 500 caracteres.";
-    }
-
-    if (!values.modality) {
-      newErrors.modality = "Seleccione una modalidad.";
-    }
-
-    return newErrors;
-  };
-
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     setSuccessMessage("");
     setFormError("");
 
-    const validationErrors = validateForm();
+    const selectedDoctor = doctors.find((doctor) => doctor.doctorId === Number(values.doctorId));
+    const validationErrors = validateAppointmentForm(values, selectedDoctor, availableTimes, today);
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length > 0) {
@@ -240,15 +159,14 @@ function SolicitarCita() {
       return;
     }
 
-    const selectedSpecialty = SPECIALTIES.find(
-      (specialty) => specialty.id === values.specialtyId,
+    const selectedSpecialty = specialties.find(
+      (specialty) => specialty.specialtyId === Number(values.specialtyId),
     );
 
-    const selectedDoctor = DOCTORS.find(
-      (doctor) => doctor.id === values.doctorId,
-    );
+    const schedule = schedulesService.getAll({ doctorId: selectedDoctor?.doctorId, date: values.date, available: true })
+      .find((item) => item.time === values.time);
 
-    if (!selectedSpecialty || !selectedDoctor || !values.modality) {
+    if (!user || !selectedSpecialty || !selectedDoctor || !schedule || !values.modality) {
       setFormError(
         "No fue posible validar los datos. Revisa el formulario.",
       );
@@ -256,12 +174,13 @@ function SolicitarCita() {
     }
 
     const createdAppointment = createAppointment({
-      patientId: "patient-001",
-      patientName: "Juan Pérez",
-      doctorId: selectedDoctor.id,
-      doctorName: selectedDoctor.name,
-      specialtyId: selectedSpecialty.id,
-      specialtyName: selectedSpecialty.name,
+      patientUserId: user.userId,
+      patientName: `${user.firstName} ${user.lastName}`,
+      doctorId: selectedDoctor.doctorId,
+      doctorName: `${selectedDoctor.firstName} ${selectedDoctor.lastName}`,
+      specialtyId: selectedSpecialty.specialtyId,
+      specialtyName: selectedSpecialty.specialtyName,
+      scheduleSlotId: schedule.id,
       date: values.date,
       time: values.time,
       reason: values.reason.trim(),
@@ -291,54 +210,8 @@ function SolicitarCita() {
   };
 
   return (
-    <div className="min-h-screen bg-page text-ink">
-      {/* Encabezado */}
-      <header className="border-b border-line bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <a
-            href="/"
-            className="flex items-center gap-2 text-xl font-bold text-primary"
-          >
-            <span
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg text-white"
-              aria-hidden="true"
-            >
-              M
-            </span>
-            MediReservas
-          </a>
-
-          <nav
-            aria-label="Navegación principal"
-            className="hidden items-center gap-6 md:flex"
-          >
-            <a
-              href="/paciente/solicitar-cita"
-              aria-current="page"
-              className="text-sm font-semibold text-primary"
-            >
-              Solicitar cita
-            </a>
-
-            <a
-              href="/paciente/mis-citas"
-              className="text-sm font-medium text-muted transition hover:text-primary"
-            >
-              Mis citas
-            </a>
-          </nav>
-
-          <a
-            href="/"
-            className="rounded-lg border border-line px-3 py-2 text-sm font-medium transition hover:bg-gray-50"
-          >
-            Volver
-          </a>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Título */}
+    <DashboardLayout currentPath={ROUTES.requestAppointment}>
+      <div className="mx-auto max-w-4xl">
         <section className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
             Área del paciente
@@ -354,7 +227,6 @@ function SolicitarCita() {
           </p>
         </section>
 
-        {/* Mensaje de éxito */}
         {successMessage && (
           <div
             role="status"
@@ -364,16 +236,15 @@ function SolicitarCita() {
             <p className="font-semibold">Solicitud registrada</p>
             <p className="mt-1">{successMessage}</p>
 
-            <a
-              href="/paciente/mis-citas"
+            <Link
+              to={ROUTES.myAppointments}
               className="mt-3 inline-block font-semibold underline underline-offset-4"
             >
               Consultar mis citas
-            </a>
+            </Link>
           </div>
         )}
 
-        {/* Error general */}
         {formError && (
           <div
             role="alert"
@@ -383,7 +254,6 @@ function SolicitarCita() {
           </div>
         )}
 
-        {/* Formulario */}
         <form
           onSubmit={handleSubmit}
           noValidate
@@ -396,7 +266,6 @@ function SolicitarCita() {
             </p>
           </div>
 
-          {/* Especialidad y Médico */}
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <label
@@ -428,9 +297,9 @@ function SolicitarCita() {
               >
                 <option value="">Seleccione una especialidad</option>
 
-                {SPECIALTIES.map((specialty) => (
-                  <option key={specialty.id} value={specialty.id}>
-                    {specialty.name}
+                {specialties.map((specialty) => (
+                  <option key={specialty.specialtyId} value={specialty.specialtyId}>
+                    {specialty.specialtyName}
                   </option>
                 ))}
               </select>
@@ -477,8 +346,8 @@ function SolicitarCita() {
                 </option>
 
                 {availableDoctors.map((doctor) => (
-                  <option key={doctor.id} value={doctor.id}>
-                    {doctor.name}
+                  <option key={doctor.doctorId} value={doctor.doctorId}>
+                    {doctor.firstName} {doctor.lastName}
                   </option>
                 ))}
               </select>
@@ -494,7 +363,6 @@ function SolicitarCita() {
             </div>
           </div>
 
-          {/* Fecha y Hora */}
           <div className="mt-6">
             <ScheduleSelector
               date={values.date}
@@ -509,7 +377,6 @@ function SolicitarCita() {
             />
           </div>
 
-          {/* Motivo */}
           <div className="mt-6">
             <label
               htmlFor="motivo"
@@ -559,7 +426,6 @@ function SolicitarCita() {
             </div>
           </div>
 
-          {/* Modalidad */}
           <fieldset className="mt-6">
             <legend className="mb-3 text-sm font-medium">
               Modalidad de atención{" "}
@@ -629,7 +495,6 @@ function SolicitarCita() {
             )}
           </fieldset>
 
-          {/* Botones */}
           <div className="mt-8 flex flex-col-reverse gap-3 border-t border-line pt-6 sm:flex-row sm:justify-end">
             <button
               type="button"
@@ -655,14 +520,8 @@ function SolicitarCita() {
           El envío registra una solicitud pendiente; no garantiza una
           confirmación inmediata del horario.
         </p>
-      </main>
-
-      <footer className="mt-10 border-t border-line bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-muted sm:px-6 lg:px-8">
-          MediReservas · Gestión de citas médicas
-        </div>
-      </footer>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
 

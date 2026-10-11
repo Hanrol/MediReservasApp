@@ -5,8 +5,9 @@ import EmptyState from '../../components/ui/EmptyState'
 import Modal from '../../components/ui/Modal'
 import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
-import { getDoctors, getSpecialties, initializeBaseDoctors, initializeBaseSpecialties } from '../../lib/storage'
-import type { Doctor } from '../../lib/types'
+import { getDoctors, initializeDoctors } from '../../services/doctors.service'
+import { getSpecialties, initializeSpecialties } from '../../services/specialties.service'
+import type { Doctor } from '../../types/doctor'
 
 function MedicosEspecialidades() {
   const location = useLocation()
@@ -18,8 +19,8 @@ function MedicosEspecialidades() {
 
   useEffect(() => {
     document.title = 'Médicos y especialidades | MediReservas'
-    initializeBaseSpecialties()
-    initializeBaseDoctors()
+    initializeSpecialties()
+    initializeDoctors()
   }, [])
 
   useEffect(() => {

@@ -1,22 +1,24 @@
 export type AppointmentStatus =
-  | "pending"
-  | "confirmed"
-  | "completed"
-  | "cancelled";
+  | "PENDING"
+  | "CONFIRMED"
+  | "COMPLETED"
+  | "CANCELLED"
+  | "NO_SHOW";
 
 export type AppointmentModality = "presencial" | "online";
 
 export interface Appointment {
-  id: string;
-  patientId: string;
+  appointmentId: number;
+  patientUserId: number;
   patientName: string;
-  doctorId: string;
+  doctorId: number;
   doctorName: string;
-  specialtyId: string;
+  specialtyId: number;
   specialtyName: string;
+  scheduleSlotId: number;
   date: string;
   time: string;
   reason: string;
   modality: AppointmentModality;
-  status: AppointmentStatus;
+  appointmentStatus: AppointmentStatus;
 }

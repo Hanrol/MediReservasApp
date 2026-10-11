@@ -1,8 +1,8 @@
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react'
 import PublicLayout from '../../components/layout/PublicLayout'
 import FormMessage from '../../components/forms/FormMessage'
-import type { ContactErrors, ContactValues } from '../../lib/types'
-import { validateContact } from '../../lib/validations'
+import type { ContactErrors, ContactValues } from '../../types/contact'
+import { validateContact } from '../../utils/validations'
 
 const emptyForm: ContactValues = { nombre: '', correo: '', asunto: '', mensaje: '' }
 

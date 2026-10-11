@@ -1,7 +1,6 @@
 import { mockDoctors } from '../data/mockDoctors.ts'
 import type { Doctor } from '../types/doctor.ts'
-
-const DOCTORS_KEY = 'medireservas_doctors'
+import { STORAGE_KEYS } from './storageKeys'
 
 function normalizeDoctorId(doctorId: unknown): number | null {
   const normalized = Number(String(doctorId).replace('doctor-', ''))
@@ -10,7 +9,7 @@ function normalizeDoctorId(doctorId: unknown): number | null {
 
 export function getDoctors(): Doctor[] {
   try {
-    const stored = JSON.parse(localStorage.getItem(DOCTORS_KEY) ?? '[]')
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.doctors) ?? '[]')
     if (!Array.isArray(stored)) return []
     return stored.map(({ specialtyId, extraSpecialtyIds, ...doctor }, index) => {
       const doctorId = normalizeDoctorId(doctor.doctorId) ?? index + 1
@@ -30,9 +29,9 @@ export function getDoctors(): Doctor[] {
 }
 
 export function saveDoctors(doctors: Doctor[]): void {
-  localStorage.setItem(DOCTORS_KEY, JSON.stringify(doctors))
+  localStorage.setItem(STORAGE_KEYS.doctors, JSON.stringify(doctors))
 }
 
 export function hasStoredDoctors(): boolean {
-  return Boolean(localStorage.getItem(DOCTORS_KEY))
+  return Boolean(localStorage.getItem(STORAGE_KEYS.doctors))
 }

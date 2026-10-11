@@ -1,5 +1,7 @@
-import { getUsers, saveSession } from './storage'
-import type { Session, User } from './types'
+import { saveSession } from '../storage/session.storage'
+import type { Session } from '../types/auth'
+import type { User } from '../types/user'
+import { getUsers } from './users.service'
 
 export function authenticate(email: string, password: string): User | undefined {
   const normalizedEmail = email.trim().toLowerCase()

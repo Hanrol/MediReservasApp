@@ -4,10 +4,10 @@ import FormMessage from '../../components/forms/FormMessage'
 import SkipLink from '../../components/ui/SkipLink'
 import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
-import { authenticate } from '../../lib/auth'
-import { initializeBaseUsers } from '../../lib/storage'
-import type { LoginErrors, LoginValues } from '../../lib/types'
-import { validateLogin } from '../../lib/validations'
+import { authenticate } from '../../services/auth.service'
+import { initializeUsers } from '../../services/users.service'
+import type { LoginErrors, LoginValues } from '../../types/auth'
+import { validateLogin } from '../../utils/validations'
 
 const initialValues: LoginValues = { email: '', password: '' }
 
@@ -28,7 +28,7 @@ function Login() {
 
   useEffect(() => {
     document.title = 'Iniciar sesión | MediReservas'
-    initializeBaseUsers()
+    initializeUsers()
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current)
     }

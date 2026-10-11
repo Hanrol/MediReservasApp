@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
-import { getLegacyClinicalHistory } from '../../adapters/legacyClinical'
 import Breadcrumbs from '../../components/layout/Breadcrumbs'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import EmptyState from '../../components/ui/EmptyState'
 import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
-import { getDoctors } from '../../lib/storage'
+import { clinicalService } from '../../services/clinical.service'
+import { getDoctors } from '../../services/doctors.service'
 
 const dateFormatter = new Intl.DateTimeFormat('es-CL', {
   day: '2-digit',
@@ -23,7 +23,11 @@ function HistorialClinico() {
   const { user } = useAuth()
   const isDoctor = user?.role === 'DOCTOR'
   const doctor = isDoctor ? getDoctors().find((item) => item.userId === user.userId) : undefined
-  const consultations = user ? getLegacyClinicalHistory(user.userId, user.role, doctor?.doctorId) : []
+  const consultations = user
+    ? isDoctor
+      ? doctor ? clinicalService.getConsultations({ doctorId: doctor.doctorId }) : []
+      : clinicalService.getConsultations({ patientId: user.userId })
+    : []
 
   useEffect(() => {
     document.title = 'Historial clínico | MediReservas'

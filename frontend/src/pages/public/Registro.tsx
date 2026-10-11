@@ -4,9 +4,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import FormMessage from '../../components/forms/FormMessage'
 import SkipLink from '../../components/ui/SkipLink'
 import { ROUTES } from '../../constants/routes'
-import { getNextUserId, initializeBaseUsers, saveUser, userExists } from '../../lib/storage'
-import type { RegistrationErrors, RegistrationValues } from '../../lib/types'
-import { getLocalDateString, normalizeRun, validateRegistration } from '../../lib/validations'
+import { createUser, initializeUsers, userExists } from '../../services/users.service'
+import type { RegistrationErrors, RegistrationValues } from '../../types/user'
+import { getLocalDateString, normalizeRun, validateRegistration } from '../../utils/validations'
 
 const initialValues: RegistrationValues = {
   run: '', firstName: '', lastName: '', birthDate: '', phone: '', address: '',
@@ -39,7 +39,7 @@ function Registro() {
 
   useEffect(() => {
     document.title = 'Crear cuenta | MediReservas'
-    initializeBaseUsers()
+    initializeUsers()
     return () => { if (timerRef.current !== null) clearTimeout(timerRef.current) }
   }, [])
 
@@ -76,12 +76,10 @@ function Registro() {
         setMessage('Ya existe una cuenta asociada a este RUN o correo.')
         return
       }
-      const userId = getNextUserId()
-      saveUser({
-        userId, authUserId: userId, run: normalized.run, firstName: normalized.firstName,
+      createUser({
+        run: normalized.run, firstName: normalized.firstName,
         lastName: normalized.lastName, birthDate: normalized.birthDate, phone: normalized.phone,
         address: normalized.address, email: normalized.email, password: normalized.password,
-        role: 'PATIENT', active: true,
       })
       setSubmitted(true)
       setValues(initialValues)

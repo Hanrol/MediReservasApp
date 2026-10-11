@@ -1,17 +1,13 @@
+import type { LoginErrors, LoginValues } from '../types/auth.ts'
+import type { ContactErrors, ContactValues } from '../types/contact'
+import type { Doctor, DoctorErrors } from '../types/doctor'
+import type { SpecialtyErrors, SpecialtyValues } from '../types/specialty'
 import type {
-  ContactErrors,
-  ContactValues,
-  Doctor,
-  DoctorErrors,
-  LoginErrors,
-  LoginValues,
   ManagedUserErrors,
   ManagedUserValues,
   RegistrationErrors,
   RegistrationValues,
-  SpecialtyErrors,
-  SpecialtyValues,
-} from './types'
+} from '../types/user'
 
 export function validateContact(values: ContactValues): ContactErrors {
   const errors: ContactErrors = {}
@@ -28,7 +24,7 @@ export function normalizeRun(value: string) {
   return clean.length < 2 ? clean : `${clean.slice(0, -1)}-${clean.slice(-1)}`
 }
 
-export function isValidRun(value: string) {
+function isValidRun(value: string) {
   const clean = value.replace(/[^0-9kK]/g, '').toUpperCase()
   if (!/^\d{7,8}[0-9K]$/.test(clean)) return false
   const body = clean.slice(0, -1)
@@ -42,11 +38,11 @@ export function isValidRun(value: string) {
   return clean.slice(-1) === (result === 11 ? '0' : result === 10 ? 'K' : String(result))
 }
 
-export function isValidEmail(value: string) {
+function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
 }
 
-export function isValidName(value: string) {
+function isValidName(value: string) {
   return /^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ' -]+$/.test(value)
 }
 

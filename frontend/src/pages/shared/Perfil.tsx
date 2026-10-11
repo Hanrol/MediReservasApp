@@ -4,8 +4,8 @@ import { Navigate } from 'react-router-dom'
 import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
 import Breadcrumbs from '../../components/layout/Breadcrumbs'
-import { createProfileData } from '../../lib/profile'
-import { DASHBOARD_CONFIG } from '../../lib/roles'
+import { createProfileData } from '../../utils/profile'
+import { DASHBOARD_CONFIG } from '../../constants/roles'
 
 function Perfil() {
   const { user } = useAuth()

@@ -1,10 +1,10 @@
-import type { User } from './types'
+import type { User } from '../types/user.ts'
 
-export function getInitials(firstName: string, lastName: string) {
+function getInitials(firstName: string, lastName: string) {
   return `${firstName[0] ?? ''}${lastName[0] ?? ''}`.toUpperCase() || 'MR'
 }
 
-export function formatProfileDate(dateValue?: string) {
+function formatProfileDate(dateValue?: string) {
   if (!dateValue) return 'Sin información'
   return new Intl.DateTimeFormat('es-CL', {
     day: '2-digit',

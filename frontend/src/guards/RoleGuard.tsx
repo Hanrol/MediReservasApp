@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
 import { useAuth } from '../hooks/useAuth'
-import type { Role } from '../lib/types'
+import type { Role } from '../types/role'
 
 interface RoleGuardProps {
   allowedRoles: readonly Role[]

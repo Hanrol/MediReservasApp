@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import {
   schedulesService,
@@ -17,14 +17,14 @@ interface UseSchedulesReturn {
   loading: boolean;
   error: string | null;
   refresh: () => void;
-  getAvailableTimes: (doctorId: string, date: string) => string[];
+  getAvailableTimes: (doctorId: number, date: string) => string[];
   markUnavailable: (
-    doctorId: string,
+    doctorId: number,
     date: string,
     time: string,
   ) => boolean;
   markAvailable: (
-    doctorId: string,
+    doctorId: number,
     date: string,
     time: string,
   ) => boolean;
@@ -33,31 +33,25 @@ interface UseSchedulesReturn {
 export function useSchedules(
   options: UseSchedulesOptions = {},
 ): UseSchedulesReturn {
-  const { filters: initialFilters = {}, autoLoad = true } = options;
+  const { filters = {}, autoLoad = true } = options;
+  const { doctorId, date, available } = filters;
 
-  const [schedules, setSchedules] = useState<Schedule[]>(() =>
-    autoLoad ? schedulesService.getAll(initialFilters) : [],
-  );
-  const [loading, setLoading] = useState(false);
+  const [revision, setRevision] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [filters] = useState<ScheduleFilters>(initialFilters);
+  const schedules = useMemo(() => {
+    void revision;
+    return autoLoad ? schedulesService.getAll({ doctorId, date, available }) : [];
+  },
+    [autoLoad, available, date, doctorId, revision],
+  );
 
   const refresh = useCallback(() => {
-    setLoading(true);
     setError(null);
-
-    try {
-      const results = schedulesService.getAll(filters);
-      setSchedules(results);
-    } catch {
-      setError("No se pudieron cargar los horarios.");
-    } finally {
-      setLoading(false);
-    }
-  }, [filters]);
+    setRevision((current) => current + 1);
+  }, []);
 
   const getAvailableTimes = useCallback(
-    (doctorId: string, date: string): string[] => {
+    (doctorId: number, date: string): string[] => {
       try {
         return schedulesService.getAvailableTimes(doctorId, date);
       } catch {
@@ -69,7 +63,7 @@ export function useSchedules(
   );
 
   const markUnavailable = useCallback(
-    (doctorId: string, date: string, time: string): boolean => {
+    (doctorId: number, date: string, time: string): boolean => {
       setError(null);
 
       try {
@@ -90,7 +84,7 @@ export function useSchedules(
   );
 
   const markAvailable = useCallback(
-    (doctorId: string, date: string, time: string): boolean => {
+    (doctorId: number, date: string, time: string): boolean => {
       setError(null);
 
       try {
@@ -112,7 +106,7 @@ export function useSchedules(
 
   return {
     schedules,
-    loading,
+    loading: false,
     error,
     refresh,
     getAvailableTimes,

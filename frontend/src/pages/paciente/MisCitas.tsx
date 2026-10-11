@@ -1,11 +1,16 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
+import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useAppointments } from "../../hooks/useAppointments";
+import { useAuth } from "../../hooks/useAuth";
 import { APPOINTMENT_STATUS_OPTIONS } from "../../constants/appointmentStatuses";
 import { AppointmentCard } from "../../components/appointments/AppointmentCard";
 import type { AppointmentStatus } from "../../types/appointment";
+import { ROUTES } from "../../constants/routes";
 
 function MisCitas() {
+  const { user } = useAuth();
   const {
     appointments,
     loading,
@@ -13,7 +18,7 @@ function MisCitas() {
     refresh,
     cancelAppointment,
   } = useAppointments({
-    filters: { patientId: "patient-001" },
+    filters: { patientUserId: user?.userId },
   });
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -33,17 +38,17 @@ function MisCitas() {
 
       const matchesStatus =
         selectedStatus === "all" ||
-        appointment.status === selectedStatus;
+        appointment.appointmentStatus === selectedStatus;
 
       return matchesDoctor && matchesStatus;
     });
   }, [appointments, normalizedSearch, selectedStatus]);
 
-  const handleCancel = (appointmentId: string) => {
+  const handleCancel = (appointmentId: number) => {
     setActionMessage(null);
 
     const appointment = appointments.find(
-      (item) => item.id === appointmentId,
+      (item) => item.appointmentId === appointmentId,
     );
 
     if (!appointment) {
@@ -51,7 +56,7 @@ function MisCitas() {
       return;
     }
 
-    if (appointment.status !== "pending") {
+    if (appointment.appointmentStatus !== "PENDING") {
       setActionMessage(
         "Solo puedes cancelar citas que estén pendientes.",
       );
@@ -78,51 +83,8 @@ function MisCitas() {
   };
 
   return (
-    <div className="min-h-screen bg-page text-ink">
-      <header className="border-b border-line bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <a
-            href="/"
-            className="flex items-center gap-2 text-xl font-bold text-primary"
-          >
-            <span
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg text-white"
-              aria-hidden="true"
-            >
-              M
-            </span>
-            MediReservas
-          </a>
-
-          <nav
-            aria-label="Navegación principal"
-            className="hidden items-center gap-6 md:flex"
-          >
-            <a
-              href="/paciente/solicitar-cita"
-              className="text-sm font-medium text-muted transition hover:text-primary"
-            >
-              Solicitar cita
-            </a>
-            <a
-              href="/paciente/mis-citas"
-              aria-current="page"
-              className="text-sm font-semibold text-primary"
-            >
-              Mis citas
-            </a>
-          </nav>
-
-          <a
-            href="/"
-            className="rounded-lg border border-line px-3 py-2 text-sm font-medium transition hover:bg-gray-50"
-          >
-            Volver
-          </a>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <DashboardLayout currentPath={ROUTES.myAppointments}>
+      <div className="mx-auto max-w-7xl">
         <section className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
             Área del paciente
@@ -315,12 +277,12 @@ function MisCitas() {
                   </button>
                 )}
 
-                <a
-                  href="/paciente/solicitar-cita"
+                <Link
+                  to={ROUTES.requestAppointment}
                   className="mt-5 inline-block rounded-xl border border-line px-5 py-3 text-sm font-semibold transition hover:bg-gray-50"
                 >
                   Solicitar una cita
-                </a>
+                </Link>
               </section>
             ) : (
               <section
@@ -328,11 +290,11 @@ function MisCitas() {
                 className="space-y-4"
               >
                 {filteredAppointments.map((appointment) => {
-                  const canCancel = appointment.status === "pending";
+                  const canCancel = appointment.appointmentStatus === "PENDING";
 
                   return (
                     <AppointmentCard
-                      key={appointment.id}
+                      key={appointment.appointmentId}
                       appointment={appointment}
                       counterpart="doctor"
                       actions={
@@ -340,7 +302,7 @@ function MisCitas() {
                           <button
                             type="button"
                             onClick={() =>
-                              handleCancel(appointment.id)
+                              handleCancel(appointment.appointmentId)
                             }
                             className="w-full rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50 sm:w-auto"
                           >
@@ -348,11 +310,11 @@ function MisCitas() {
                           </button>
                         ) : (
                           <p className="text-sm text-muted">
-                            {appointment.status === "confirmed" &&
+                            {appointment.appointmentStatus === "CONFIRMED" &&
                               "Cita confirmada"}
-                            {appointment.status === "completed" &&
+                            {appointment.appointmentStatus === "COMPLETED" &&
                               "Cita completada"}
-                            {appointment.status === "cancelled" &&
+                            {appointment.appointmentStatus === "CANCELLED" &&
                               "Cita cancelada"}
                           </p>
                         )
@@ -364,14 +326,8 @@ function MisCitas() {
             )}
           </>
         )}
-      </main>
-
-      <footer className="mt-12 border-t border-line bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-muted sm:px-6 lg:px-8">
-          MediReservas · Gestión de citas médicas
-        </div>
-      </footer>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
 

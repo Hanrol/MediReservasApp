@@ -1,6 +1,6 @@
 import type { ComponentType } from 'react'
 import { ROUTES } from '../constants/routes'
-import type { Role } from '../lib/types'
+import type { Role } from '../types/role'
 import AccesoDenegado from '../pages/shared/AccesoDenegado'
 import Especialidades from '../pages/admin/Especialidades'
 import Medicos from '../pages/admin/Medicos'

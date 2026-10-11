@@ -1,14 +1,13 @@
-import {type FormEvent, useEffect, useMemo, useState} from 'react'
-import {Link, Navigate, useNavigate} from 'react-router-dom'
-import {DASHBOARD_CONFIG} from '../../constants/roles.ts'
-import {getSession, removeSession} from '../../lib/storage.ts'
+import { type FormEvent, useEffect, useMemo, useState } from 'react'
+import DashboardLayout from '../../components/layout/DashboardLayout.tsx'
+import { ROUTES } from '../../constants/routes.ts'
 import {createDoctor, editDoctor, getDoctors, initializeDoctors, isDoctorDataTaken, setDoctorStatus} from '../../services/doctors.service.ts'
 import {getSpecialties, initializeSpecialties} from '../../services/specialties.service.ts'
 import {getUsers, initializeUsers} from '../../services/users.service.ts'
 import type {Doctor, DoctorErrors, DoctorValues} from '../../types/doctor.ts'
 import type {Specialty} from '../../types/specialty.ts'
 import type {User} from '../../types/user.ts'
-import {getLocalDateString, normalizeRun, validateDoctor} from '../../lib/validations.ts'
+import {getLocalDateString, normalizeRun, validateDoctor} from '../../utils/validations.ts'
 
 const emptyForm: DoctorValues = {
   doctorId: 0,
@@ -30,15 +29,11 @@ initializeSpecialties()
 initializeDoctors()
 
 function Medicos() {
-  const navigate = useNavigate()
-  const session = getSession()
-  const config = session ? DASHBOARD_CONFIG[session.role] : null
   const [doctors, setDoctors] = useState<Doctor[]>(getDoctors())
   const [users, setUsers] = useState<User[]>(getUsers())
   const [specialties, setSpecialties] = useState<Specialty[]>(getSpecialties())
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
-  const [menuOpen, setMenuOpen] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [statusDoctor, setStatusDoctor] = useState<Doctor | null>(null)
   const [values, setValues] = useState<DoctorValues>(emptyForm)
@@ -50,10 +45,10 @@ function Medicos() {
     document.title = 'Gestión de médicos | MediReservas'
   }, [])
   useEffect(() => {
-    const locked = menuOpen || formOpen || Boolean(statusDoctor)
+    const locked = formOpen || Boolean(statusDoctor)
     document.body.classList.toggle('overflow-hidden', locked)
     return () => document.body.classList.remove('overflow-hidden')
-  }, [menuOpen, formOpen, statusDoctor])
+  }, [formOpen, statusDoctor])
 
   const filteredDoctors = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()
@@ -63,21 +58,8 @@ function Medicos() {
     })
   }, [query, status, doctors])
 
-  if (!session || !config) return <Navigate to="/login" replace/>
-  if (session.role !== 'ADMIN') return <Navigate to="/dashboard" replace/>
-
-  const navigation = [
-    {icon: '⌂', title: 'Panel principal', href: '/dashboard', reactRoute: true},
-    {icon: 'MI', title: 'Mi perfil', href: '/perfil', reactRoute: true},
-    ...config.actions,
-  ]
   const doctorUsers = users.filter((user) => user.role === 'DOCTOR' && user.active)
   const activeSpecialties = specialties.filter((specialty) => specialty.active)
-
-  function logout() {
-    removeSession()
-    navigate('/login', {replace: true})
-  }
 
   function refreshSelects() {
     setUsers(getUsers())
@@ -200,72 +182,8 @@ function Medicos() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-page text-ink antialiased">
-      <a
-        className="fixed left-4 top-4 z-60 -translate-y-24 rounded-lg bg-white px-4 py-2 font-semibold text-primary-dark shadow-xl transition focus:translate-y-0"
-        href="#main-content">Saltar al contenido principal</a>
-      <header className="relative z-30 border-b border-line bg-white">
-        <nav className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8"
-             aria-label="Barra superior de MediReservas">
-          <div className="flex items-center gap-3 lg:pl-8">
-            <button
-              className="grid size-10 place-items-center rounded-xl border border-line text-xl text-primary-dark lg:hidden"
-              type="button" aria-label="Abrir menú de navegación" aria-expanded={menuOpen}
-              onClick={() => setMenuOpen(true)}>☰
-            </button>
-            <Link className="flex items-center gap-2 text-lg font-bold text-primary-dark sm:text-xl" to="/"><span
-              className="grid size-10 place-items-center rounded-xl bg-primary text-xl text-white">+</span><span
-              className="hidden sm:inline">MediReservas</span></Link>
-          </div>
-          <div className="flex items-center gap-3 sm:gap-5">
-            <Link className="text-right" to="/perfil"><p
-              className="text-sm font-semibold">{session.firstName} {session.lastName}</p><p
-              className="text-xs text-muted">{config.label}</p></Link>
-            <button
-              className="rounded-xl border border-line bg-white px-3 py-2.5 text-sm font-semibold text-primary-dark hover:bg-red-50 hover:text-red-600"
-              type="button" onClick={logout}><span className="sm:hidden">Salir</span><span className="hidden sm:inline">Cerrar sesión</span>
-            </button>
-          </div>
-        </nav>
-      </header>
-
-      <button className={`fixed inset-0 z-40 bg-slate-950/45 lg:hidden ${menuOpen ? '' : 'hidden'}`} type="button"
-              aria-label="Cerrar menú" onClick={() => setMenuOpen(false)}/>
-      <div className="grid w-full flex-1 lg:grid-cols-[18rem_minmax(0,1fr)]">
-        <aside
-          className={`fixed inset-y-0 left-0 z-50 w-72 overflow-y-auto border-r border-line bg-white px-5 py-5 shadow-xl transition-transform lg:static lg:z-auto lg:w-auto lg:translate-x-0 lg:px-5 lg:py-8 lg:shadow-none ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-          <header className="mb-6 flex items-center justify-between border-b border-line pb-5 lg:hidden"><p
-            className="font-bold text-primary-dark">Menú principal</p>
-            <button className="grid size-10 place-items-center rounded-xl border border-line text-xl" type="button"
-                    onClick={() => setMenuOpen(false)}>×
-            </button>
-          </header>
-          <nav className="lg:sticky lg:top-8">
-            <p
-              className="mb-3 hidden px-3 text-xs font-bold uppercase tracking-widest text-muted lg:block">Navegación</p>
-            <ul className="flex flex-col gap-2">
-              {navigation.map((item) => <li key={item.title}>{item.reactRoute ? <Link
-                className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-muted hover:bg-primary-light"
-                to={item.href} onClick={() => setMenuOpen(false)}><span
-                className="grid size-7 place-items-center rounded-lg bg-page text-xs font-bold text-primary-dark">{item.icon}</span>{item.title}
-              </Link> : <a
-                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-semibold ${item.href === '/admin/medicos' ? 'bg-primary-light text-primary-dark' : 'text-muted hover:bg-primary-light'}`}
-                href={item.href}><span
-                className="grid size-7 place-items-center rounded-lg bg-page text-xs font-bold text-primary-dark">{item.icon}</span>{item.title}
-              </a>}</li>)}
-            </ul>
-          </nav>
-        </aside>
-
-        <main className="min-w-0 px-4 pb-10 pt-6 sm:px-6 sm:pb-12 sm:pt-8 lg:px-8" id="main-content" tabIndex={-1}>
-          <nav className="mb-6 text-sm" aria-label="Ruta de navegación">
-            <ol className="flex gap-2 text-muted">
-              <li><Link className="font-semibold text-primary-dark" to="/dashboard">Panel principal</Link></li>
-              <li>/</li>
-              <li className="font-semibold text-ink">Gestión de médicos</li>
-            </ol>
-          </nav>
-          <section className="mx-auto max-w-7xl" aria-labelledby="doctors-title">
+    <DashboardLayout currentPath={ROUTES.adminDoctors}>
+      <section className="mx-auto max-w-7xl" aria-labelledby="doctors-title">
             <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
               <div><p className="text-sm font-bold uppercase tracking-widest text-primary">Administración</p><h1
                 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl" id="doctors-title">Gestión de
@@ -339,9 +257,7 @@ function Medicos() {
             {!filteredDoctors.length &&
               <p className="mt-6 rounded-2xl border border-line bg-white p-8 text-center text-muted">No se encontraron
                 médicos con los filtros seleccionados.</p>}
-          </section>
-        </main>
-      </div>
+      </section>
 
       {formOpen &&
         <div className="fixed inset-0 z-60 grid place-items-center overflow-y-auto bg-slate-950/55 p-4" role="dialog"
@@ -424,7 +340,7 @@ function Medicos() {
                 <label className="mb-2 block text-sm font-semibold" htmlFor="doctor-extra-specialties">Especialidades
                   adicionales</label>
                 <select
-                  className="w-full rounded-xl border borde-rline bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
+                  className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
                   id="doctor-extra-specialties" name="extraSpecialtyIds" multiple size={4}
                   aria-describedby="doctor-extra-specialties-help" value={values.extraSpecialtyIds.map(String)}
                   onChange={(event) => updateField('extraSpecialtyIds', Array.from(event.target.selectedOptions, (option) => Number(option.value)))}>
@@ -481,9 +397,7 @@ function Medicos() {
           </section>
         </div>}
 
-      <footer className="border-t border-line bg-white px-4 py-5 text-center text-sm text-muted">
-        <p>© {new Date().getFullYear()} MediReservas. Todos los derechos reservados.</p></footer>
-    </div>
+    </DashboardLayout>
   )
 }
 

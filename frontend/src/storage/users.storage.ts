@@ -1,7 +1,8 @@
 import type { Role } from '../types/role.ts'
 import type { User } from '../types/user.ts'
+import { STORAGE_KEYS } from './storageKeys'
 
-const USERS_KEY = 'medireservas_users'
+export const USERS_CHANGED_EVENT = 'medireservas:users-changed'
 
 const LEGACY_ROLES: Record<string, Role> = {
   ADMINISTRADOR: 'ADMIN',
@@ -16,7 +17,7 @@ function normalizeStoredRole(role: string): Role {
 
 export function getUsers(): User[] {
   try {
-    const stored = JSON.parse(localStorage.getItem(USERS_KEY) ?? '[]')
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEYS.users) ?? '[]')
     if (!Array.isArray(stored)) return []
     return stored.map((item, index) => {
       const user = { ...item }
@@ -34,5 +35,6 @@ export function getUsers(): User[] {
 }
 
 export function saveUsers(users: User[]): void {
-  localStorage.setItem(USERS_KEY, JSON.stringify(users))
+  localStorage.setItem(STORAGE_KEYS.users, JSON.stringify(users))
+  window.dispatchEvent(new Event(USERS_CHANGED_EVENT))
 }

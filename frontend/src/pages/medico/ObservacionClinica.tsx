@@ -1,18 +1,13 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 
+import DashboardLayout from "../../components/layout/DashboardLayout";
+import { ROUTES } from "../../constants/routes";
 import { useAppointments } from "../../hooks/useAppointments";
 import { useClinical } from "../../hooks/useClinical";
-
-interface ClinicalFormValues {
-  diagnosis: string;
-  notes: string;
-  treatment: string;
-}
-
-type ClinicalFormErrors = Partial<
-  Record<keyof ClinicalFormValues, string>
->;
+import { useAuth } from "../../hooks/useAuth";
+import { getDoctorForUser } from "../../services/doctors.service";
+import { validateClinicalForm, type ClinicalFormErrors, type ClinicalFormValues } from "../../utils/clinicalForm";
 
 const INITIAL_VALUES: ClinicalFormValues = {
   diagnosis: "",
@@ -20,11 +15,11 @@ const INITIAL_VALUES: ClinicalFormValues = {
   treatment: "",
 };
 
-const DOCTOR_ID = "doctor-001";
-
 function ObservacionClinica() {
+  const { user } = useAuth();
+  const doctor = getDoctorForUser(user);
   const [searchParams] = useSearchParams();
-  const appointmentId = searchParams.get("cita") ?? "";
+  const appointmentId = Number(searchParams.get("cita"));
 
   const {
     appointments,
@@ -32,7 +27,7 @@ function ObservacionClinica() {
     error: appointmentError,
     refresh: refreshAppointments,
   } = useAppointments({
-    filters: { doctorId: DOCTOR_ID },
+    filters: { doctorId: doctor?.doctorId },
   });
 
   const {
@@ -43,12 +38,12 @@ function ObservacionClinica() {
     createObservation,
   } = useClinical({
     filters: { appointmentId },
-    autoLoad: Boolean(appointmentId),
+    autoLoad: Number.isInteger(appointmentId) && appointmentId > 0,
   });
 
   const appointment = useMemo(
     () =>
-      appointments.find((item) => item.id === appointmentId) ?? null,
+      appointments.find((item) => item.appointmentId === appointmentId) ?? null,
     [appointments, appointmentId],
   );
 
@@ -89,43 +84,6 @@ function ObservacionClinica() {
     setSuccessMessage("");
   };
 
-  const validateForm = (): ClinicalFormErrors => {
-    const newErrors: ClinicalFormErrors = {};
-
-    if (!values.diagnosis.trim()) {
-      newErrors.diagnosis = "Ingrese el diagnóstico clínico.";
-    } else if (values.diagnosis.trim().length < 3) {
-      newErrors.diagnosis =
-        "El diagnóstico debe contener al menos 3 caracteres.";
-    } else if (values.diagnosis.trim().length > 300) {
-      newErrors.diagnosis =
-        "El diagnóstico no puede superar los 300 caracteres.";
-    }
-
-    if (!values.notes.trim()) {
-      newErrors.notes = "Ingrese las observaciones clínicas.";
-    } else if (values.notes.trim().length < 5) {
-      newErrors.notes =
-        "Las observaciones deben contener al menos 5 caracteres.";
-    } else if (values.notes.trim().length > 2000) {
-      newErrors.notes =
-        "Las observaciones no pueden superar los 2000 caracteres.";
-    }
-
-    if (!values.treatment.trim()) {
-      newErrors.treatment =
-        "Ingrese el tratamiento o las indicaciones.";
-    } else if (values.treatment.trim().length < 3) {
-      newErrors.treatment =
-        "El tratamiento debe contener al menos 3 caracteres.";
-    } else if (values.treatment.trim().length > 1000) {
-      newErrors.treatment =
-        "El tratamiento no puede superar los 1000 caracteres.";
-    }
-
-    return newErrors;
-  };
-
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -139,7 +97,7 @@ function ObservacionClinica() {
       return;
     }
 
-    if (appointment.status !== "confirmed") {
+    if (appointment.appointmentStatus !== "CONFIRMED") {
       setFormError(
         "Solo se pueden registrar observaciones de citas confirmadas.",
       );
@@ -153,7 +111,7 @@ function ObservacionClinica() {
       return;
     }
 
-    const validationErrors = validateForm();
+    const validationErrors = validateClinicalForm(values);
     setErrors(validationErrors);
 
     if (Object.keys(validationErrors).length > 0) {
@@ -172,8 +130,8 @@ function ObservacionClinica() {
     setSaving(true);
 
     const created = createObservation({
-      appointmentId: appointment.id,
-      patientId: appointment.patientId,
+      appointmentId: appointment.appointmentId,
+      patientId: appointment.patientUserId,
       doctorId: appointment.doctorId,
       diagnosis: values.diagnosis.trim(),
       notes: values.notes.trim(),
@@ -215,34 +173,10 @@ function ObservacionClinica() {
   const loading = loadingAppointment || loadingObservations;
   const loadError = appointmentError ?? observationError;
 
-  if (!appointmentId) {
+  if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
     return (
-      <div className="min-h-screen bg-page text-ink">
-        <header className="border-b border-line bg-white">
-          <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-            <a
-              href="/"
-              className="flex items-center gap-2 text-xl font-bold text-primary"
-            >
-              <span
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg text-white"
-                aria-hidden="true"
-              >
-                M
-              </span>
-              MediReservas
-            </a>
-
-            <a
-              href="/medico/agenda"
-              className="rounded-lg border border-line px-3 py-2 text-sm font-medium transition hover:bg-gray-50"
-            >
-              Volver a mi agenda
-            </a>
-          </div>
-        </header>
-
-        <main className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+      <DashboardLayout currentPath={ROUTES.clinicalObservation}>
+        <div className="mx-auto max-w-3xl py-8">
           <div
             role="alert"
             className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900"
@@ -255,65 +189,21 @@ function ObservacionClinica() {
               seleccionando una cita confirmada.
             </p>
 
-            <a
-              href="/medico/agenda"
+            <Link
+              to={ROUTES.medicalSchedule}
               className="mt-4 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-dark"
             >
               Ir a mi agenda
-            </a>
+            </Link>
           </div>
-        </main>
-      </div>
+        </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-page text-ink">
-      <header className="border-b border-line bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <a
-            href="/"
-            className="flex items-center gap-2 text-xl font-bold text-primary"
-          >
-            <span
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg text-white"
-              aria-hidden="true"
-            >
-              M
-            </span>
-            MediReservas
-          </a>
-
-          <nav
-            aria-label="Navegación principal"
-            className="hidden items-center gap-6 md:flex"
-          >
-            <a
-              href="/medico/agenda"
-              className="text-sm font-medium text-muted transition hover:text-primary"
-            >
-              Mi agenda
-            </a>
-
-            <a
-              href="/medico/observacion-clinica"
-              aria-current="page"
-              className="text-sm font-semibold text-primary"
-            >
-              Observación clínica
-            </a>
-          </nav>
-
-          <a
-            href="/medico/agenda"
-            className="rounded-lg border border-line px-3 py-2 text-sm font-medium transition hover:bg-gray-50"
-          >
-            Volver
-          </a>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <DashboardLayout currentPath={ROUTES.clinicalObservation}>
+      <div className="mx-auto max-w-4xl">
         <section className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
             Área médica
@@ -397,7 +287,7 @@ function ObservacionClinica() {
                     {appointment.patientName}
                   </p>
                   <p className="mt-1 text-sm text-muted">
-                    ID: {appointment.patientId}
+                    ID: {appointment.patientUserId}
                   </p>
                 </div>
 
@@ -660,14 +550,8 @@ function ObservacionClinica() {
             </form>
           </>
         )}
-      </main>
-
-      <footer className="mt-10 border-t border-line bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-muted sm:px-6 lg:px-8">
-          MediReservas · Gestión de atención clínica
-        </div>
-      </footer>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
 

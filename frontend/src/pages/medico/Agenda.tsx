@@ -1,11 +1,18 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 
+import DashboardLayout from "../../components/layout/DashboardLayout";
 import { useAppointments } from "../../hooks/useAppointments";
+import { useAuth } from "../../hooks/useAuth";
+import { getDoctorForUser } from "../../services/doctors.service";
 import { APPOINTMENT_STATUSES, APPOINTMENT_STATUS_OPTIONS } from "../../constants/appointmentStatuses";
 import { AppointmentCard } from "../../components/appointments/AppointmentCard";
 import type { AppointmentStatus } from "../../types/appointment";
+import { ROUTES } from "../../constants/routes";
 
 function Agenda() {
+  const { user } = useAuth();
+  const doctor = getDoctorForUser(user);
   const {
     appointments,
     loading,
@@ -13,7 +20,7 @@ function Agenda() {
     refresh,
     updateAppointment,
   } = useAppointments({
-    filters: { doctorId: "doctor-001" },
+    filters: { doctorId: doctor?.doctorId },
   });
 
   const [selectedDate, setSelectedDate] = useState("");
@@ -33,7 +40,7 @@ function Agenda() {
 
       const matchesStatus =
         selectedStatus === "all" ||
-        appointment.status === selectedStatus;
+        appointment.appointmentStatus === selectedStatus;
 
       const matchesPatient = appointment.patientName
         .toLocaleLowerCase("es")
@@ -47,25 +54,25 @@ function Agenda() {
     return {
       total: appointments.length,
       pending: appointments.filter(
-        (appointment) => appointment.status === "pending",
+        (appointment) => appointment.appointmentStatus === "PENDING",
       ).length,
       confirmed: appointments.filter(
-        (appointment) => appointment.status === "confirmed",
+        (appointment) => appointment.appointmentStatus === "CONFIRMED",
       ).length,
       completed: appointments.filter(
-        (appointment) => appointment.status === "completed",
+        (appointment) => appointment.appointmentStatus === "COMPLETED",
       ).length,
     };
   }, [appointments]);
 
   const handleStatusChange = (
-    appointmentId: string,
+    appointmentId: number,
     newStatus: AppointmentStatus,
   ) => {
     setActionMessage(null);
 
     const appointment = appointments.find(
-      (item) => item.id === appointmentId,
+      (item) => item.appointmentId === appointmentId,
     );
 
     if (!appointment) {
@@ -74,8 +81,8 @@ function Agenda() {
     }
 
     if (
-      appointment.status === "cancelled" ||
-      appointment.status === "completed"
+      appointment.appointmentStatus === "CANCELLED" ||
+      appointment.appointmentStatus === "COMPLETED"
     ) {
       setActionMessage(
         "No puedes modificar el estado de una cita cancelada o completada.",
@@ -84,17 +91,17 @@ function Agenda() {
     }
 
     if (
-      newStatus !== "confirmed" &&
-      newStatus !== "cancelled" &&
-      newStatus !== "completed"
+      newStatus !== "CONFIRMED" &&
+      newStatus !== "CANCELLED" &&
+      newStatus !== "COMPLETED"
     ) {
       setActionMessage("El estado seleccionado no es válido.");
       return;
     }
 
     if (
-      newStatus === "completed" &&
-      appointment.status !== "confirmed"
+      newStatus === "COMPLETED" &&
+      appointment.appointmentStatus !== "CONFIRMED"
     ) {
       setActionMessage(
         "Solo puedes marcar como completada una cita confirmada.",
@@ -103,12 +110,12 @@ function Agenda() {
     }
 
     const confirmationText: Record<
-      "confirmed" | "cancelled" | "completed",
+      "CONFIRMED" | "CANCELLED" | "COMPLETED",
       string
     > = {
-      confirmed: "¿Deseas confirmar esta cita?",
-      cancelled: "¿Deseas cancelar esta cita?",
-      completed: "¿Deseas marcar esta cita como completada?",
+      CONFIRMED: "¿Deseas confirmar esta cita?",
+      CANCELLED: "¿Deseas cancelar esta cita?",
+      COMPLETED: "¿Deseas marcar esta cita como completada?",
     };
 
     if (!window.confirm(confirmationText[newStatus])) {
@@ -116,7 +123,7 @@ function Agenda() {
     }
 
     const updated = updateAppointment(appointmentId, {
-      status: newStatus,
+      appointmentStatus: newStatus,
     });
 
     if (updated) {
@@ -134,52 +141,8 @@ function Agenda() {
   };
 
   return (
-    <div className="min-h-screen bg-page text-ink">
-      <header className="border-b border-line bg-white">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-          <a
-            href="/"
-            className="flex items-center gap-2 text-xl font-bold text-primary"
-          >
-            <span
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg text-white"
-              aria-hidden="true"
-            >
-              M
-            </span>
-            MediReservas
-          </a>
-
-          <nav
-            aria-label="Navegación principal"
-            className="hidden items-center gap-6 md:flex"
-          >
-            <a
-              href="/medico/agenda"
-              aria-current="page"
-              className="text-sm font-semibold text-primary"
-            >
-              Mi agenda
-            </a>
-
-            <a
-              href="/medico/observacion-clinica"
-              className="text-sm font-medium text-muted transition hover:text-primary"
-            >
-              Observación clínica
-            </a>
-          </nav>
-
-          <a
-            href="/"
-            className="rounded-lg border border-line px-3 py-2 text-sm font-medium transition hover:bg-gray-50"
-          >
-            Volver
-          </a>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <DashboardLayout currentPath={ROUTES.medicalSchedule}>
+      <div className="mx-auto max-w-7xl">
         <section className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-wide text-primary">
             Área médica
@@ -440,19 +403,19 @@ function Agenda() {
               >
                 {filteredAppointments.map((appointment) => (
                   <AppointmentCard
-                    key={appointment.id}
+                    key={appointment.appointmentId}
                     appointment={appointment}
                     counterpart="patient"
                     actions={
                       <>
-                        {appointment.status === "pending" && (
+                        {appointment.appointmentStatus === "PENDING" && (
                           <>
                             <button
                               type="button"
                               onClick={() =>
                                 handleStatusChange(
-                                  appointment.id,
-                                  "confirmed",
+                                  appointment.appointmentId,
+                                  "CONFIRMED",
                                 )
                               }
                               className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-dark"
@@ -464,8 +427,8 @@ function Agenda() {
                               type="button"
                               onClick={() =>
                                 handleStatusChange(
-                                  appointment.id,
-                                  "cancelled",
+                                  appointment.appointmentId,
+                                  "CANCELLED",
                                 )
                               }
                               className="rounded-xl border border-red-200 px-4 py-3 text-sm font-semibold text-red-700 transition hover:bg-red-50"
@@ -475,14 +438,14 @@ function Agenda() {
                           </>
                         )}
 
-                        {appointment.status === "confirmed" && (
+                        {appointment.appointmentStatus === "CONFIRMED" && (
                           <>
                             <button
                               type="button"
                               onClick={() =>
                                 handleStatusChange(
-                                  appointment.id,
-                                  "completed",
+                                  appointment.appointmentId,
+                                  "COMPLETED",
                                 )
                               }
                               className="rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-white transition hover:bg-primary-dark"
@@ -490,24 +453,24 @@ function Agenda() {
                               Marcar completada
                             </button>
 
-                            <a
-                              href={`/medico/observacion-clinica?cita=${encodeURIComponent(
-                                appointment.id,
+                            <Link
+                              to={`${ROUTES.clinicalObservation}?cita=${encodeURIComponent(
+                                appointment.appointmentId,
                               )}`}
                               className="rounded-xl border border-line px-4 py-3 text-center text-sm font-semibold transition hover:bg-gray-50"
                             >
                               Registrar observación
-                            </a>
+                            </Link>
                           </>
                         )}
 
-                        {appointment.status === "completed" && (
+                        {appointment.appointmentStatus === "COMPLETED" && (
                           <p className="text-sm text-muted">
                             Atención completada
                           </p>
                         )}
 
-                        {appointment.status === "cancelled" && (
+                        {appointment.appointmentStatus === "CANCELLED" && (
                           <p className="text-sm text-muted">
                             Cita cancelada
                           </p>
@@ -520,14 +483,8 @@ function Agenda() {
             )}
           </>
         )}
-      </main>
-
-      <footer className="mt-12 border-t border-line bg-white">
-        <div className="mx-auto max-w-7xl px-4 py-6 text-center text-sm text-muted sm:px-6 lg:px-8">
-          MediReservas · Gestión de citas médicas
-        </div>
-      </footer>
-    </div>
+      </div>
+    </DashboardLayout>
   );
 }
 

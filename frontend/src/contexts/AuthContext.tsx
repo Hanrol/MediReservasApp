@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ROUTES } from '../constants/routes'
-import { createSession } from '../lib/auth'
-import { getSession, getUserById, removeSession } from '../lib/storage'
-import type { Session, User } from '../lib/types'
+import { createSession } from '../services/auth.service'
+import { getUserById } from '../services/users.service'
+import { getSession, removeSession } from '../storage/session.storage'
+import { USERS_CHANGED_EVENT } from '../storage/users.storage'
+import type { Session } from '../types/auth'
+import type { User } from '../types/user'
 import { AuthContext } from './auth-context'
 
 interface AuthProviderProps {
@@ -33,7 +36,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   useEffect(() => {
     const synchronizeSession = () => setSession(getSession())
     window.addEventListener('storage', synchronizeSession)
-    return () => window.removeEventListener('storage', synchronizeSession)
+    window.addEventListener(USERS_CHANGED_EVENT, synchronizeSession)
+    return () => {
+      window.removeEventListener('storage', synchronizeSession)
+      window.removeEventListener(USERS_CHANGED_EVENT, synchronizeSession)
+    }
   }, [])
 
   const value = useMemo(() => ({

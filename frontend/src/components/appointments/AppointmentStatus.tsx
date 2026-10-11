@@ -7,16 +7,14 @@ interface AppointmentStatusProps {
 }
 
 const STATUS_STYLES: Record<AppointmentStatusType, string> = {
-  pending: "bg-amber-50 text-amber-800 ring-amber-200",
-  confirmed: "bg-blue-50 text-blue-800 ring-blue-200",
-  completed: "bg-primary-light text-primary-dark ring-primary/20",
-  cancelled: "bg-gray-100 text-gray-600 ring-gray-200",
+  PENDING: "bg-amber-50 text-amber-800 ring-amber-200",
+  CONFIRMED: "bg-blue-50 text-blue-800 ring-blue-200",
+  COMPLETED: "bg-primary-light text-primary-dark ring-primary/20",
+  CANCELLED: "bg-gray-100 text-gray-600 ring-gray-200",
+  NO_SHOW: "bg-red-50 text-red-800 ring-red-200",
 };
 
-export function AppointmentStatus({
-  status,
-  className = "",
-}: AppointmentStatusProps) {
+export function AppointmentStatus({ status, className = "" }: AppointmentStatusProps) {
   return (
     <span
       className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ring-1 ring-inset ${STATUS_STYLES[status]} ${className}`}
