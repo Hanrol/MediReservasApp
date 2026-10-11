@@ -63,7 +63,7 @@ npm run test:e2e         # Playwright E2E en Chromium
 npm run lint             # ESLint
 ```
 
-Los tests usan identificadores CP trazables al Excel. En el último corte se ejecutaron **127 tests Vitest y 11 E2E Playwright**; el reporte de cobertura registró **95,09 % de líneas**. Vitest aplica umbrales mínimos globales de 95 % líneas, 90 % sentencias, 95 % funciones y 75 % ramas.
+Los tests usan identificadores CP trazables al Excel. En el último corte se ejecutaron **128 tests Vitest y 12 E2E Playwright**; el reporte de cobertura registró **95,11 % de líneas**, 90,55 % de sentencias, 95,29 % de funciones y 78,66 % de ramas. Vitest aplica umbrales mínimos globales de 95 % líneas, 90 % sentencias, 95 % funciones y 75 % ramas.
 
 Las pruebas Playwright arrancan Vite automáticamente en el puerto 4173 mediante `playwright.config.ts`. Para instalar el navegador localmente:
 

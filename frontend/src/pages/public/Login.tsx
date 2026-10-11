@@ -7,6 +7,7 @@ import { useAuth } from '../../hooks/useAuth'
 import { authenticate } from '../../services/auth.service'
 import { initializeUsers } from '../../services/users.service'
 import type { LoginErrors, LoginValues } from '../../types/auth'
+import { getLoginRedirectPath } from '../../utils/loginRedirect'
 import { validateLogin } from '../../utils/validations'
 
 const initialValues: LoginValues = { email: '', password: '' }
@@ -14,7 +15,7 @@ const initialValues: LoginValues = { email: '', password: '' }
 function Login() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { isAuthenticated, startSession } = useAuth()
+  const { isAuthenticated, startSession, user } = useAuth()
   const timerRef = useRef<number | null>(null)
   const emailRef = useRef<HTMLInputElement>(null)
   const passwordRef = useRef<HTMLInputElement>(null)
@@ -69,10 +70,11 @@ function Login() {
     startSession(user)
     setIsSubmitting(true)
     setMessage('Sesión iniciada. Redirigiendo al panel...')
-    timerRef.current = window.setTimeout(() => navigate(requestedPath, { replace: true }), 500)
+    const destination = getLoginRedirectPath(requestedPath, user.role)
+    timerRef.current = window.setTimeout(() => navigate(destination, { replace: true }), 500)
   }
 
-  if (isAuthenticated) return <Navigate to={requestedPath} replace />
+  if (isAuthenticated) return <Navigate to={getLoginRedirectPath(requestedPath, user?.role)} replace />
 
   return (
     <div className="min-h-screen bg-page text-ink antialiased">
