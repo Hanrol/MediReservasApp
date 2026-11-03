@@ -3,3 +3,5 @@
 .sdkmanrc
 
 node_modules/
+
+backend/docs
