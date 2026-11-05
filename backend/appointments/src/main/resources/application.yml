@@ -3,9 +3,9 @@ spring:
   application:
     name: appointments-service
   datasource:
-    url: jdbc:mysql://localhost:3316/appointments_db
-    username: admin
-    password: admin123
+    url: ${DB_URL:jdbc:mysql://localhost:3311/appointments_db}
+    username: ${DB_USER:appointments_app}
+    password: ${DB_PASSWORD:appointments_dev_123}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:

@@ -2,9 +2,9 @@ spring:
     application:
         name: auth-service
     datasource: 
-        url: jdbc:mysql://localhost:3311/auth_db
-        username: admin
-        password: admin123
+        url: ${DB_URL:jdbc:mysql://localhost:3311/auth_db}
+        username: ${DB_USER:auth_app}
+        password: ${DB_PASSWORD:auth_dev_123}
         driver-class-name: com.mysql.cj.jdbc.Driver
     jpa:
         hibernate: 

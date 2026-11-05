@@ -16,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import cl.duoc.doctors.client.AuthClient;
-import cl.duoc.doctors.client.SpecialtiesClient;
 import cl.duoc.doctors.client.UsersClient;
 import cl.duoc.doctors.dto.DoctorsDTO;
 import cl.duoc.doctors.model.Doctors;
@@ -31,9 +30,6 @@ public class DoctorsServiceTest {
 
     @Mock
     private AuthClient authClient;
-
-    @Mock
-    private SpecialtiesClient specialtiesClient;
 
     @Mock
     private DoctorsRepository doctorsRepository;

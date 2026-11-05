@@ -21,31 +21,13 @@ $script:ServiceDefinitions = @{
     auth           = @{ Name = 'auth-service';           Port = 9001 }
     users          = @{ Name = 'users-service';          Port = 9002 }
     doctors        = @{ Name = 'doctors-service';        Port = 9003 }
-    specialties    = @{ Name = 'specialties-service';    Port = 9004 }
-    schedule       = @{ Name = 'schedule-service';       Port = 9005 }
     appointments   = @{ Name = 'appointments-service';   Port = 9006 }
-    payments       = @{ Name = 'payments-service';       Port = 9007 }
     'medical-records' = @{ Name = 'medical-records-service'; Port = 9008 }
-    prescriptions  = @{ Name = 'prescriptions-service';  Port = 9009 }
-    notifications  = @{ Name = 'notifications-service';  Port = 9010 }
-    reports        = @{ Name = 'reports-service';        Port = 9011 }
     eureka         = @{ Name = 'eureka';                 Port = 8761 }
     gateway        = @{ Name = 'gateway';                Port = 9013 }
 }
 
-$databaseContainers = @(
-    'mysql_auth_db',
-    'mysql_users_db',
-    'mysql_doctors_db',
-    'mysql_specialties_db',
-    'mysql_schedules_db',
-    'mysql_appointments_db',
-    'mysql_payments_db',
-    'mysql_medical_records_db',
-    'mysql_prescriptions_db',
-    'mysql_notifications_db',
-    'mysql_reports_db'
-)
+$databaseContainers = @('mysql_medireservas_db')
 
 function Test-TcpPort {
     param([int]$Port)
@@ -224,7 +206,7 @@ function Wait-ForDatabases {
             }
         }
         if ($allHealthy) {
-            Write-Host 'Las 11 bases de datos están saludables.'
+            Write-Host 'La instancia MySQL compartida está saludable.'
             return
         }
         Start-Sleep -Seconds 3
@@ -263,14 +245,14 @@ if (Test-Path -LiteralPath $stateFile) {
 try {
     if (-not $SkipDatabase) {
         Write-Host 'Iniciando las bases de datos con Docker Compose...'
-        & docker compose -f $composeFile up -d
+        & docker compose -f $composeFile up -d --remove-orphans
         if ($LASTEXITCODE -ne 0) {
             throw 'Falló docker compose up -d.'
         }
         Wait-ForDatabases
     }
 
-    $ports = @(8761, 9001, 9002, 9003, 9004, 9005, 9006, 9007, 9008, 9009, 9010, 9011, 9013)
+    $ports = @(8761, 9001, 9002, 9003, 9006, 9008, 9013)
     foreach ($port in $ports) {
         if (Test-TcpPort -Port $port) {
             throw "El puerto $port ya está ocupado. Detén el servicio existente antes de continuar."
@@ -281,9 +263,10 @@ try {
     Wait-ForTcpPort -Port $eureka.Port -Description 'Eureka' -Process $eureka.Process
     Write-Host 'Eureka está escuchando en http://localhost:8761.'
 
-    Start-ServiceGroup -Modules @('auth', 'users', 'specialties')
-    Start-ServiceGroup -Modules @('doctors', 'appointments', 'notifications', 'reports')
-    Start-ServiceGroup -Modules @('schedule', 'payments', 'medical-records', 'prescriptions')
+    Start-ServiceGroup -Modules @('auth', 'users')
+    Start-ServiceGroup -Modules @('doctors')
+    Start-ServiceGroup -Modules @('appointments')
+    Start-ServiceGroup -Modules @('medical-records')
 
     $gateway = Start-ManagedService -Module 'gateway'
     Wait-ForTcpPort -Port $gateway.Port -Description 'Gateway' -Process $gateway.Process
