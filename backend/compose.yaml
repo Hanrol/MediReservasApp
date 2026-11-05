@@ -157,6 +157,32 @@ services:
       retries: 10
       start_period: 20s
 
+  mysql-payments:
+    image: mysql:8.0
+    container_name: mysql_payments_db
+    restart: unless-stopped
+    command:
+      - --innodb-buffer-pool-size=128M
+      - --max-connections=30
+      - --performance-schema=OFF
+    mem_limit: 384m
+    mem_reservation: 192m
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: payments_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin123
+    ports:
+      - "3317:3306"
+    volumes:
+      - payments_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -proot --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
   mysql-medical-records:
     image: mysql:8.0
     container_name: mysql_medical_records_db
@@ -183,6 +209,84 @@ services:
       retries: 10
       start_period: 20s
 
+  mysql-prescriptions:
+    image: mysql:8.0
+    container_name: mysql_prescriptions_db
+    restart: unless-stopped
+    command:
+      - --innodb-buffer-pool-size=128M
+      - --max-connections=30
+      - --performance-schema=OFF
+    mem_limit: 384m
+    mem_reservation: 192m
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: prescriptions_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin123
+    ports:
+      - "3319:3306"
+    volumes:
+      - prescriptions_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -proot --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  mysql-notifications:
+    image: mysql:8.0
+    container_name: mysql_notifications_db
+    restart: unless-stopped
+    command:
+      - --innodb-buffer-pool-size=128M
+      - --max-connections=30
+      - --performance-schema=OFF
+    mem_limit: 384m
+    mem_reservation: 192m
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: notifications_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin123
+    ports:
+      - "3320:3306"
+    volumes:
+      - notifications_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -proot --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  mysql-reports:
+    image: mysql:8.0
+    container_name: mysql_reports_db
+    restart: unless-stopped
+    command:
+      - --innodb-buffer-pool-size=128M
+      - --max-connections=30
+      - --performance-schema=OFF
+    mem_limit: 384m
+    mem_reservation: 192m
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: reports_db
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: admin123
+    ports:
+      - "3321:3306"
+    volumes:
+      - reports_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -proot --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
 volumes:
   auth_data:
   users_data:
@@ -190,4 +294,8 @@ volumes:
   specialties_data:
   schedules_data:
   appointments_data:
+  payments_data:
   medical_records_data:
+  prescriptions_data:
+  notifications_data:
+  reports_data:

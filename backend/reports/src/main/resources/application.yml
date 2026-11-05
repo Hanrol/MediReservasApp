@@ -1,0 +1,54 @@
+spring:
+    application:
+        name: reports-service
+    datasource:
+        url: jdbc:mysql://localhost:3321/reports_db
+        username: admin
+        password: admin123
+        driver-class-name: com.mysql.cj.jdbc.Driver
+    jpa:
+        hibernate:
+            ddl-auto: none
+        database-platform: org.hibernate.dialect.MySQLDialect
+    flyway:
+        enabled: true
+        locations: classpath:db/migration
+
+server:
+    port:
+        9011
+
+eureka:
+    client:
+        service-url:
+            defaultZone: http://localhost:8761/eureka
+        register-with-eureka: true
+        fetch-registry: true
+    instance:
+        lease-renewal-interval-in-seconds: 30
+        lease-expiration-duration-in-seconds: 90
+
+logging:
+    level:
+        root: INFO
+        "[cl.duoc.reports]": DEBUG
+    file:
+        name: logs/reports-service.log
+    pattern:
+        console: "%d{yyyy-mm-dd HH:mm:ss} - %msg%n"
+        file: "%d{yyyy-mm-dd HH:mm:ss} - %msg%n"
+
+springdoc:
+    api-docs:
+        path: /ve/api-docs
+    swagger-ui:
+        path: /swagger-ui/index.html
+
+management:
+    endpoints:
+        web:
+            exposure:
+                include: health, info
+    endpoint:
+        health:
+            show-details: always

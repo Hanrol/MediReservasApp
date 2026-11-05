@@ -1,0 +1,61 @@
+# Configuración de la aplicación de notificaciones
+spring:
+  application:
+    # Cambio: nombre alineado con la ruta lb://notifications-service del gateway.
+    name: notifications-service
+  datasource:
+    url: jdbc:mysql://localhost:3320/notifications_db
+    username: admin
+    password: admin123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    database-platform: org.hibernate.dialect.MySQLDialect 
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+# Puerto del servidor
+server:
+  port: 9010
+
+# Configuración de Eureka Client (descomentar si se utiliza Eureka para el descubrimiento de servicios)
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+      register-with-eureka: true
+      fetch-registry: true
+  instance:
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+
+# Configuración de logging
+logging:
+  level:
+    root: INFO
+    "[cl.duoc.notifications]": DEBUG
+  file:
+    name: logs/notifications-service.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss}  - %msg%n"
+
+# Configuración de SpringDoc OpenAPI para la documentación de la API
+springdoc:
+  api-docs:
+    path: v3/api-docs
+  swagger-ui:
+    path: swagger-ui/index.html
+
+# Configuración de Actuator para monitoreo y gestión
+management:
+  endpoints:
+    web:
+      exposure: 
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+         

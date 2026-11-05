@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: prescriptions-service
+  datasource:
+    url: jdbc:mysql://localhost:3319/prescriptions_db
+    username: admin
+    password: admin123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+    database-platform: org.hibernate.dialect.MySQLDialect
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: 9009
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
+
+logging:
+  level:
+    root: INFO
+    "[cl.duoc.prescriptions]": DEBUG
+  file:
+    name: logs/prescriptions-service.log
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss}  - %msg%n"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+
+# SpringDoc OpenAPI - Swagger UI
+springdoc:
+  api-docs:
+    path: v3/api-docs
+  swagger-ui:
+    path: swagger-ui/index.html
