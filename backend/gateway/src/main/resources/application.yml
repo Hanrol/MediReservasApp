@@ -31,31 +31,13 @@ spring:
         - id: doctors-service
           uri: lb://doctors-service
           predicates:
-            - Path=/api/v2/doctors/**
-
-        # SPECIALTIES SERVICE
-        - id: specialties-service
-          uri: lb://specialties-service
-          predicates:
-            - Path=/api/v1/specialties/**
-
-        # SCHEDULE SERVICE
-        - id: schedule-service
-          uri: lb://schedule-service
-          predicates:
-            - Path=/api/v1/doctor-schedules/**,/api/v1/doctor-time-off/**,/api/v1/schedule-slots/**
+            - Path=/api/v2/doctors/**,/api/v1/specialties/**
 
         # APPOINTMENTS SERVICE
         - id: appointments-service
           uri: lb://appointments-service
           predicates:
-            - Path=/api/v1/appointments/**
-
-        # PAYMENTS SERVICE
-        - id: payments-service
-          uri: lb://payments-service
-          predicates:
-            - Path=/api/payments/**
+            - Path=/api/v1/appointments/**,/api/v1/doctor-schedules/**,/api/v1/doctor-time-off/**,/api/v1/schedule-slots/**
 
         # MEDICAL RECORDS SERVICE
         - id: medical-records-service
@@ -63,28 +45,10 @@ spring:
           predicates:
             - Path=/api/v1/medical-records/**,/api/v1/medical-visit/**,/api/v1/diagnoses/**,/api/v1/vital-signs/**
 
-        # PRESCRIPTIONS SERVICE
-        - id: prescriptions-service
-          uri: lb://prescriptions-service
-          predicates:
-            - Path=/api/v1/prescriptions/**,/api/v1/prescription-items/**
-
-        # NOTIFICATIONS SERVICE
-        - id: notifications-service
-          uri: lb://notifications-service
-          predicates:
-            - Path=/api/v1/notifications/**,/api/v1/notification-templates/**
-
-        # REPORTS SERVICE
-        - id: reports-service
-          uri: lb://reports-service
-          predicates:
-            - Path=/api/v1/reports-request/**,/api/v1/generated-reports/**
-
 eureka:
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: "${EUREKA_URL:http://localhost:8761/eureka/}"
     register-with-eureka: true
     fetch-registry: true
 

@@ -3,6 +3,7 @@ package cl.duoc.gateway.filter;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -25,7 +26,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private final WebClient.Builder webClientBuilder;
 
     public JwtAuthenticationFilter(
-            WebClient.Builder webClientBuilder) {
+            @LoadBalanced WebClient.Builder webClientBuilder) {
         this.webClientBuilder = webClientBuilder;
     }
 
