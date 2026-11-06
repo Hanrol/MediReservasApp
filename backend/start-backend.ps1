@@ -10,7 +10,7 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $backendRoot = $PSScriptRoot
-$composeFile = Join-Path $backendRoot 'compose.yaml'
+$composeFile = Join-Path $backendRoot '..\compose.yaml'
 $runtimeRoot = Join-Path $env:TEMP 'MediReservasApp-backend'
 $logRoot = Join-Path $runtimeRoot 'logs'
 $stateFile = Join-Path $runtimeRoot 'processes.json'
@@ -221,7 +221,7 @@ if ($Stop) {
             throw 'No se encontró Docker CLI para detener las bases de datos.'
         }
         Write-Host 'Deteniendo las bases de datos (se conservan los volúmenes)...'
-        & docker compose -f $composeFile stop
+        & docker compose -f $composeFile stop mysql
         if ($LASTEXITCODE -ne 0) {
             throw 'Falló docker compose stop.'
         }
@@ -245,7 +245,7 @@ if (Test-Path -LiteralPath $stateFile) {
 try {
     if (-not $SkipDatabase) {
         Write-Host 'Iniciando las bases de datos con Docker Compose...'
-        & docker compose -f $composeFile up -d --remove-orphans
+        & docker compose -f $composeFile up -d mysql
         if ($LASTEXITCODE -ne 0) {
             throw 'Falló docker compose up -d.'
         }

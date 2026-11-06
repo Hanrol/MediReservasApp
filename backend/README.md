@@ -132,22 +132,40 @@ git clone https://github.com/GabFloresLuna/MediReservas.git
 cd MediReservas
 ```
 
-### 2. Levantar bases de datos con Docker Compose
+### 2. Configuración Docker del backend
 
-Cada microservicio posee su propio `docker-compose.yml`. Para levantar la base de datos de un servicio, entrar a la carpeta correspondiente y ejecutar:
-
-```bash
-docker compose up -d
-```
-
-Ejemplo:
+Desde la raíz del repositorio, copiar `.env.example` a `.env` y cambiar las credenciales antes de usarlo fuera del entorno local:
 
 ```bash
-cd users
-docker compose up -d
+cp .env.example .env
 ```
 
-Repetir el proceso para los microservicios que se deseen ejecutar.
+Levantar solo MySQL (útil para el flujo de desarrollo con Maven):
+
+```bash
+docker compose up -d mysql
+```
+
+El Compose maestro construye e inicia MySQL, Eureka, los cinco servicios activos y Gateway:
+
+```bash
+docker compose up --build -d
+```
+
+Para bajar los contenedores sin borrar los datos de MySQL:
+
+```bash
+docker compose down
+```
+
+El Compose de producción usa imágenes publicadas en Docker Hub, incluyendo `DOCKERHUB_USER` e `IMAGE_TAG` del `.env`:
+
+```bash
+docker compose -f compose.prod.yaml pull
+docker compose -f compose.prod.yaml up -d
+```
+
+Las imágenes de producción deben publicarse previamente con los nombres definidos en `compose.prod.yaml`. No ejecutar `down -v` salvo que se quiera borrar permanentemente el volumen de la base de datos.
 
 ### 3. Levantar Eureka Server
 

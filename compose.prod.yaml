@@ -1,0 +1,94 @@
+name: medireservas-backend-prod
+
+x-backend: &backend
+  restart: unless-stopped
+  depends_on:
+    eureka:
+      condition: service_started
+    mysql:
+      condition: service_healthy
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    command:
+      - --innodb-buffer-pool-size=256M
+      - --max-connections=50
+      - --performance-schema=OFF
+    mem_limit: 512m
+    mem_reservation: 256m
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?Set DB_ROOT_PASSWORD in .env}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in .env}
+      USERS_DB_PASSWORD: ${USERS_DB_PASSWORD:?Set USERS_DB_PASSWORD in .env}
+      DOCTORS_DB_PASSWORD: ${DOCTORS_DB_PASSWORD:?Set DOCTORS_DB_PASSWORD in .env}
+      APPOINTMENTS_DB_PASSWORD: ${APPOINTMENTS_DB_PASSWORD:?Set APPOINTMENTS_DB_PASSWORD in .env}
+      MEDICAL_RECORDS_DB_PASSWORD: ${MEDICAL_RECORDS_DB_PASSWORD:?Set MEDICAL_RECORDS_DB_PASSWORD in .env}
+    volumes:
+      - medireservas_mysql_data:/var/lib/mysql
+      - ./backend/docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  eureka:
+    image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-eureka:${IMAGE_TAG:-latest}
+
+  auth:
+    <<: *backend
+    image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-auth:${IMAGE_TAG:-latest}
+    environment:
+      EUREKA_URL: http://eureka:8761/eureka/
+      DB_URL: jdbc:mysql://mysql:3306/auth_db
+      DB_USER: auth_app
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:?Set AUTH_DB_PASSWORD in .env}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+
+  users:
+    <<: *backend
+    image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-users:${IMAGE_TAG:-latest}
+    environment:
+      EUREKA_URL: http://eureka:8761/eureka/
+      DB_URL: jdbc:mysql://mysql:3306/users_db
+      DB_USER: users_app
+      DB_PASSWORD: ${USERS_DB_PASSWORD:?Set USERS_DB_PASSWORD in .env}
+
+  doctors:
+    <<: *backend
+    image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-doctors:${IMAGE_TAG:-latest}
+    environment:
+      EUREKA_URL: http://eureka:8761/eureka/
+      DB_URL: jdbc:mysql://mysql:3306/doctors_db
+      DB_USER: doctors_app
+      DB_PASSWORD: ${DOCTORS_DB_PASSWORD:?Set DOCTORS_DB_PASSWORD in .env}
+
+  appointments:
+    <<: *backend
+    image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-appointments:${IMAGE_TAG:-latest}
+    environment:
+      EUREKA_URL: http://eureka:8761/eureka/
+      DB_URL: jdbc:mysql://mysql:3306/appointments_db
+      DB_USER: appointments_app
+      DB_PASSWORD: ${APPOINTMENTS_DB_PASSWORD:?Set APPOINTMENTS_DB_PASSWORD in .env}
+
+  medical-records:
+    <<: *backend
+    image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-medical-records:${IMAGE_TAG:-latest}
+    environment:
+      EUREKA_URL: http://eureka:8761/eureka/
+      DB_URL: jdbc:mysql://mysql:3306/medical_records_db
+      DB_USER: medical_records_app
+      DB_PASSWORD: ${MEDICAL_RECORDS_DB_PASSWORD:?Set MEDICAL_RECORDS_DB_PASSWORD in .env}
+
+  gateway:
+    <<: *backend
+    image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-gateway:${IMAGE_TAG:-latest}
+    ports:
+      - "9013:9013"
+
+volumes:
+  medireservas_mysql_data:

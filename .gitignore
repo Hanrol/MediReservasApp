@@ -1,4 +1,7 @@
 .idea
+.env
+.env.*
+!.env.example
 
 .sdkmanrc
 
