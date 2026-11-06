@@ -84,7 +84,7 @@ class PatientProfileControllerTest {
                 any(CreatePatientProfileRequestDTO.class)))
                 .thenReturn(patientProfileResponse);
 
-        mockMvc.perform(post("/api/v1/patient-profiles")
+        mockMvc.perform(post("/api/v3/patient-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -126,7 +126,7 @@ class PatientProfileControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/patient-profiles")
+        mockMvc.perform(post("/api/v3/patient-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -141,7 +141,7 @@ class PatientProfileControllerTest {
         when(patientProfileService.getAllPatientProfiles())
                 .thenReturn(List.of(patientProfileResponse));
 
-        mockMvc.perform(get("/api/v1/patient-profiles"))
+        mockMvc.perform(get("/api/v3/patient-profiles"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -163,7 +163,7 @@ class PatientProfileControllerTest {
         when(patientProfileService.getPatientProfileById(1L))
                 .thenReturn(patientProfileResponse);
 
-        mockMvc.perform(get("/api/v1/patient-profiles/1"))
+        mockMvc.perform(get("/api/v3/patient-profiles/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -181,10 +181,10 @@ class PatientProfileControllerTest {
     void getPatientProfileByUserId_deberiaRetornarPerfilPaciente()
             throws Exception {
 
-        when(patientProfileService.getPatientProfileByUserId(1L))
+        when(patientProfileService.getPatientProfileByUserId(1L, "paciente@test.cl"))
                 .thenReturn(patientProfileResponse);
 
-        mockMvc.perform(get("/api/v1/patient-profiles/user/1"))
+        mockMvc.perform(get("/api/v3/patient-profiles/user/1").header("X-Authenticated-Email", "paciente@test.cl"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -193,15 +193,15 @@ class PatientProfileControllerTest {
                 .andExpect(jsonPath("$.data.userId").value(1));
 
         verify(patientProfileService)
-                .getPatientProfileByUserId(1L);
+                .getPatientProfileByUserId(1L, "paciente@test.cl");
     }
 
     @Test
     void existsByUserId_deberiaRetornarTrue() throws Exception {
-        when(patientProfileService.existsByUserId(1L))
+        when(patientProfileService.existsByUserId(1L, "paciente@test.cl"))
                 .thenReturn(true);
 
-        mockMvc.perform(get("/api/v1/patient-profiles/user/1/exists"))
+        mockMvc.perform(get("/api/v3/patient-profiles/user/1/exists").header("X-Authenticated-Email", "paciente@test.cl"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -209,7 +209,7 @@ class PatientProfileControllerTest {
                 .andExpect(jsonPath("$.data").value(true));
 
         verify(patientProfileService)
-                .existsByUserId(1L);
+                .existsByUserId(1L, "paciente@test.cl");
     }
 
     // =========================================================
@@ -241,7 +241,7 @@ class PatientProfileControllerTest {
                 any(UpdatePatientProfileRequestDTO.class)))
                 .thenReturn(updatedResponse);
 
-        mockMvc.perform(put("/api/v1/patient-profiles/1")
+        mockMvc.perform(put("/api/v3/patient-profiles/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -274,7 +274,7 @@ class PatientProfileControllerTest {
 
     @Test
     void deletePatientProfile_deberiaRetornar200() throws Exception {
-        mockMvc.perform(delete("/api/v1/patient-profiles/1"))
+        mockMvc.perform(delete("/api/v3/patient-profiles/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")

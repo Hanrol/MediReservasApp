@@ -42,7 +42,7 @@ public class MedicalRecordControllerStandAloneTest {
         Mockito.when(medicalRecordService.findByPatientId(nonExistentId))
                .thenThrow(new RuntimeException("Ficha médica no encontrada"));
         
-        mockMvc.perform(get("/api/v1/medical-records/{id}", nonExistentId))
+        mockMvc.perform(get("/api/v3/medical-records/{id}", nonExistentId))
                .andExpect(status().isNotFound());
             }
 
@@ -77,7 +77,7 @@ public class MedicalRecordControllerStandAloneTest {
         Mockito.when(medicalRecordService.findMedicalRecordEntityById(existingId)).thenReturn(medicalRecord);
 
 
-        mockMvc.perform(get("/api/v1/medical-records/{id}", existingId))
+        mockMvc.perform(get("/api/v3/medical-records/{id}", existingId))
                .andExpect(status().isOk())
                .andExpect(jsonPath("$.code").value(200))
                .andExpect(jsonPath("$.message").value("Registro médico encontrado")); // Ajusta según el controlador    }

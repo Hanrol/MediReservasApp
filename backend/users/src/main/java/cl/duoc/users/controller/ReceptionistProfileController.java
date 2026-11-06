@@ -24,7 +24,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/receptionist-profiles")
+@RequestMapping("/api/v3/receptionist-profiles")
 @RequiredArgsConstructor
 @Tag(name = "Receptionist Profiles", description = "Endpoints para la gestión de perfiles de recepcionista")
 public class ReceptionistProfileController {

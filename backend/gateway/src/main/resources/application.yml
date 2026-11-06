@@ -19,31 +19,31 @@ spring:
         - id: auth-service
           uri: lb://auth-service
           predicates:
-            - Path=/api/v1/auth/**
+            - Path=/api/v3/auth/**
 
         # USERS SERVICE
         - id: users-service
           uri: lb://users-service
           predicates:
-            - Path=/api/v1/users/**,/api/v1/user-profiles/**,/api/v1/patient-profiles/**,/api/v1/receptionist-profiles/**,/api/v1/administrator-profiles/**
+            - Path=/api/v3/users/**,/api/v3/user-profiles/**,/api/v3/patient-profiles/**,/api/v3/receptionist-profiles/**,/api/v3/administrator-profiles/**
 
         # DOCTORS SERVICE
         - id: doctors-service
           uri: lb://doctors-service
           predicates:
-            - Path=/api/v2/doctors/**,/api/v1/specialties/**
+            - Path=/api/v3/doctors/**,/api/v3/specialties/**
 
         # APPOINTMENTS SERVICE
         - id: appointments-service
           uri: lb://appointments-service
           predicates:
-            - Path=/api/v1/appointments/**,/api/v1/doctor-schedules/**,/api/v1/doctor-time-off/**,/api/v1/schedule-slots/**
+            - Path=/api/v3/appointments/**,/api/v3/doctor-schedules/**,/api/v3/doctor-time-off/**,/api/v3/schedule-slots/**
 
         # MEDICAL RECORDS SERVICE
         - id: medical-records-service
           uri: lb://medical-records-service
           predicates:
-            - Path=/api/v1/medical-records/**,/api/v1/medical-visit/**,/api/v1/diagnoses/**,/api/v1/vital-signs/**
+            - Path=/api/v3/medical-records/**,/api/v3/medical-visit/**,/api/v3/diagnoses/**,/api/v3/vital-signs/**
 
 eureka:
   client:

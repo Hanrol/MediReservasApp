@@ -6,6 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import cl.duoc.auth.dto.AuthResponseDTO;
 import cl.duoc.auth.dto.AuthUserResponseDTO;
@@ -13,6 +16,7 @@ import cl.duoc.auth.dto.ChangePasswordRequestDTO;
 import cl.duoc.auth.dto.LoginRequestDTO;
 import cl.duoc.auth.dto.RegisterRequestDTO;
 import cl.duoc.auth.dto.RoleResponseDTO;
+import cl.duoc.auth.dto.TokenAuthorizationDTO;
 import cl.duoc.auth.model.AuthUser;
 import cl.duoc.auth.model.Role;
 import cl.duoc.auth.repository.AuthUserRepository;
@@ -105,6 +109,21 @@ public class AuthService {
 
     public boolean validateToken(String token) {
         return jwtUtil.validateToken(token);
+    }
+
+    @Transactional(readOnly = true)
+    public TokenAuthorizationDTO getTokenAuthorization(String token) {
+        if (!jwtUtil.validateToken(token)) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token JWT inválido o expirado");
+        }
+
+        String email = jwtUtil.extractEmail(token);
+        AuthUserResponseDTO user = getUserByEmail(email);
+        if (!user.enabled()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El usuario está deshabilitado");
+        }
+
+        return new TokenAuthorizationDTO(email, user.roles());
     }
 
     public String extractEmailFromToken(String token) {

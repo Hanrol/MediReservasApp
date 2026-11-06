@@ -2,6 +2,8 @@ package cl.duoc.appointments.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,9 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class DoctorTimeOffService {
+
+    @Autowired
+    private DoctorOwnershipVerifier ownershipVerifier;
 
     private final DoctorTimeOffRepository doctorTimeOffRepository;
     private final DoctorsClient doctorsClient;
@@ -40,6 +45,11 @@ public class DoctorTimeOffService {
         return mapToResponse(saved);
     }
 
+    public DoctorTimeOffResponse create(DoctorTimeOffRequest request, String email, Set<String> roles) {
+        ownershipVerifier.requireOwnDoctor(email, request.getDoctorId(), roles);
+        return create(request);
+    }
+
     public DoctorTimeOffResponse findById(Long id) {
         log.info("Buscando permiso de doctor con ID: {}", id);
         
@@ -49,6 +59,12 @@ public class DoctorTimeOffService {
         return mapToResponse(timeOff);
     }
 
+    public DoctorTimeOffResponse findById(Long id, String email, Set<String> roles) {
+        DoctorTimeOffResponse response = findById(id);
+        ownershipVerifier.requireOwnDoctor(email, response.doctorId(), roles);
+        return response;
+    }
+
     public List<DoctorTimeOffResponse> findAll() {
         log.info("Obteniendo todos los permisos de doctores");
         
@@ -56,6 +72,13 @@ public class DoctorTimeOffService {
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
+    }
+
+    public List<DoctorTimeOffResponse> findAll(String email, Set<String> roles) {
+        List<DoctorTimeOffResponse> all = findAll();
+        if (!ownershipVerifier.isDoctorOnly(roles)) return all;
+        Long doctorId = ownershipVerifier.authenticatedDoctorId(email);
+        return all.stream().filter(timeOff -> doctorId.equals(timeOff.doctorId())).toList();
     }
 
     public DoctorTimeOffResponse update(Long id, DoctorTimeOffRequest request) {
@@ -78,6 +101,12 @@ public class DoctorTimeOffService {
         return mapToResponse(updated);
     }
 
+    public DoctorTimeOffResponse update(Long id, DoctorTimeOffRequest request, String email, Set<String> roles) {
+        ownershipVerifier.requireOwnDoctor(email, findById(id).doctorId(), roles);
+        ownershipVerifier.requireOwnDoctor(email, request.getDoctorId(), roles);
+        return update(id, request);
+    }
+
     public void delete(Long id) {
         log.info("Iniciando eliminación de permiso con ID: {}", id);
         
@@ -87,6 +116,11 @@ public class DoctorTimeOffService {
         doctorTimeOffRepository.deleteById(id);
         
         log.info("Permiso con ID: {} eliminado exitosamente", id);
+    }
+
+    public void delete(Long id, String email, Set<String> roles) {
+        ownershipVerifier.requireOwnDoctor(email, findById(id).doctorId(), roles);
+        delete(id);
     }
 
     private DoctorTimeOffResponse mapToResponse(DoctorTimeOff timeOff) {

@@ -1,6 +1,7 @@
 package cl.duoc.appointments.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -42,6 +43,7 @@ class DoctorScheduleControllerTest {
         
         mockMvc = MockMvcBuilders
                 .standaloneSetup(doctorScheduleController)
+                .defaultRequest(get("/").header("X-Authenticated-Email", "doctor@test.cl").header("X-Authenticated-Roles", "DOCTOR"))
                 .build();
     }
 
@@ -64,9 +66,9 @@ class DoctorScheduleControllerTest {
                 true
         );
 
-        when(doctorScheduleService.create(any(DoctorScheduleRequest.class))).thenReturn(response);
+        when(doctorScheduleService.create(any(DoctorScheduleRequest.class), any(), anySet())).thenReturn(response);
 
-        mockMvc.perform(post("/api/v1/doctor-schedules")
+        mockMvc.perform(post("/api/v3/doctor-schedules")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -86,9 +88,9 @@ class DoctorScheduleControllerTest {
                 false
         );
 
-        when(doctorScheduleService.findById(eq(1L))).thenReturn(response);
+        when(doctorScheduleService.findById(eq(1L), any(), anySet())).thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/doctor-schedules/1"))
+        mockMvc.perform(get("/api/v3/doctor-schedules/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.doctorScheduleId").value(1))
                 .andExpect(jsonPath("$.data.dayOfWeek").value("VIERNES"))

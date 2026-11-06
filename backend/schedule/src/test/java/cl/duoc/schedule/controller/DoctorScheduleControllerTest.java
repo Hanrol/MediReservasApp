@@ -66,7 +66,7 @@ class DoctorScheduleControllerTest {
 
         when(doctorScheduleService.create(any(DoctorScheduleRequest.class))).thenReturn(response);
 
-        mockMvc.perform(post("/api/v1/doctor-schedules")
+        mockMvc.perform(post("/api/v3/doctor-schedules")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -88,7 +88,7 @@ class DoctorScheduleControllerTest {
 
         when(doctorScheduleService.findById(eq(1L))).thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/doctor-schedules/1"))
+        mockMvc.perform(get("/api/v3/doctor-schedules/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.doctorScheduleId").value(1))
                 .andExpect(jsonPath("$.data.dayOfWeek").value("VIERNES"))

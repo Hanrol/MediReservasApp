@@ -11,7 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 @RestController
-@RequestMapping("/api/v2/doctors")
+@RequestMapping("/api/v3/doctors")
 @Tag(name = "Doctors Controller", description = "Endpoints para la gestión de médicos y sus especialidades")
 public class DoctorsController {
     

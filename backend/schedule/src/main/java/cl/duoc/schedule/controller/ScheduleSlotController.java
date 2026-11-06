@@ -23,7 +23,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/schedule-slots")
+@RequestMapping("/api/v3/schedule-slots")
 @RequiredArgsConstructor
 @Tag(name = "ScheduleSlots", description = "API de gestión de slots de agenda")
 public class ScheduleSlotController {

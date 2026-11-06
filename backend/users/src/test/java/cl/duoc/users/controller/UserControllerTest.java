@@ -76,7 +76,7 @@ class UserControllerTest {
         when(userService.createUser(any(CreateUserRequestDTO.class)))
                 .thenReturn(userResponse);
 
-        mockMvc.perform(post("/api/v1/users")
+        mockMvc.perform(post("/api/v3/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -106,7 +106,7 @@ class UserControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/users")
+        mockMvc.perform(post("/api/v3/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -123,7 +123,7 @@ class UserControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/users")
+        mockMvc.perform(post("/api/v3/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -138,7 +138,7 @@ class UserControllerTest {
         when(userService.getAllUsers())
                 .thenReturn(List.of(userResponse));
 
-        mockMvc.perform(get("/api/v1/users"))
+        mockMvc.perform(get("/api/v3/users"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -159,7 +159,7 @@ class UserControllerTest {
         when(userService.getUserById(1L))
                 .thenReturn(userResponse);
 
-        mockMvc.perform(get("/api/v1/users/1"))
+        mockMvc.perform(get("/api/v3/users/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -180,7 +180,7 @@ class UserControllerTest {
         when(userService.existsById(1L))
                 .thenReturn(true);
 
-        mockMvc.perform(get("/api/v1/users/1/exists"))
+        mockMvc.perform(get("/api/v3/users/1/exists"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -196,7 +196,7 @@ class UserControllerTest {
         when(userService.getUserByRun("12345678-9"))
                 .thenReturn(userResponse);
 
-        mockMvc.perform(get("/api/v1/users/run/12345678-9"))
+        mockMvc.perform(get("/api/v3/users/run/12345678-9"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -214,7 +214,7 @@ class UserControllerTest {
                 .thenReturn(userResponse);
 
         mockMvc.perform(get(
-                "/api/v1/users/email/{email}",
+                "/api/v3/users/email/{email}",
                 "paciente@test.cl"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
@@ -250,7 +250,7 @@ class UserControllerTest {
                 any(UpdateUserRequestDTO.class)))
                 .thenReturn(updatedResponse);
 
-        mockMvc.perform(put("/api/v1/users/1")
+        mockMvc.perform(put("/api/v3/users/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -280,7 +280,7 @@ class UserControllerTest {
                 }
                 """;
 
-        mockMvc.perform(put("/api/v1/users/1")
+        mockMvc.perform(put("/api/v3/users/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -295,7 +295,7 @@ class UserControllerTest {
         when(userService.activateUser(1L))
                 .thenReturn(userResponse);
 
-        mockMvc.perform(patch("/api/v1/users/1/activate"))
+        mockMvc.perform(patch("/api/v3/users/1/activate"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -320,7 +320,7 @@ class UserControllerTest {
         when(userService.deactivateUser(1L))
                 .thenReturn(inactiveResponse);
 
-        mockMvc.perform(patch("/api/v1/users/1/deactivate"))
+        mockMvc.perform(patch("/api/v3/users/1/deactivate"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")

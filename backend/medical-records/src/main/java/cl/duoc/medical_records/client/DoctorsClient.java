@@ -5,8 +5,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import cl.duoc.medical_records.dto.ApiResponse;
-import cl.duoc.medical_records.dto.IdVerificationRequestDTO;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -16,23 +14,16 @@ public class DoctorsClient {
 
     public Boolean doctorIdVerification(Long doctorId) {
         try {
-            ApiResponse<Boolean> response = webClientBuilder.build()
-                    .patch()
-                    .uri(
-                            "http://doctors-service/api/v2/doctors/{id}",
-                            doctorId
-                    )
-                    .bodyValue(new IdVerificationRequestDTO(doctorId))
+            DoctorData response = webClientBuilder.build()
+                    .get()
+                    .uri("http://doctors-service/api/v3/doctors/{id}", doctorId)
                     .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<ApiResponse<Boolean>>() {})
+                    .bodyToMono(DoctorData.class)
                     .block();
-            return response != null && Boolean.TRUE.equals(response.getData());
+            return response != null && doctorId.equals(response.doctorId()) && response.active();
 
         } catch (WebClientResponseException.NotFound ex) {
-            throw new RuntimeException(
-                    "ID de Paciente no encontrado"
-            );
-
+            return false;
 
         } catch (WebClientResponseException ex) {
             throw new RuntimeException(
@@ -40,4 +31,7 @@ public class DoctorsClient {
             );
         }
     }
+
+    private record DoctorData(Long doctorId, Long userId, String medicalLicenseNumber,
+            boolean active, java.util.List<Long> specialtyIds) {}
 }

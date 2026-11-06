@@ -19,7 +19,7 @@ public class DoctorsClient {
         try {
             webClientBuilder.build()
                     .get()
-                    .uri("http://doctors-service/api/v2/doctors/{id}", doctorId)
+                    .uri("http://doctors-service/api/v3/doctors/{id}", doctorId)
                     .retrieve()
                     .bodyToMono(Void.class)
                     .block();

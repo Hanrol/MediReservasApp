@@ -12,6 +12,7 @@ import cl.duoc.medical_records.dto.MedicalRecordDetailResponseDTO;
 import cl.duoc.medical_records.dto.MedicalRecordResponseDTO;
 import cl.duoc.medical_records.extras.ToDTO;
 import cl.duoc.medical_records.model.MedicalRecord;
+import cl.duoc.medical_records.model.MedicalVisit;
 import cl.duoc.medical_records.repository.MedicalRecordRepository;
 import cl.duoc.medical_records.repository.MedicalVisitRepository;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +68,12 @@ public class MedicalRecordService {
                 .toList();
     }
 
+    public List<MedicalRecordDetailResponseDTO> listAllForDoctor(Long doctorId) {
+        return medicalVisitRepository.findByDoctorId(doctorId).stream()
+                .map(MedicalVisit::getMedicalRecord).distinct()
+                .map(record -> toDTO.toMedicalRecordDetailResponseDTO(record, doctorId)).toList();
+    }
+
     public MedicalRecordDetailResponseDTO findByPatientId(
             Long patientId) {
 
@@ -84,6 +91,17 @@ public class MedicalRecordService {
                 medicalRecord);
     }
 
+    public MedicalRecordDetailResponseDTO findByPatientIdForDoctor(Long patientId, Long doctorId) {
+        MedicalRecord record = medicalRecordRepository.findByPatientId(patientId)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Registro médico no encontrado"));
+        if (!hasVisitOwnedBy(record, doctorId)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "No tienes acceso a este registro médico");
+        }
+        return toDTO.toMedicalRecordDetailResponseDTO(record, doctorId);
+    }
+
     public MedicalRecordDetailResponseDTO findByMedicalRecordId(
             Long medicalRecordId) {
 
@@ -91,6 +109,15 @@ public class MedicalRecordService {
 
         return toDTO.toMedicalRecordDetailResponseDTO(
                 medicalRecord);
+    }
+
+    public MedicalRecordDetailResponseDTO findByMedicalRecordIdForDoctor(Long recordId, Long doctorId) {
+        MedicalRecord record = findMedicalRecordEntityById(recordId);
+        if (!hasVisitOwnedBy(record, doctorId)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN, "No tienes acceso a este registro médico");
+        }
+        return toDTO.toMedicalRecordDetailResponseDTO(record, doctorId);
     }
 
     public MedicalRecordResponseDTO activate(
@@ -156,5 +183,11 @@ public class MedicalRecordService {
                     return new RuntimeException(
                             "Registro médico no encontrado");
                 });
+    }
+
+    private boolean hasVisitOwnedBy(MedicalRecord record, Long doctorId) {
+        return record.getMedicalVisits() != null && record.getMedicalVisits().stream()
+                .filter(java.util.Objects::nonNull)
+                .anyMatch(visit -> doctorId != null && doctorId.equals(visit.getDoctorId()));
     }
 }

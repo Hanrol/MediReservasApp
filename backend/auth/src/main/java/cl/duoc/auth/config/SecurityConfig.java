@@ -25,10 +25,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
 
                         // Públicos
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/register").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/validate").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/token/email").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v3/auth/register").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/v3/auth/login").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v3/auth/validate").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v3/auth/authorization").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v3/auth/token/email").permitAll()
 
                         // Swagger
                         .requestMatchers(
@@ -40,9 +41,9 @@ public class SecurityConfig {
                         .permitAll()
 
                         // Internos para integración entre microservicios
-                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/users/email/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/v1/auth/users/*/exists").permitAll()
-                        .requestMatchers(HttpMethod.PATCH, "/api/v1/auth/users/*/roles").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v3/auth/users/email/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v3/auth/users/*/exists").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/v3/auth/users/*/roles").permitAll()
 
                         // El resto requiere JWT
                         .anyRequest().authenticated())

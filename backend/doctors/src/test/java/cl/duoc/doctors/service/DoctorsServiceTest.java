@@ -99,9 +99,9 @@ public class DoctorsServiceTest {
         when(doctorsRepository.findById(doctorId)).thenReturn(Optional.empty());
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, 
-            () -> doctorsService.findById(doctorId));
-        
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> doctorsService.findById(doctorId));
+
         assertEquals("Doctor no encontrado", exception.getMessage());
         verify(doctorsRepository, times(1)).findById(doctorId);
     }
@@ -129,9 +129,9 @@ public class DoctorsServiceTest {
         when(doctorsRepository.findById(doctorId)).thenReturn(Optional.empty());
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, 
-            () -> doctorsService.delete(doctorId));
-        
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> doctorsService.delete(doctorId));
+
         assertEquals("Doctor no encontrado", exception.getMessage());
         verify(doctorsRepository, times(1)).findById(doctorId);
         verify(doctorsRepository, never()).save(any(Doctors.class));

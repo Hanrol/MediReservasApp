@@ -1,6 +1,7 @@
 package cl.duoc.appointments.service;
 
 import cl.duoc.appointments.client.UsersClient;
+import cl.duoc.appointments.client.DoctorsClient;
 import cl.duoc.appointments.dto.AppointmentCancelRequestDTO;
 import cl.duoc.appointments.dto.AppointmentCreateRequestDTO;
 import cl.duoc.appointments.dto.AppointmentResponseDTO;
@@ -19,6 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 
 @Slf4j
@@ -32,6 +37,7 @@ public class AppointmentService {
     private final AppointmentCancellationRepository cancellationRepository;
     // Cambio: cliente para validar patientUserId contra users-service.
     private final UsersClient usersClient;
+    private final DoctorsClient doctorsClient;
 
     public AppointmentResponseDTO createAppointment(AppointmentCreateRequestDTO dto) {
 
@@ -58,6 +64,13 @@ public class AppointmentService {
         return toResponseDTO(saved);
     }
 
+    public AppointmentResponseDTO createAppointment(AppointmentCreateRequestDTO dto, String email, Set<String> roles) {
+        if (roles.contains("PATIENT") && !hasStaffOverride(roles)) {
+            assertPatientOwnsUser(email, dto.getPatientUserId());
+        }
+        return createAppointment(dto);
+    }
+
     public List<AppointmentResponseDTO> getAllAppointments() {
         return appointmentRepository.findAll()
                 .stream()
@@ -67,6 +80,14 @@ public class AppointmentService {
 
     public AppointmentResponseDTO getAppointmentById(Long id) {
         return toResponseDTO(findOrThrow(id));
+    }
+
+    public AppointmentResponseDTO getAppointmentById(Long id, String email, Set<String> roles) {
+        Appointment appointment = findOrThrow(id);
+        if (roles.contains("PATIENT") && !hasStaffOverride(roles)) {
+            assertPatientOwnsUser(email, appointment.getPatientUserId());
+        }
+        return toResponseDTO(appointment);
     }
 
     public boolean existsAppointment(Long id) {
@@ -80,11 +101,23 @@ public class AppointmentService {
                 .toList();
     }
 
+    public List<AppointmentResponseDTO> getByPatientUserId(Long patientUserId, String email, Set<String> roles) {
+        if (roles.contains("PATIENT") && !hasStaffOverride(roles)) {
+            assertPatientOwnsUser(email, patientUserId);
+        }
+        return getByPatientUserId(patientUserId);
+    }
+
     public List<AppointmentResponseDTO> getByDoctorId(Long doctorId) {
         return appointmentRepository.findByDoctorId(doctorId)
                 .stream()
                 .map(this::toResponseDTO)
                 .toList();
+    }
+
+    public List<AppointmentResponseDTO> getByDoctorId(Long doctorId, String email, Set<String> roles) {
+        assertDoctorOwnsResourceIfDoctor(email, doctorId, roles);
+        return getByDoctorId(doctorId);
     }
 
     public AppointmentResponseDTO updateAppointment(Long id, AppointmentUpdateRequestDTO dto) {
@@ -129,6 +162,14 @@ public class AppointmentService {
         return toResponseDTO(updated);
     }
 
+    public AppointmentResponseDTO confirmAppointment(Long id, AppointmentStatusChangeRequestDTO dto, String email, Set<String> roles) {
+        assertDoctorOwnsAppointment(findOrThrow(id), email, roles);
+        if (roles.contains("DOCTOR") && !roles.contains("ADMIN") && !roles.contains("RECEPTIONIST")) {
+            dto.setChangedByUserId(usersClient.getUserIdByEmail(email));
+        }
+        return confirmAppointment(id, dto);
+    }
+
     public AppointmentResponseDTO cancelAppointment(Long id, AppointmentCancelRequestDTO dto) {
         Appointment appointment = findOrThrow(id);
 
@@ -160,6 +201,26 @@ public class AppointmentService {
         return toResponseDTO(updated);
     }
 
+    public AppointmentResponseDTO cancelAppointment(Long id, AppointmentCancelRequestDTO dto, String email, Set<String> roles) {
+        Appointment appointment = findOrThrow(id);
+        if (roles.contains("PATIENT") && !hasStaffOverride(roles)) {
+            assertPatientOwnsUser(email, appointment.getPatientUserId());
+            // Never accept a caller-supplied identity as the cancellation actor.
+            dto.setCancelledByUserId(usersClient.getUserIdByEmail(email));
+        }
+        return cancelAppointment(id, dto);
+    }
+
+    private void assertPatientOwnsUser(String email, Long requestedUserId) {
+        if (email == null || !usersClient.getUserIdByEmail(email).equals(requestedUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes acceder a recursos de otro paciente");
+        }
+    }
+
+    private boolean hasStaffOverride(Set<String> roles) {
+        return roles.contains("ADMIN") || roles.contains("RECEPTIONIST");
+    }
+
     public AppointmentResponseDTO completeAppointment(Long id, AppointmentStatusChangeRequestDTO dto) {
         Appointment appointment = findOrThrow(id);
 
@@ -177,6 +238,14 @@ public class AppointmentService {
         return toResponseDTO(updated);
     }
 
+    public AppointmentResponseDTO completeAppointment(Long id, AppointmentStatusChangeRequestDTO dto, String email, Set<String> roles) {
+        assertDoctorOwnsAppointment(findOrThrow(id), email, roles);
+        if (roles.contains("DOCTOR") && !roles.contains("ADMIN") && !roles.contains("RECEPTIONIST")) {
+            dto.setChangedByUserId(usersClient.getUserIdByEmail(email));
+        }
+        return completeAppointment(id, dto);
+    }
+
     public AppointmentResponseDTO markNoShow(Long id, AppointmentStatusChangeRequestDTO dto) {
         Appointment appointment = findOrThrow(id);
 
@@ -191,6 +260,25 @@ public class AppointmentService {
                 dto.getChangedByUserId(), dto.getChangeReason());
 
         return toResponseDTO(updated);
+    }
+
+    public AppointmentResponseDTO markNoShow(Long id, AppointmentStatusChangeRequestDTO dto, String email, Set<String> roles) {
+        assertDoctorOwnsAppointment(findOrThrow(id), email, roles);
+        if (roles.contains("DOCTOR") && !roles.contains("ADMIN") && !roles.contains("RECEPTIONIST")) {
+            dto.setChangedByUserId(usersClient.getUserIdByEmail(email));
+        }
+        return markNoShow(id, dto);
+    }
+
+    private void assertDoctorOwnsAppointment(Appointment appointment, String email, Set<String> roles) {
+        assertDoctorOwnsResourceIfDoctor(email, appointment.getDoctorId(), roles);
+    }
+
+    private void assertDoctorOwnsResourceIfDoctor(String email, Long doctorId, Set<String> roles) {
+        if (roles.contains("DOCTOR") && !roles.contains("ADMIN") && !roles.contains("RECEPTIONIST")
+                && (email == null || !usersClient.getUserIdByEmail(email).equals(doctorsClient.getUserIdForDoctor(doctorId)))) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes acceder a recursos de otro médico");
+        }
     }
 
     // Busca la cita o lanza 404 — centraliza el findById().orElseThrow

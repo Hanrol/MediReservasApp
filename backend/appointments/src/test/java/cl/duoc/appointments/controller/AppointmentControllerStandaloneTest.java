@@ -61,10 +61,12 @@ class AppointmentControllerStandaloneTest {
 
     @Test
     void createAppointment_returns201() throws Exception {
-        Mockito.when(appointmentService.createAppointment(Mockito.any())).thenReturn(responseDTO());
+        Mockito.when(appointmentService.createAppointment(Mockito.any(), Mockito.anyString(), Mockito.anySet())).thenReturn(responseDTO());
 
-        mockMvc.perform(post("/api/v1/appointments")
+        mockMvc.perform(post("/api/v3/appointments")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Authenticated-Email", "patient@test.cl")
+                        .header("X-Authenticated-Roles", "PATIENT")
                         .content(objectMapper.writeValueAsString(buildRequest(1L))))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.data.appointmentId").value(10))
@@ -73,11 +75,13 @@ class AppointmentControllerStandaloneTest {
 
     @Test
     void createAppointment_whenUserNotFound_returns404() throws Exception {
-        Mockito.when(appointmentService.createAppointment(Mockito.any()))
+        Mockito.when(appointmentService.createAppointment(Mockito.any(), Mockito.anyString(), Mockito.anySet()))
                 .thenThrow(new RuntimeException("Usuario no encontrado con ID: 99"));
 
-        mockMvc.perform(post("/api/v1/appointments")
+        mockMvc.perform(post("/api/v3/appointments")
                         .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-Authenticated-Email", "patient@test.cl")
+                        .header("X-Authenticated-Roles", "PATIENT")
                         .content(objectMapper.writeValueAsString(buildRequest(99L))))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value(404));
@@ -87,7 +91,7 @@ class AppointmentControllerStandaloneTest {
     void existsAppointment_returns200WithBoolean() throws Exception {
         Mockito.when(appointmentService.existsAppointment(10L)).thenReturn(true);
 
-        mockMvc.perform(get("/api/v1/appointments/10/exists"))
+        mockMvc.perform(get("/api/v3/appointments/10/exists"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value(true));
     }

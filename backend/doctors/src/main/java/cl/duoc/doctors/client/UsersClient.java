@@ -21,7 +21,7 @@ public class UsersClient {
                     webClientBuilder.build()
                             .get()
                             .uri(
-                                    "http://users-service/api/v1/users/{userId}",
+                                    "http://users-service/api/v3/users/{userId}",
                                     userId
                             )
                             .retrieve()
@@ -55,28 +55,28 @@ public class UsersClient {
 
     public boolean hasGeneralProfile(Long userId) {
         return getBoolean(
-                "http://users-service/api/v1/user-profiles/user/{userId}/exists",
+                "http://users-service/api/v3/user-profiles/user/{userId}/exists",
                 userId
         );
     }
 
     public boolean hasPatientProfile(Long userId) {
         return getBoolean(
-                "http://users-service/api/v1/patient-profiles/user/{userId}/exists",
+                "http://users-service/api/v3/patient-profiles/user/{userId}/exists",
                 userId
         );
     }
 
     public boolean hasReceptionistProfile(Long userId) {
         return getBoolean(
-                "http://users-service/api/v1/receptionist-profiles/user/{userId}/exists",
+                "http://users-service/api/v3/receptionist-profiles/user/{userId}/exists",
                 userId
         );
     }
 
     public boolean hasAdministratorProfile(Long userId) {
         return getBoolean(
-                "http://users-service/api/v1/administrator-profiles/user/{userId}/exists",
+                "http://users-service/api/v3/administrator-profiles/user/{userId}/exists",
                 userId
         );
     }

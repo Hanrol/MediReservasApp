@@ -63,7 +63,7 @@ class DoctorsControllerTest {
         org.mockito.Mockito.when(doctorsService.findAll()).thenReturn(doctorsList);
 
         // Act & Assert
-        mockMvc.perform(get("/api/v2/doctors"))
+        mockMvc.perform(get("/api/v3/doctors"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[0].doctorId").value(1L))
@@ -86,7 +86,7 @@ class DoctorsControllerTest {
         org.mockito.Mockito.when(doctorsService.findById(doctorId)).thenReturn(doctor);
 
         // Act & Assert
-        mockMvc.perform(get("/api/v2/doctors/{id}", doctorId))
+        mockMvc.perform(get("/api/v3/doctors/{id}", doctorId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.doctorId").value(1L))
                 .andExpect(jsonPath("$.medicalLicenseNumber").value("LIC-12345"))
@@ -101,7 +101,7 @@ class DoctorsControllerTest {
                 .thenThrow(new RuntimeException("Doctor no encontrado"));
 
         // Act & Assert
-        mockMvc.perform(get("/api/v2/doctors/{id}", doctorId))
+        mockMvc.perform(get("/api/v3/doctors/{id}", doctorId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Doctor no encontrado"));
     }
@@ -125,7 +125,7 @@ class DoctorsControllerTest {
                 .thenReturn(output);
 
         // Act & Assert
-        mockMvc.perform(post("/api/v2/doctors")
+        mockMvc.perform(post("/api/v3/doctors")
         .contentType("application/json")
         .content("""
                 {
@@ -157,7 +157,7 @@ class DoctorsControllerTest {
                 .thenReturn(output);
 
         // Act & Assert
-        mockMvc.perform(put("/api/v2/doctors/{id}", doctorId)
+        mockMvc.perform(put("/api/v3/doctors/{id}", doctorId)
                 .contentType("application/json")
                 .content("""
                         {
@@ -180,7 +180,7 @@ class DoctorsControllerTest {
         org.mockito.Mockito.doNothing().when(doctorsService).delete(doctorId);
 
         // Act & Assert
-        mockMvc.perform(delete("/api/v2/doctors/{id}", doctorId))
+        mockMvc.perform(delete("/api/v3/doctors/{id}", doctorId))
                 .andExpect(status().isNoContent());
     }
 
@@ -192,7 +192,7 @@ class DoctorsControllerTest {
                 .when(doctorsService).delete(doctorId);
 
         // Act & Assert
-        mockMvc.perform(delete("/api/v2/doctors/{id}", doctorId))
+        mockMvc.perform(delete("/api/v3/doctors/{id}", doctorId))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Doctor no encontrado"));
     }

@@ -155,11 +155,17 @@ public class ToDTO {
 
     public MedicalRecordDetailResponseDTO toMedicalRecordDetailResponseDTO(
             MedicalRecord medicalRecord) {
+        return toMedicalRecordDetailResponseDTO(medicalRecord, null);
+    }
+
+    public MedicalRecordDetailResponseDTO toMedicalRecordDetailResponseDTO(
+            MedicalRecord medicalRecord, Long doctorId) {
 
         List<MedicalVisitDetailReponseDTO> visits = medicalRecord.getMedicalVisits() == null
                 ? List.of()
                 : medicalRecord.getMedicalVisits()
                         .stream()
+                        .filter(visit -> doctorId == null || doctorId.equals(visit.getDoctorId()))
                         .map(this::toMedicalVisitDetailReponseDTO)
                         .toList();
 

@@ -25,7 +25,7 @@ import lombok.RequiredArgsConstructor;
 
 
 @RestController
-@RequestMapping("/api/v1/doctor-time-off")
+@RequestMapping("/api/v3/doctor-time-off")
 @RequiredArgsConstructor
 @Tag(name = "DoctorTimeOff", description = "API de gestión de permisos de doctores")
 public class DoctorTimeOffController {
