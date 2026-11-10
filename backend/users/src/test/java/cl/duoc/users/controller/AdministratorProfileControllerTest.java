@@ -75,7 +75,7 @@ class AdministratorProfileControllerTest {
                 any(CreateAdministratorProfileRequestDTO.class)))
                 .thenReturn(administratorProfileResponse);
 
-        mockMvc.perform(post("/api/v1/administrator-profiles")
+        mockMvc.perform(post("/api/v3/administrator-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -106,7 +106,7 @@ class AdministratorProfileControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/administrator-profiles")
+        mockMvc.perform(post("/api/v3/administrator-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -124,7 +124,7 @@ class AdministratorProfileControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/administrator-profiles")
+        mockMvc.perform(post("/api/v3/administrator-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -142,7 +142,7 @@ class AdministratorProfileControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/administrator-profiles")
+        mockMvc.perform(post("/api/v3/administrator-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -157,7 +157,7 @@ class AdministratorProfileControllerTest {
         when(administratorProfileService.getAllAdministratorProfiles())
                 .thenReturn(List.of(administratorProfileResponse));
 
-        mockMvc.perform(get("/api/v1/administrator-profiles"))
+        mockMvc.perform(get("/api/v3/administrator-profiles"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -182,7 +182,7 @@ class AdministratorProfileControllerTest {
         when(administratorProfileService.getAdministratorProfileById(1L))
                 .thenReturn(administratorProfileResponse);
 
-        mockMvc.perform(get("/api/v1/administrator-profiles/1"))
+        mockMvc.perform(get("/api/v3/administrator-profiles/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -203,7 +203,7 @@ class AdministratorProfileControllerTest {
         when(administratorProfileService.getAdministratorProfileByUserId(1L))
                 .thenReturn(administratorProfileResponse);
 
-        mockMvc.perform(get("/api/v1/administrator-profiles/user/1"))
+        mockMvc.perform(get("/api/v3/administrator-profiles/user/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -220,7 +220,7 @@ class AdministratorProfileControllerTest {
         when(administratorProfileService.existsByUserId(1L))
                 .thenReturn(true);
 
-        mockMvc.perform(get("/api/v1/administrator-profiles/user/1/exists"))
+        mockMvc.perform(get("/api/v3/administrator-profiles/user/1/exists"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -252,7 +252,7 @@ class AdministratorProfileControllerTest {
                 any(UpdateAdministratorProfileRequestDTO.class)))
                 .thenReturn(updatedResponse);
 
-        mockMvc.perform(put("/api/v1/administrator-profiles/1")
+        mockMvc.perform(put("/api/v3/administrator-profiles/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -278,7 +278,7 @@ class AdministratorProfileControllerTest {
 
     @Test
     void deleteAdministratorProfile_deberiaRetornar200() throws Exception {
-        mockMvc.perform(delete("/api/v1/administrator-profiles/1"))
+        mockMvc.perform(delete("/api/v3/administrator-profiles/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")

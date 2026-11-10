@@ -23,7 +23,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/doctor-schedules")
+@RequestMapping("/api/v3/doctor-schedules")
 @RequiredArgsConstructor
 @Tag(name = "DoctorSchedules", description = "API de gestión de horarios de doctores")
 public class DoctorScheduleController {

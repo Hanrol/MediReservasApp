@@ -62,14 +62,11 @@ public class MedicalVisitService {
                 );
         }
 
-        if (!appointmentsClient.appointmentIdVerification(requestDTO.appointmentId()))
-        {
-                      logger.warn(
-                    "Creación de visita médica rechazada: ID de la cita no encontrado. appointmentId={}",
-                    requestDTO.appointmentId());
-
-            throw new RuntimeException(
-                    "ID del paciente inexistente");
+        AppointmentsClient.AppointmentData appointment = appointmentsClient.getAppointment(requestDTO.appointmentId());
+        if (!requestDTO.doctorId().equals(appointment.doctorId())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN,
+                    "La visita y la cita deben pertenecer al mismo médico");
         }
 
         if (!doctorsClient.doctorIdVerification(requestDTO.doctorId()))
@@ -84,6 +81,12 @@ public class MedicalVisitService {
 
         MedicalRecord medicalRecord = medicalRecordService.findMedicalRecordEntityById(
                 requestDTO.medicalRecordId());
+
+        if (!medicalRecord.getPatientId().equals(appointment.patientUserId())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.FORBIDDEN,
+                    "La cita y el registro deben pertenecer al mismo paciente");
+        }
 
         if (Boolean.FALSE.equals(medicalRecord.getActive())) {
             throw new RuntimeException(

@@ -6,7 +6,6 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import cl.duoc.medical_records.dto.ApiResponse;
-import cl.duoc.medical_records.dto.IdVerificationRequestDTO;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -15,30 +14,21 @@ public class AppointmentsClient
 {
     private final WebClient.Builder webClientBuilder;
 
-    public Boolean appointmentIdVerification(Long appointmentId) {
+    public AppointmentData getAppointment(Long appointmentId) {
         try {
-            ApiResponse<Boolean> response = webClientBuilder.build()
-                    .patch()
-                    .uri(
-                            "http://appointments-service/api/v1/appointments/{appointmentId}",
-                            appointmentId
-                    )
-                    .bodyValue(new IdVerificationRequestDTO(appointmentId))
+            ApiResponse<AppointmentData> response = webClientBuilder.build().get()
+                    .uri("http://appointments-service/api/v3/appointments/internal/{appointmentId}", appointmentId)
                     .retrieve()
-                    .bodyToMono(new ParameterizedTypeReference<ApiResponse<Boolean>>() {})
+                    .bodyToMono(new ParameterizedTypeReference<ApiResponse<AppointmentData>>() {})
                     .block();
-            return response != null && Boolean.TRUE.equals(response.getData());
-
-        } catch (WebClientResponseException.NotFound ex) {
-            throw new RuntimeException(
-                    "ID de Paciente no encontrado"
-            );
-
-
+            if (response == null || response.getData() == null) {
+                throw new RuntimeException("No se pudo verificar la cita");
+            }
+            return response.getData();
         } catch (WebClientResponseException ex) {
-            throw new RuntimeException(
-                    "Error al verificar la existencia de ID de la cita"
-            );
+            throw new RuntimeException("No se pudo verificar la cita asociada");
         }
     }
+
+    public record AppointmentData(Long appointmentId, Long patientUserId, Long doctorId) {}
 }

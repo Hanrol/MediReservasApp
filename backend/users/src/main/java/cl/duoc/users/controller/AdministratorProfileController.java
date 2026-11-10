@@ -24,7 +24,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/administrator-profiles")
+@RequestMapping("/api/v3/administrator-profiles")
 @RequiredArgsConstructor
 @Tag(name = "Administrator Profiles", description = "Endpoints para la gestión de perfiles de administrador")
 public class AdministratorProfileController {

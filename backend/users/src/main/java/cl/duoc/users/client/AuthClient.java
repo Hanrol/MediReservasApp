@@ -19,7 +19,7 @@ public class AuthClient {
         try {
             ApiResponse<AuthUserResponseDTO> response = webClientBuilder.build()
                     .get()
-                    .uri("http://auth-service/api/v1/auth/users/email/{email}", email)
+                    .uri("http://auth-service/api/v3/auth/users/email/{email}", email)
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<ApiResponse<AuthUserResponseDTO>>() {
                     })
@@ -48,7 +48,7 @@ public class AuthClient {
 
             webClientBuilder.build()
                     .patch()
-                    .uri("http://auth-service/api/v1/auth/users/{authUserId}/roles", authUserId)
+                    .uri("http://auth-service/api/v3/auth/users/{authUserId}/roles", authUserId)
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(Void.class)

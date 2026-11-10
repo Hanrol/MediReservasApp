@@ -43,35 +43,35 @@ Rutas principales:
 
 | Servicio               | Ruta por Gateway                    |
 | ---------------------- | ----------------------------------- |
-| Auth                   | `/api/v1/auth/**`                   |
-| Users                  | `/api/v1/users/**`                  |
-| User Profiles          | `/api/v1/user-profiles/**`          |
-| Patient Profiles       | `/api/v1/patient-profiles/**`       |
-| Receptionist Profiles  | `/api/v1/receptionist-profiles/**`  |
-| Administrator Profiles | `/api/v1/administrator-profiles/**` |
-| Doctors                | `/api/v2/doctors/**`                |
-| Specialties            | `/api/v1/specialties/**`            |
-| Doctor Schedules       | `/api/v1/doctor-schedules/**`       |
-| Doctor Time Off        | `/api/v1/doctor-time-off/**`        |
-| Schedule Slots         | `/api/v1/schedule-slots/**`         |
-| Appointments           | `/api/v1/appointments/**`           |
+| Auth                   | `/api/v3/auth/**`                   |
+| Users                  | `/api/v3/users/**`                  |
+| User Profiles          | `/api/v3/user-profiles/**`          |
+| Patient Profiles       | `/api/v3/patient-profiles/**`       |
+| Receptionist Profiles  | `/api/v3/receptionist-profiles/**`  |
+| Administrator Profiles | `/api/v3/administrator-profiles/**` |
+| Doctors                | `/api/v3/doctors/**`                |
+| Specialties            | `/api/v3/specialties/**`            |
+| Doctor Schedules       | `/api/v3/doctor-schedules/**`       |
+| Doctor Time Off        | `/api/v3/doctor-time-off/**`        |
+| Schedule Slots         | `/api/v3/schedule-slots/**`         |
+| Appointments           | `/api/v3/appointments/**`           |
 | Payments               | `/api/payments/**`                  |
-| Medical Records        | `/api/v1/medical-records/**`        |
-| Medical Visits         | `/api/v1/medical-visit/**`          |
-| Diagnoses              | `/api/v1/diagnoses/**`              |
-| Vital Signs            | `/api/v1/vital-signs/**`            |
-| Prescriptions          | `/api/v1/prescriptions/**`          |
-| Prescription Items     | `/api/v1/prescription-items/**`     |
-| Notifications          | `/api/v1/notifications/**`          |
-| Notification Templates | `/api/v1/notification-templates/**` |
-| Reports Request        | `/api/v1/reports-request/**`        |
-| Generated Reports      | `/api/v1/generated-reports/**`      |
+| Medical Records        | `/api/v3/medical-records/**`        |
+| Medical Visits         | `/api/v3/medical-visit/**`          |
+| Diagnoses              | `/api/v3/diagnoses/**`              |
+| Vital Signs            | `/api/v3/vital-signs/**`            |
+| Prescriptions          | `/api/v3/prescriptions/**`          |
+| Prescription Items     | `/api/v3/prescription-items/**`     |
+| Notifications          | `/api/v3/notifications/**`          |
+| Notification Templates | `/api/v3/notification-templates/**` |
+| Reports Request        | `/api/v3/reports-request/**`        |
+| Generated Reports      | `/api/v3/generated-reports/**`      |
 
 Rutas públicas principales:
 
 ```bash
-POST /api/v1/auth/login
-POST /api/v1/auth/register
+POST /api/v3/auth/login
+POST /api/v3/auth/register
 GET  /actuator/health
 ```
 
@@ -80,6 +80,10 @@ El resto de rutas protegidas requiere token JWT en el header:
 ```bash
 Authorization: Bearer <token>
 ```
+
+El Gateway responde `401` cuando falta o no es válido el token y `403` cuando el rol no está autorizado. La matriz inicial permite a `ADMIN` todas las rutas; `RECEPTIONIST` gestiona usuarios/perfiles y citas; `DOCTOR` usa agenda, citas médicas y registros clínicos; `PATIENT` consulta el catálogo y las rutas de citas/perfil de paciente. Las rutas no incluidas en la matriz se deniegan por defecto.
+
+La autorización del Gateway es por ruta, método y rol. Appointments valida la propiedad del paciente al crear/cancelar citas y consultar su lista, y la propiedad del médico al listar/actualizar el estado de sus citas y gestionar su agenda/horarios. Users valida la propiedad al consultar el perfil de paciente por `userId`. Medical Records verifica las relaciones paciente/médico/cita al crear visitas, aplica comprobaciones por médico a visitas y datos clínicos anidados, y filtra los detalles de registros por médico. Tras una prueba E2E temporal por Gateway con dos JWT de médicos, se habilitaron lecturas clínicas filtradas y escrituras de visitas, diagnósticos y signos vitales protegidas por ownership. La administración de fichas (crear/activar/desactivar/eliminar) sigue restringida a `ADMIN`/`RECEPTIONIST`. El detalle interno de citas para comunicación entre servicios está denegado explícitamente en Gateway para todos los roles. Revisar todas las rutas que acepten IDs de usuario/recurso antes de producción.
 
 ## Documentación Swagger
 
@@ -132,22 +136,40 @@ git clone https://github.com/GabFloresLuna/MediReservas.git
 cd MediReservas
 ```
 
-### 2. Levantar bases de datos con Docker Compose
+### 2. Configuración Docker del backend
 
-Cada microservicio posee su propio `docker-compose.yml`. Para levantar la base de datos de un servicio, entrar a la carpeta correspondiente y ejecutar:
-
-```bash
-docker compose up -d
-```
-
-Ejemplo:
+Desde la raíz del repositorio, copiar `.env.example` a `.env` y cambiar las credenciales antes de usarlo fuera del entorno local:
 
 ```bash
-cd users
-docker compose up -d
+cp .env.example .env
 ```
 
-Repetir el proceso para los microservicios que se deseen ejecutar.
+Levantar solo MySQL (útil para el flujo de desarrollo con Maven):
+
+```bash
+docker compose up -d mysql
+```
+
+El Compose maestro construye e inicia MySQL, Eureka, los cinco servicios activos y Gateway:
+
+```bash
+docker compose up --build -d
+```
+
+Para bajar los contenedores sin borrar los datos de MySQL:
+
+```bash
+docker compose down
+```
+
+El Compose de producción usa imágenes publicadas en Docker Hub, incluyendo `DOCKERHUB_USER` e `IMAGE_TAG` del `.env`:
+
+```bash
+docker compose -f compose.prod.yaml pull
+docker compose -f compose.prod.yaml up -d
+```
+
+Las imágenes de producción deben publicarse previamente con los nombres definidos en `compose.prod.yaml`. No ejecutar `down -v` salvo que se quiera borrar permanentemente el volumen de la base de datos.
 
 ### 3. Levantar Eureka Server
 

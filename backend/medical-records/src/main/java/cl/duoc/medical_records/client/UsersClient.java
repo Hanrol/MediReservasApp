@@ -21,7 +21,7 @@ public class UsersClient
             ApiResponse<Boolean> response = webClientBuilder.build()
                     .patch()
                     .uri(
-                            "http://users-service/api/v1/patient-profile/{patientProfileId}",
+                            "http://users-service/api/v3/patient-profile/{patientProfileId}",
                             patientId
                     )
                     .bodyValue(new IdVerificationRequestDTO(patientId))

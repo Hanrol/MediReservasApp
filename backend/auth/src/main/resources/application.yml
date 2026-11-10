@@ -1,0 +1,58 @@
+spring:
+    application:
+        name: auth-service
+    datasource: 
+        url: ${DB_URL:jdbc:mysql://localhost:3311/auth_db}
+        username: ${DB_USER:auth_app}
+        password: ${DB_PASSWORD:auth_dev_123}
+        driver-class-name: com.mysql.cj.jdbc.Driver
+    jpa:
+        hibernate: 
+            ddl-auto: none
+        database-platform: org.hibernate.dialect.MySQLDialect
+    flyway:
+        enabled: true
+        locations: classpath:db/migration
+
+jwt:
+    secret: ${JWT_SECRET:MiClaveSuperSecretaDeAlMenos32Caracteres123456}
+    expiration-ms: ${JWT_EXPIRATION_MS:3600000}
+
+server:
+    port: 9001
+    
+eureka:
+    client:
+        service-url:
+            defaultZone: "${EUREKA_URL:http://localhost:8761/eureka/}"
+        register-with-eureka: true
+        fetch-registry: true
+    instance:
+        prefer-ip-address: true
+        lease-renewal-interval-in-seconds: 30
+        lease-expiration-duration-in-seconds: 90
+
+logging:
+    level:
+        root: INFO
+        cl.duoc.auth: DEBUG
+    file:
+        name: logs/auth-service.log
+    pattern:
+        console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+        file: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+
+springdoc:
+    api-docs:
+        path: /v3/api-docs
+    swagger-ui:
+        path: /swagger-ui/index.html
+
+management:
+    endpoints:
+        web:
+            exposure:
+                include: health, info
+    endpoint:
+        health:
+            show-details: always

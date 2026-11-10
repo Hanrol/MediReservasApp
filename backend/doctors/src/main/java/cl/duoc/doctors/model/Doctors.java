@@ -28,16 +28,16 @@ public class Doctors {
     @Column(name = "doctor_id")
     private Long doctorId;
 
-    @Column(name = "user_id",nullable = false, unique = true)
+    @Column(name = "user_id", nullable = false, unique = true)
     private Long userId;
 
     @Column(name = "medical_license_number", nullable = false, unique = true)
     private String medicalLicenseNumber;
 
-    @Column(name = "active",nullable = false, unique = false)
+    @Column(name = "active", nullable = false, unique = false)
     private Boolean active;
 
-    @Column(name = "created_at",nullable = false, unique = false)
+    @Column(name = "created_at", nullable = false, unique = false)
     private Date createdAt;
 
     @OneToMany(mappedBy = "doctor", cascade = CascadeType.ALL)

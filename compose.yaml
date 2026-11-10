@@ -1,0 +1,130 @@
+name: medireservas-databases
+
+x-backend: &backend
+  restart: unless-stopped
+  environment: &backend-environment
+    EUREKA_URL: http://eureka:8761/eureka/
+  depends_on:
+    eureka:
+      condition: service_started
+    mysql:
+      condition: service_healthy
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_medireservas_db
+    restart: unless-stopped
+    command:
+      - --innodb-buffer-pool-size=256M
+      - --max-connections=50
+      - --performance-schema=OFF
+    mem_limit: 512m
+    mem_reservation: 256m
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root}
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth_dev_123}
+      USERS_DB_PASSWORD: ${USERS_DB_PASSWORD:-users_dev_123}
+      DOCTORS_DB_PASSWORD: ${DOCTORS_DB_PASSWORD:-doctors_dev_123}
+      APPOINTMENTS_DB_PASSWORD: ${APPOINTMENTS_DB_PASSWORD:-appointments_dev_123}
+      MEDICAL_RECORDS_DB_PASSWORD: ${MEDICAL_RECORDS_DB_PASSWORD:-medical_records_dev_123}
+    ports:
+      - "${MYSQL_PORT:-3311}:3306"
+    volumes:
+      - medireservas_mysql_data:/var/lib/mysql
+      - ./backend/docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  eureka:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        MODULE: eureka
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+
+  auth:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        MODULE: auth
+    environment:
+      <<: *backend-environment
+      DB_URL: jdbc:mysql://mysql:3306/auth_db
+      DB_USER: auth_app
+      DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth_dev_123}
+      JWT_SECRET: ${JWT_SECRET:-MiClaveSuperSecretaDeAlMenos32Caracteres123456}
+
+  users:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        MODULE: users
+    environment:
+      <<: *backend-environment
+      DB_URL: jdbc:mysql://mysql:3306/users_db
+      DB_USER: users_app
+      DB_PASSWORD: ${USERS_DB_PASSWORD:-users_dev_123}
+
+  doctors:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        MODULE: doctors
+    environment:
+      <<: *backend-environment
+      DB_URL: jdbc:mysql://mysql:3306/doctors_db
+      DB_USER: doctors_app
+      DB_PASSWORD: ${DOCTORS_DB_PASSWORD:-doctors_dev_123}
+
+  appointments:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        MODULE: appointments
+    environment:
+      <<: *backend-environment
+      DB_URL: jdbc:mysql://mysql:3306/appointments_db
+      DB_USER: appointments_app
+      DB_PASSWORD: ${APPOINTMENTS_DB_PASSWORD:-appointments_dev_123}
+
+  medical-records:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        MODULE: medical-records
+    environment:
+      <<: *backend-environment
+      DB_URL: jdbc:mysql://mysql:3306/medical_records_db
+      DB_USER: medical_records_app
+      DB_PASSWORD: ${MEDICAL_RECORDS_DB_PASSWORD:-medical_records_dev_123}
+
+  gateway:
+    <<: *backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        MODULE: gateway
+    ports:
+      - "9013:9013"
+
+volumes:
+  medireservas_mysql_data:

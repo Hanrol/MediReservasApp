@@ -7,10 +7,13 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import cl.duoc.medical_records.client.AppointmentsClient;
 import cl.duoc.medical_records.client.DoctorsClient;
 import cl.duoc.medical_records.dto.DiagnosisResponseDTO;
+import cl.duoc.medical_records.dto.CreateMedicalVisitRequestDTO;
 import cl.duoc.medical_records.dto.MedicalVisitDetailReponseDTO;
 import cl.duoc.medical_records.dto.VitalSignResponseDTO;
 import cl.duoc.medical_records.extras.ToDTO;
@@ -22,8 +25,61 @@ import cl.duoc.medical_records.repository.DiagnosesRepository;
 import cl.duoc.medical_records.repository.MedicalRecordRepository;
 import cl.duoc.medical_records.repository.MedicalVisitRepository;
 import cl.duoc.medical_records.repository.VitalSignsRepository;
+import org.springframework.web.server.ResponseStatusException;
 
 public class MedicalVisitServiceTest {
+    @Test
+    void rejectsVisitWhenAppointmentBelongsToAnotherDoctor() {
+        MedicalRecordRepository records = Mockito.mock(MedicalRecordRepository.class);
+        DoctorsClient doctors = Mockito.mock(DoctorsClient.class);
+        AppointmentsClient appointments = Mockito.mock(AppointmentsClient.class);
+        MedicalVisitRepository visits = Mockito.mock(MedicalVisitRepository.class);
+        MedicalRecordService recordService = Mockito.mock(MedicalRecordService.class);
+        MedicalVisitService service = new MedicalVisitService(records, doctors, appointments, visits,
+                Mockito.mock(DiagnosesRepository.class), Mockito.mock(VitalSignsRepository.class),
+                recordService, Mockito.mock(ToDTO.class));
+
+        Mockito.when(visits.existsByAppointmentId(55L)).thenReturn(false);
+        Mockito.when(records.existsById(80L)).thenReturn(true);
+        Mockito.when(appointments.getAppointment(55L))
+                .thenReturn(new AppointmentsClient.AppointmentData(55L, 101L, 22L));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.create(new CreateMedicalVisitRequestDTO(80L, 55L, 33L,
+                        LocalDateTime.now(), "consulta", null, "tratamiento")));
+
+        assertEquals(403, exception.getStatusCode().value());
+        Mockito.verify(visits, Mockito.never()).save(Mockito.any());
+    }
+
+    @Test
+    void rejectsVisitWhenAppointmentPatientDiffersFromMedicalRecord() {
+        MedicalRecordRepository records = Mockito.mock(MedicalRecordRepository.class);
+        DoctorsClient doctors = Mockito.mock(DoctorsClient.class);
+        AppointmentsClient appointments = Mockito.mock(AppointmentsClient.class);
+        MedicalVisitRepository visits = Mockito.mock(MedicalVisitRepository.class);
+        MedicalRecordService recordService = Mockito.mock(MedicalRecordService.class);
+        MedicalVisitService service = new MedicalVisitService(records, doctors, appointments, visits,
+                Mockito.mock(DiagnosesRepository.class), Mockito.mock(VitalSignsRepository.class),
+                recordService, Mockito.mock(ToDTO.class));
+
+        Mockito.when(visits.existsByAppointmentId(55L)).thenReturn(false);
+        Mockito.when(records.existsById(80L)).thenReturn(true);
+        Mockito.when(appointments.getAppointment(55L))
+                .thenReturn(new AppointmentsClient.AppointmentData(55L, 101L, 33L));
+        Mockito.when(doctors.doctorIdVerification(33L)).thenReturn(true);
+        MedicalRecord record = new MedicalRecord();
+        record.setPatientId(202L);
+        Mockito.when(recordService.findMedicalRecordEntityById(80L)).thenReturn(record);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> service.create(new CreateMedicalVisitRequestDTO(80L, 55L, 33L,
+                        LocalDateTime.now(), "consulta", null, "tratamiento")));
+
+        assertEquals(403, exception.getStatusCode().value());
+        Mockito.verify(visits, Mockito.never()).save(Mockito.any());
+    }
+
     @Test
     void testFindAllByPatientId()
     {

@@ -24,7 +24,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/user-profiles")
+@RequestMapping("/api/v3/user-profiles")
 @RequiredArgsConstructor
 @Tag(name = "User Profiles", description = "Endpoints para la gestión del perfil general de los usuarios")
 public class UserProfileController {

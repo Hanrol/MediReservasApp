@@ -75,7 +75,7 @@ class ReceptionistProfileControllerTest {
                 any(CreateReceptionistProfileRequestDTO.class)))
                 .thenReturn(receptionistProfileResponse);
 
-        mockMvc.perform(post("/api/v1/receptionist-profiles")
+        mockMvc.perform(post("/api/v3/receptionist-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -106,7 +106,7 @@ class ReceptionistProfileControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/receptionist-profiles")
+        mockMvc.perform(post("/api/v3/receptionist-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -124,7 +124,7 @@ class ReceptionistProfileControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/receptionist-profiles")
+        mockMvc.perform(post("/api/v3/receptionist-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -142,7 +142,7 @@ class ReceptionistProfileControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/receptionist-profiles")
+        mockMvc.perform(post("/api/v3/receptionist-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -157,7 +157,7 @@ class ReceptionistProfileControllerTest {
         when(receptionistProfileService.getAllReceptionistProfiles())
                 .thenReturn(List.of(receptionistProfileResponse));
 
-        mockMvc.perform(get("/api/v1/receptionist-profiles"))
+        mockMvc.perform(get("/api/v3/receptionist-profiles"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -182,7 +182,7 @@ class ReceptionistProfileControllerTest {
         when(receptionistProfileService.getReceptionistProfileById(1L))
                 .thenReturn(receptionistProfileResponse);
 
-        mockMvc.perform(get("/api/v1/receptionist-profiles/1"))
+        mockMvc.perform(get("/api/v3/receptionist-profiles/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -203,7 +203,7 @@ class ReceptionistProfileControllerTest {
         when(receptionistProfileService.getReceptionistProfileByUserId(1L))
                 .thenReturn(receptionistProfileResponse);
 
-        mockMvc.perform(get("/api/v1/receptionist-profiles/user/1"))
+        mockMvc.perform(get("/api/v3/receptionist-profiles/user/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -220,7 +220,7 @@ class ReceptionistProfileControllerTest {
         when(receptionistProfileService.existsByUserId(1L))
                 .thenReturn(true);
 
-        mockMvc.perform(get("/api/v1/receptionist-profiles/user/1/exists"))
+        mockMvc.perform(get("/api/v3/receptionist-profiles/user/1/exists"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -252,7 +252,7 @@ class ReceptionistProfileControllerTest {
                 any(UpdateReceptionistProfileRequestDTO.class)))
                 .thenReturn(updatedResponse);
 
-        mockMvc.perform(put("/api/v1/receptionist-profiles/1")
+        mockMvc.perform(put("/api/v3/receptionist-profiles/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -278,7 +278,7 @@ class ReceptionistProfileControllerTest {
 
     @Test
     void deleteReceptionistProfile_deberiaRetornar200() throws Exception {
-        mockMvc.perform(delete("/api/v1/receptionist-profiles/1"))
+        mockMvc.perform(delete("/api/v3/receptionist-profiles/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")

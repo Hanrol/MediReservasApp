@@ -1,0 +1,52 @@
+spring:
+    application:
+        name: doctors-service
+    datasource:
+        url: ${DB_URL:jdbc:mysql://localhost:3311/doctors_db}
+        username: ${DB_USER:doctors_app}
+        password: ${DB_PASSWORD:doctors_dev_123}
+        driver-class-name: com.mysql.cj.jdbc.Driver
+    jpa:
+        hibernate:
+            ddl-auto: none
+        database-platform: org.hibernate.dialect.MySQLDialect
+    flyway:
+        enabled: true
+        locations: classpath:db/migration
+server:
+    port: 9003
+
+eureka:
+    client:
+        service-url:
+            defaultZone: "${EUREKA_URL:http://localhost:8761/eureka/}"
+        register-with-eureka: true
+        fetch-registry: true
+    instance:
+        prefer-ip-address: true
+        lease-renewal-interval-in-seconds: 30
+        lease-expiration-duration-in-seconds: 90
+
+logging:
+    level:
+        root: INFO
+        cl.duoc.doctors: DEBUG
+    file:
+        name: logs/doctors-service.log
+    pattern:
+        console: "%d{yyyy-mm-dd HH:mm:ss} - %msg%n"
+        file: "%d{yyyy-mm-dd HH:mm:ss} - %msg%n"
+
+springdoc:
+    api-docs:
+        path: /v3/api-docs
+    swagger-ui:
+        path: /swagger-ui/index.html
+management:
+    endpoints:
+        web:
+            exposure:
+                include: health, info
+    endpoint:
+        health:
+            show-details: always

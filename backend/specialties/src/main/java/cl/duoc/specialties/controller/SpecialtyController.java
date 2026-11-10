@@ -23,7 +23,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/specialties")
+@RequestMapping("/api/v3/specialties")
 @RequiredArgsConstructor
 @Tag(name = "Specialties", description = "Endpoints para la gestión de especialidades médicas")
 public class SpecialtyController {

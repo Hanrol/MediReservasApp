@@ -1,4 +1,5 @@
 package cl.duoc.doctors.model;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -25,12 +26,13 @@ public class DoctorSpecialties {
     private Long doctorSpecialtyId;
 
     @ManyToOne(optional = false)
-    @JoinColumn(name = "doctor_id",nullable = false)
+    @JoinColumn(name = "doctor_id", nullable = false)
     private Doctors doctor;
 
-    @Column(name = "specialty_id",nullable = false)
-    private Long specialtyId;
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "specialty_id", nullable = false)
+    private Specialty specialty;
 
-    @Column(name = "is_primary",nullable = false)
+    @Column(name = "is_primary", nullable = false)
     private boolean isPrimary;
 }

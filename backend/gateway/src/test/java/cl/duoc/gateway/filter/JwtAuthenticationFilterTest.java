@@ -1,0 +1,78 @@
+package cl.duoc.gateway.filter;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.cloud.gateway.filter.GatewayFilterChain;
+import org.springframework.http.HttpStatus;
+import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
+import org.springframework.mock.web.server.MockServerWebExchange;
+import org.springframework.web.reactive.function.client.ClientResponse;
+import org.springframework.web.reactive.function.client.ExchangeFunction;
+import org.springframework.web.reactive.function.client.WebClient;
+
+import cl.duoc.gateway.security.RoleAuthorizationPolicy;
+import reactor.core.publisher.Mono;
+
+class JwtAuthenticationFilterTest {
+
+    private static final String AUTHORIZATION_RESPONSE = """
+            {"code":200,"message":"ok","data":{"email":"doctor@example.test","roles":["DOCTOR"]}}
+            """;
+
+    @Test
+    void invalidTokenResponseMapsToUnauthorized() {
+        var exchange = authenticatedExchange();
+
+        filterReturning(HttpStatus.BAD_REQUEST).filter(exchange, ignored -> Mono.empty()).block();
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+    }
+
+    @Test
+    void disabledUserResponseMapsToForbidden() {
+        var exchange = authenticatedExchange();
+
+        filterReturning(HttpStatus.FORBIDDEN).filter(exchange, ignored -> Mono.empty()).block();
+
+        assertEquals(HttpStatus.FORBIDDEN, exchange.getResponse().getStatusCode());
+    }
+
+    @Test
+    void authServerErrorMapsToServiceUnavailable() {
+        var exchange = authenticatedExchange();
+
+        filterReturning(HttpStatus.INTERNAL_SERVER_ERROR).filter(exchange, ignored -> Mono.empty()).block();
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, exchange.getResponse().getStatusCode());
+    }
+
+    @Test
+    void downstreamFailureIsPropagatedAfterSuccessfulAuthentication() {
+        var exchange = authenticatedExchange();
+        IllegalStateException downstreamFailure = new IllegalStateException("downstream failed");
+        GatewayFilterChain chain = ignored -> Mono.error(downstreamFailure);
+
+        IllegalStateException actual = assertThrows(IllegalStateException.class,
+                () -> filterReturning(HttpStatus.OK).filter(exchange, chain).block());
+
+        assertEquals(downstreamFailure, actual);
+    }
+
+    private JwtAuthenticationFilter filterReturning(HttpStatus authStatus) {
+        String responseBody = authStatus == HttpStatus.OK ? AUTHORIZATION_RESPONSE : "auth error";
+        ExchangeFunction exchangeFunction = request -> Mono.just(ClientResponse.create(authStatus)
+                .header("Content-Type", "application/json")
+                .body(responseBody)
+                .build());
+        WebClient.Builder webClientBuilder = WebClient.builder().exchangeFunction(exchangeFunction);
+        return new JwtAuthenticationFilter(webClientBuilder, new RoleAuthorizationPolicy());
+    }
+
+    private MockServerWebExchange authenticatedExchange() {
+        return MockServerWebExchange.from(MockServerHttpRequest.get("/api/v3/doctors")
+                .header("Authorization", "Bearer test-token")
+                .build());
+    }
+}

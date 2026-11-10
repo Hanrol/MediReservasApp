@@ -28,6 +28,7 @@ import cl.duoc.auth.dto.AuthUserResponseDTO;
 import cl.duoc.auth.dto.LoginRequestDTO;
 import cl.duoc.auth.dto.RegisterRequestDTO;
 import cl.duoc.auth.dto.RoleResponseDTO;
+import cl.duoc.auth.dto.TokenAuthorizationDTO;
 import cl.duoc.auth.service.AuthService;
 
 @ExtendWith(MockitoExtension.class)
@@ -72,7 +73,7 @@ class AuthControllerTest {
         when(authService.register(any(RegisterRequestDTO.class)))
                 .thenReturn(response);
 
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v3/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -91,6 +92,17 @@ class AuthControllerTest {
     }
 
     @Test
+    void getTokenAuthorization_deberiaRetornarEmailYRolesVigentes() throws Exception {
+        when(authService.getTokenAuthorization("jwt-token"))
+                .thenReturn(new TokenAuthorizationDTO("paciente@test.cl", List.of("PATIENT")));
+
+        mockMvc.perform(get("/api/v3/auth/authorization").param("token", "jwt-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.email").value("paciente@test.cl"))
+                .andExpect(jsonPath("$.data.roles[0]").value("PATIENT"));
+    }
+
+    @Test
     void register_deberiaRetornar400CuandoEmailNoEsValido()
             throws Exception {
 
@@ -101,7 +113,7 @@ class AuthControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v3/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -118,7 +130,7 @@ class AuthControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/auth/register")
+        mockMvc.perform(post("/api/v3/auth/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -143,7 +155,7 @@ class AuthControllerTest {
         when(authService.login(any(LoginRequestDTO.class)))
                 .thenReturn(response);
 
-        mockMvc.perform(post("/api/v1/auth/login")
+        mockMvc.perform(post("/api/v3/auth/login")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -178,7 +190,7 @@ class AuthControllerTest {
         when(authService.getUserById(1L))
                 .thenReturn(response);
 
-        mockMvc.perform(get("/api/v1/auth/users/1"))
+        mockMvc.perform(get("/api/v3/auth/users/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data.authUserId").value(1))
@@ -203,7 +215,7 @@ class AuthControllerTest {
         when(authService.getAllUsers())
                 .thenReturn(List.of(user));
 
-        mockMvc.perform(get("/api/v1/auth/users"))
+        mockMvc.perform(get("/api/v3/auth/users"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data").isArray())
@@ -219,7 +231,7 @@ class AuthControllerTest {
         when(authService.existsById(1L))
                 .thenReturn(true);
 
-        mockMvc.perform(get("/api/v1/auth/users/1/exists"))
+        mockMvc.perform(get("/api/v3/auth/users/1/exists"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data").value(true));
@@ -242,7 +254,7 @@ class AuthControllerTest {
                 .thenReturn(response);
 
         mockMvc.perform(
-                patch("/api/v1/auth/users/1/disable"))
+                patch("/api/v3/auth/users/1/disable"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -267,7 +279,7 @@ class AuthControllerTest {
         when(authService.getAllRoles())
                 .thenReturn(List.of(role));
 
-        mockMvc.perform(get("/api/v1/auth/roles"))
+        mockMvc.perform(get("/api/v3/auth/roles"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.data").isArray())
@@ -289,7 +301,7 @@ class AuthControllerTest {
         when(authService.validateToken("token-valido"))
                 .thenReturn(true);
 
-        mockMvc.perform(get("/api/v1/auth/validate")
+        mockMvc.perform(get("/api/v3/auth/validate")
                 .param("token", "token-valido"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
@@ -308,7 +320,7 @@ class AuthControllerTest {
         when(authService.extractEmailFromToken("token-valido"))
                 .thenReturn("paciente@test.cl");
 
-        mockMvc.perform(get("/api/v1/auth/token/email")
+        mockMvc.perform(get("/api/v3/auth/token/email")
                 .param("token", "token-valido"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))

@@ -11,6 +11,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.ResponseStatusException;
 
 import cl.duoc.auth.dto.ApiResponse;
 
@@ -60,6 +61,13 @@ public class GlobalExceptionHandler {
                         409,
                         "Conflicto con los datos enviados. Puede que el registro ya exista",
                         null));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ApiResponse<Object>> handleResponseStatusException(ResponseStatusException ex) {
+        int code = ex.getStatusCode().value();
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(new ApiResponse<>(code, ex.getReason(), null));
     }
 
     @ExceptionHandler(RuntimeException.class)

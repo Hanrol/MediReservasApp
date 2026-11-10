@@ -73,7 +73,7 @@ class SpecialtyControllerTest {
         when(specialtyService.createSpecialty(any(CreateSpecialtyRequestDTO.class)))
                 .thenReturn(specialtyResponse);
 
-        mockMvc.perform(post("/api/v1/specialties")
+        mockMvc.perform(post("/api/v3/specialties")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -102,7 +102,7 @@ class SpecialtyControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/specialties")
+        mockMvc.perform(post("/api/v3/specialties")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -117,7 +117,7 @@ class SpecialtyControllerTest {
         when(specialtyService.getAllSpecialties())
                 .thenReturn(List.of(specialtyResponse));
 
-        mockMvc.perform(get("/api/v1/specialties"))
+        mockMvc.perform(get("/api/v3/specialties"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -137,7 +137,7 @@ class SpecialtyControllerTest {
         when(specialtyService.getSpecialtyById(1L))
                 .thenReturn(specialtyResponse);
 
-        mockMvc.perform(get("/api/v1/specialties/1"))
+        mockMvc.perform(get("/api/v3/specialties/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -156,7 +156,7 @@ class SpecialtyControllerTest {
         when(specialtyService.getSpecialtyByName("Cardiología"))
                 .thenReturn(specialtyResponse);
 
-        mockMvc.perform(get("/api/v1/specialties/name/Cardiología"))
+        mockMvc.perform(get("/api/v3/specialties/name/Cardiología"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -177,7 +177,7 @@ class SpecialtyControllerTest {
         when(specialtyService.existsById(1L))
                 .thenReturn(true);
 
-        mockMvc.perform(get("/api/v1/specialties/1/exists"))
+        mockMvc.perform(get("/api/v3/specialties/1/exists"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -193,7 +193,7 @@ class SpecialtyControllerTest {
         when(specialtyService.existsActiveById(1L))
                 .thenReturn(true);
 
-        mockMvc.perform(get("/api/v1/specialties/1/active"))
+        mockMvc.perform(get("/api/v3/specialties/1/active"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -226,7 +226,7 @@ class SpecialtyControllerTest {
                 any(CreateSpecialtyRequestDTO.class)))
                 .thenReturn(updatedResponse);
 
-        mockMvc.perform(put("/api/v1/specialties/1")
+        mockMvc.perform(put("/api/v3/specialties/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -256,7 +256,7 @@ class SpecialtyControllerTest {
                 }
                 """;
 
-        mockMvc.perform(put("/api/v1/specialties/1")
+        mockMvc.perform(put("/api/v3/specialties/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -278,7 +278,7 @@ class SpecialtyControllerTest {
         when(specialtyService.deactivateSpecialty(1L))
                 .thenReturn(inactiveResponse);
 
-        mockMvc.perform(patch("/api/v1/specialties/1/deactivate"))
+        mockMvc.perform(patch("/api/v3/specialties/1/deactivate"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -295,7 +295,7 @@ class SpecialtyControllerTest {
         when(specialtyService.activateSpecialty(1L))
                 .thenReturn(specialtyResponse);
 
-        mockMvc.perform(patch("/api/v1/specialties/1/activate"))
+        mockMvc.perform(patch("/api/v3/specialties/1/activate"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")

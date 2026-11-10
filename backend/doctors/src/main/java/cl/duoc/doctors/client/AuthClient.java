@@ -18,7 +18,7 @@ public class AuthClient {
             webClientBuilder.build()
                     .patch()
                     .uri(
-                            "http://auth-service/api/v1/auth/users/{authUserId}/roles",
+                            "http://auth-service/api/v3/auth/users/{authUserId}/roles",
                             authUserId
                     )
                     .bodyValue(new AssignRoleRequestDTO("DOCTOR"))

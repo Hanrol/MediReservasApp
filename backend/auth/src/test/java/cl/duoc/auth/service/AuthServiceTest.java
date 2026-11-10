@@ -20,11 +20,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import cl.duoc.auth.dto.AuthResponseDTO;
 import cl.duoc.auth.dto.AuthUserResponseDTO;
 import cl.duoc.auth.dto.LoginRequestDTO;
 import cl.duoc.auth.dto.RegisterRequestDTO;
+import cl.duoc.auth.dto.TokenAuthorizationDTO;
 import cl.duoc.auth.model.AuthUser;
 import cl.duoc.auth.model.Role;
 import cl.duoc.auth.repository.AuthUserRepository;
@@ -115,6 +118,40 @@ class AuthServiceTest {
 
         verify(passwordEncoder).encode("123456");
         verify(jwtUtil).generateToken("paciente@test.cl");
+    }
+
+    @Test
+    void getTokenAuthorization_deberiaValidarTokenYRetornarRolesVigentes() {
+        authUser.getRoles().add(patientRole);
+        when(jwtUtil.validateToken("token-valido")).thenReturn(true);
+        when(jwtUtil.extractEmail("token-valido")).thenReturn(authUser.getEmail());
+        when(authUserRepository.findByEmail(authUser.getEmail())).thenReturn(Optional.of(authUser));
+
+        TokenAuthorizationDTO authorization = authService.getTokenAuthorization("token-valido");
+
+        assertEquals(authUser.getEmail(), authorization.email());
+        assertEquals(java.util.List.of("PATIENT"), authorization.roles());
+    }
+
+    @Test
+    void getTokenAuthorization_deberiaRechazarTokenInvalido() {
+        when(jwtUtil.validateToken("token-invalido")).thenReturn(false);
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.getTokenAuthorization("token-invalido"));
+        assertEquals(HttpStatus.UNAUTHORIZED, exception.getStatusCode());
+    }
+
+    @Test
+    void getTokenAuthorization_deberiaRechazarUsuarioDeshabilitadoConForbidden() {
+        authUser.setEnabled(false);
+        when(jwtUtil.validateToken("token-deshabilitado")).thenReturn(true);
+        when(jwtUtil.extractEmail("token-deshabilitado")).thenReturn(authUser.getEmail());
+        when(authUserRepository.findByEmail(authUser.getEmail())).thenReturn(Optional.of(authUser));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> authService.getTokenAuthorization("token-deshabilitado"));
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
     }
 
     @Test

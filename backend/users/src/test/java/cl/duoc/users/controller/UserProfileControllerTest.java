@@ -81,7 +81,7 @@ class UserProfileControllerTest {
         when(userProfileService.createUserProfile(any(CreateUserProfileRequestDTO.class)))
                 .thenReturn(userProfileResponse);
 
-        mockMvc.perform(post("/api/v1/user-profiles")
+        mockMvc.perform(post("/api/v3/user-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -118,7 +118,7 @@ class UserProfileControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/user-profiles")
+        mockMvc.perform(post("/api/v3/user-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -139,7 +139,7 @@ class UserProfileControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/user-profiles")
+        mockMvc.perform(post("/api/v3/user-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -160,7 +160,7 @@ class UserProfileControllerTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/v1/user-profiles")
+        mockMvc.perform(post("/api/v3/user-profiles")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -175,7 +175,7 @@ class UserProfileControllerTest {
         when(userProfileService.getProfileByUserId(1L))
                 .thenReturn(userProfileResponse);
 
-        mockMvc.perform(get("/api/v1/user-profiles/user/1"))
+        mockMvc.perform(get("/api/v3/user-profiles/user/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -194,7 +194,7 @@ class UserProfileControllerTest {
         when(userProfileService.getAllProfiles())
                 .thenReturn(List.of(userProfileResponse));
 
-        mockMvc.perform(get("/api/v1/user-profiles"))
+        mockMvc.perform(get("/api/v3/user-profiles"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -214,7 +214,7 @@ class UserProfileControllerTest {
         when(userProfileService.getProfileById(1L))
                 .thenReturn(userProfileResponse);
 
-        mockMvc.perform(get("/api/v1/user-profiles/1"))
+        mockMvc.perform(get("/api/v3/user-profiles/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -232,7 +232,7 @@ class UserProfileControllerTest {
         when(userProfileService.existsByUserId(1L))
                 .thenReturn(true);
 
-        mockMvc.perform(get("/api/v1/user-profiles/user/1/exists"))
+        mockMvc.perform(get("/api/v3/user-profiles/user/1/exists"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")
@@ -270,7 +270,7 @@ class UserProfileControllerTest {
                 any(UpdateUserProfileRequestDTO.class)))
                 .thenReturn(updatedResponse);
 
-        mockMvc.perform(put("/api/v1/user-profiles/1")
+        mockMvc.perform(put("/api/v3/user-profiles/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -307,7 +307,7 @@ class UserProfileControllerTest {
                 }
                 """;
 
-        mockMvc.perform(put("/api/v1/user-profiles/1")
+        mockMvc.perform(put("/api/v3/user-profiles/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -327,7 +327,7 @@ class UserProfileControllerTest {
                 }
                 """;
 
-        mockMvc.perform(put("/api/v1/user-profiles/1")
+        mockMvc.perform(put("/api/v3/user-profiles/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
                 .andExpect(status().isBadRequest());
@@ -339,7 +339,7 @@ class UserProfileControllerTest {
 
     @Test
     void deleteUserProfile_deberiaRetornar200() throws Exception {
-        mockMvc.perform(delete("/api/v1/user-profiles/1"))
+        mockMvc.perform(delete("/api/v3/user-profiles/1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.code").value(200))
                 .andExpect(jsonPath("$.message")

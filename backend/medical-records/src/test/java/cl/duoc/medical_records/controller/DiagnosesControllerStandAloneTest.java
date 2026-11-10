@@ -38,7 +38,7 @@ public class DiagnosesControllerStandAloneTest {
            .thenThrow(new RuntimeException("Diagnóstico no encontrado"));
         
         mockMvc
-            .perform(get("/api/v1/diagnoses/{id}", nonExistentId))
+            .perform(get("/api/v3/diagnoses/{id}", nonExistentId))
             .andExpect(status().isNotFound());
             
     }
@@ -52,7 +52,7 @@ public class DiagnosesControllerStandAloneTest {
         Mockito.when(diagnosesService.findById(existingId)).thenReturn(dto);
         Mockito.when(diagnosesService.findDiagnosisEntityById(existingId)).thenReturn(diagnoses);
 
-        mockMvc.perform(get("/api/v1/diagnoses/{id}", existingId))
+        mockMvc.perform(get("/api/v3/diagnoses/{id}", existingId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.medicalVisitId").value(1L));
     }

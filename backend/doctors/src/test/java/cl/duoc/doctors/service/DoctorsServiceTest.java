@@ -16,7 +16,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import cl.duoc.doctors.client.AuthClient;
-import cl.duoc.doctors.client.SpecialtiesClient;
 import cl.duoc.doctors.client.UsersClient;
 import cl.duoc.doctors.dto.DoctorsDTO;
 import cl.duoc.doctors.model.Doctors;
@@ -31,9 +30,6 @@ public class DoctorsServiceTest {
 
     @Mock
     private AuthClient authClient;
-
-    @Mock
-    private SpecialtiesClient specialtiesClient;
 
     @Mock
     private DoctorsRepository doctorsRepository;
@@ -103,9 +99,9 @@ public class DoctorsServiceTest {
         when(doctorsRepository.findById(doctorId)).thenReturn(Optional.empty());
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, 
-            () -> doctorsService.findById(doctorId));
-        
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> doctorsService.findById(doctorId));
+
         assertEquals("Doctor no encontrado", exception.getMessage());
         verify(doctorsRepository, times(1)).findById(doctorId);
     }
@@ -133,9 +129,9 @@ public class DoctorsServiceTest {
         when(doctorsRepository.findById(doctorId)).thenReturn(Optional.empty());
 
         // Act & Assert
-        RuntimeException exception = assertThrows(RuntimeException.class, 
-            () -> doctorsService.delete(doctorId));
-        
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> doctorsService.delete(doctorId));
+
         assertEquals("Doctor no encontrado", exception.getMessage());
         verify(doctorsRepository, times(1)).findById(doctorId);
         verify(doctorsRepository, never()).save(any(Doctors.class));

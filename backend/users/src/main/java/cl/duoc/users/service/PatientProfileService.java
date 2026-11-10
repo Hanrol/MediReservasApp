@@ -5,6 +5,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import cl.duoc.users.client.AuthClient;
 import cl.duoc.users.dto.CreatePatientProfileRequestDTO;
@@ -85,6 +87,11 @@ public class PatientProfileService {
         return toResponseDTO(profile);
     }
 
+    public PatientProfileResponseDTO getPatientProfileByUserId(Long userId, String authenticatedEmail) {
+        assertPatientOwnsUserId(userId, authenticatedEmail);
+        return getPatientProfileByUserId(userId);
+    }
+
     public List<PatientProfileResponseDTO> getAllPatientProfiles() {
         return patientProfileRepository.findAll()
                 .stream()
@@ -104,6 +111,17 @@ public class PatientProfileService {
 
     public boolean existsByUserId(Long userId) {
         return patientProfileRepository.existsByUserUserId(userId);
+    }
+
+    public boolean existsByUserId(Long userId, String authenticatedEmail) {
+        assertPatientOwnsUserId(userId, authenticatedEmail);
+        return existsByUserId(userId);
+    }
+
+    private void assertPatientOwnsUserId(Long requestedUserId, String authenticatedEmail) {
+        if (authenticatedEmail == null || !userService.getUserByEmail(authenticatedEmail).userId().equals(requestedUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes acceder al perfil de otro paciente");
+        }
     }
 
     public PatientProfileResponseDTO updatePatientProfile(

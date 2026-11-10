@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import cl.duoc.users.dto.ApiResponse;
 import cl.duoc.users.dto.CreatePatientProfileRequestDTO;
@@ -24,7 +25,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/v1/patient-profiles")
+@RequestMapping("/api/v3/patient-profiles")
 @RequiredArgsConstructor
 @Tag(name = "Patient Profiles", description = "Endpoints para la gestión de perfiles de paciente")
 public class PatientProfileController {
@@ -72,8 +73,9 @@ public class PatientProfileController {
 	@GetMapping("/user/{userId}")
 	@Operation(summary = "Buscar perfil de paciente por usuario", description = "Obtiene el perfil de paciente asociado a un usuario mediante su userId.")
 	public ResponseEntity<ApiResponse<PatientProfileResponseDTO>> getPatientProfileByUserId(
-			@PathVariable Long userId) {
-		PatientProfileResponseDTO response = patientProfileService.getPatientProfileByUserId(userId);
+			@PathVariable Long userId,
+			@RequestHeader("X-Authenticated-Email") String email) {
+		PatientProfileResponseDTO response = patientProfileService.getPatientProfileByUserId(userId, email);
 
 		return ResponseEntity.ok(
 				new ApiResponse<>(
@@ -85,8 +87,9 @@ public class PatientProfileController {
 	@GetMapping("/user/{userId}/exists")
 	@Operation(summary = "Validar existencia de perfil de paciente", description = "Verifica si un usuario ya posee perfil de paciente.")
 	public ResponseEntity<ApiResponse<Boolean>> existsByUserId(
-			@PathVariable Long userId) {
-		boolean response = patientProfileService.existsByUserId(userId);
+			@PathVariable Long userId,
+			@RequestHeader("X-Authenticated-Email") String email) {
+		boolean response = patientProfileService.existsByUserId(userId, email);
 
 		return ResponseEntity.ok(
 				new ApiResponse<>(
