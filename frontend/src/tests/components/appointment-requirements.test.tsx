@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -16,6 +16,8 @@ import ObservacionClinica from '../../pages/medico/ObservacionClinica'
 import Registro from '../../pages/public/Registro'
 import SolicitarCita from '../../pages/paciente/SolicitarCita'
 import { clinicalService } from '../../services/clinical.service'
+import { ApiError } from '../../services/api-client'
+import { registerPatient } from '../../services/registration.service'
 import { appointmentsStorage } from '../../storage/appointments.storage'
 import { clinicalStorage } from '../../storage/clinical.storage'
 import { schedulesStorage } from '../../storage/schedules.storage'
@@ -23,6 +25,10 @@ import { saveDoctors } from '../../storage/doctors.storage'
 import { saveSpecialties } from '../../storage/specialties.storage'
 import { saveUsers } from '../../storage/users.storage'
 import type { User } from '../../types/user'
+
+vi.mock('../../services/registration.service', () => ({ registerPatient: vi.fn() }))
+
+const mockedRegisterPatient = vi.mocked(registerPatient)
 
 function renderAs(user: User, page: React.ReactNode, initialPath = '/') {
   const authValue = {
@@ -58,6 +64,7 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     clinicalStorage.reset()
     schedulesStorage.reset()
     saveUsers(mockUsers)
+    mockedRegisterPatient.mockReset()
     saveDoctors(mockDoctors)
     saveSpecialties(mockSpecialties)
   })
@@ -434,7 +441,8 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     expect(clinicalStorage.getAll()).toHaveLength(1)
   })
 
-  it('CP-120 · RF-02/RNF-07 · registro detecta correo ya asociado a otra cuenta', () => {
+  it('CP-120 · RF-02/RNF-07 · registro informa correo o RUN ya asociados', async () => {
+    mockedRegisterPatient.mockRejectedValueOnce(new ApiError('duplicate', 409))
     const patient = mockUsers.find((item) => item.role === 'PATIENT')!
     renderAs(patient, <Registro />, '/registro')
 
@@ -448,9 +456,13 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Paciente123' } })
     fireEvent.change(screen.getByLabelText('Confirmar contraseña'), { target: { value: 'Paciente123' } })
     fireEvent.click(screen.getByRole('checkbox'))
-    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
 
-    expect(screen.getByText('Ya existe una cuenta asociada a este RUN o correo.')).toBeInTheDocument()
+    expect(await screen.findByText('Ya existe una cuenta asociada a este RUN o correo.')).toBeInTheDocument()
   })
 
   it('CP-121 · RF-15/RF-16 · informa si el horario se ocupa durante el envío', () => {

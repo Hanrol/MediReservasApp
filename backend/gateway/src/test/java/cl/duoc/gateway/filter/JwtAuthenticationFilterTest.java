@@ -2,6 +2,7 @@ package cl.duoc.gateway.filter;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -58,6 +59,22 @@ class JwtAuthenticationFilterTest {
                 () -> filterReturning(HttpStatus.OK).filter(exchange, chain).block());
 
         assertEquals(downstreamFailure, actual);
+    }
+
+    @Test
+    void patientRegistrationIsPublicAndContinuesWithoutJwtValidation() {
+        var exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/v3/patient-registrations").build());
+        var filter = filterReturning(HttpStatus.INTERNAL_SERVER_ERROR);
+        boolean[] continued = { false };
+
+        filter.filter(exchange, ignored -> {
+            continued[0] = true;
+            return Mono.empty();
+        }).block();
+
+        assertEquals(true, continued[0]);
+        assertNull(exchange.getResponse().getStatusCode());
     }
 
     private JwtAuthenticationFilter filterReturning(HttpStatus authStatus) {

@@ -40,6 +40,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     private static final List<String> PUBLIC_PATHS = List.of(
             "/api/v3/auth/login",
             "/api/v3/auth/register",
+            "/api/v3/patient-registrations",
             "/actuator/health",
             "/swagger-ui/**",
             "/swagger-ui.html",

@@ -7,12 +7,12 @@ import { AuthContext } from '../../contexts/auth-context'
 import { mockUsers } from '../../data/mockUsers'
 import { ApiError } from '../../services/api-client'
 import { authenticate } from '../../services/auth.service'
+import { registerPatient } from '../../services/registration.service'
 import Contacto from '../../pages/public/Contacto'
 import Home from '../../pages/public/Home'
 import Login from '../../pages/public/Login'
 import Registro from '../../pages/public/Registro'
 import { getUsers } from '../../services/users.service'
-import * as usersService from '../../services/users.service'
 import { saveUsers } from '../../storage/users.storage'
 
 vi.mock('../../services/auth.service', async (importOriginal) => {
@@ -20,7 +20,10 @@ vi.mock('../../services/auth.service', async (importOriginal) => {
   return { ...original, authenticate: vi.fn() }
 })
 
+vi.mock('../../services/registration.service', () => ({ registerPatient: vi.fn() }))
+
 const mockedAuthenticate = vi.mocked(authenticate)
+const mockedRegisterPatient = vi.mocked(registerPatient)
 
 function anonymousAuth() {
   return {
@@ -46,6 +49,12 @@ describe('Requisitos de las páginas públicas', () => {
     localStorage.clear()
     saveUsers(mockUsers)
     mockedAuthenticate.mockReset()
+    mockedRegisterPatient.mockReset().mockResolvedValue({
+      userId: 88,
+      email: 'camila.torres@example.cl',
+      firstName: 'Camila',
+      lastName: 'Torres',
+    })
   })
 
   afterEach(() => {
@@ -167,7 +176,7 @@ describe('Requisitos de las páginas públicas', () => {
     expect(screen.getByText('Debes aceptar los términos para continuar.')).toBeInTheDocument()
   })
 
-  it('CP-084 · RF-02 · registro crea una cuenta paciente con datos válidos', async () => {
+  it('CP-084 · RF-02 · registro solicita al backend crear una cuenta paciente', async () => {
     renderPublic(<Registro />)
 
     fireEvent.change(screen.getByLabelText('RUN'), { target: { value: '12345678-5' } })
@@ -181,15 +190,22 @@ describe('Requisitos de las páginas públicas', () => {
     fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Paciente123' } })
     fireEvent.change(screen.getByLabelText('Confirmar contraseña'), { target: { value: 'Paciente123' } })
     fireEvent.click(screen.getByRole('checkbox'))
-    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
 
     expect(screen.getByText('Cuenta creada correctamente. Ya puedes iniciar sesión.')).toBeInTheDocument()
-    expect(getUsers()).toContainEqual(expect.objectContaining({
+    expect(mockedRegisterPatient).toHaveBeenCalledWith(expect.objectContaining({
       run: '12345678-5',
+      firstName: 'Camila',
+      lastName: 'Torres',
       email: 'camila.torres@example.cl',
-      role: 'PATIENT',
-      active: true,
+      password: 'Paciente123',
+      termsAccepted: true,
     }))
+    expect(getUsers()).not.toContainEqual(expect.objectContaining({ email: 'camila.torres@example.cl' }))
   })
 
   it('CP-123 · RF-03/RNF-02 · login enfoca la contraseña cuando falta', async () => {
@@ -272,10 +288,8 @@ describe('Requisitos de las páginas públicas', () => {
     expect(screen.queryByText('Acceso denegado')).not.toBeInTheDocument()
   })
 
-  it('CP-126 · RF-02/RNF-07 · registro informa cuando no se puede persistir la cuenta', () => {
-    vi.spyOn(usersService, 'createUser').mockImplementationOnce(() => {
-      throw new Error('storage unavailable')
-    })
+  it('CP-126 · RF-02/RNF-07 · registro informa cuando el backend no puede crear la cuenta', async () => {
+    mockedRegisterPatient.mockRejectedValueOnce(new Error('service unavailable'))
     renderPublic(<Registro />)
 
     fireEvent.change(screen.getByLabelText('RUN'), { target: { value: '12345678-5' } })
@@ -288,8 +302,12 @@ describe('Requisitos de las páginas públicas', () => {
     fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Paciente123' } })
     fireEvent.change(screen.getByLabelText('Confirmar contraseña'), { target: { value: 'Paciente123' } })
     fireEvent.click(screen.getByRole('checkbox'))
-    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
 
-    expect(screen.getByText('No se pudo guardar la cuenta. Intenta nuevamente.')).toBeInTheDocument()
+    expect(screen.getByText('No se pudo completar el registro. Revisa tus datos e intenta nuevamente.')).toBeInTheDocument()
   })
 })
