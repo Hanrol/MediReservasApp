@@ -24,10 +24,13 @@ function renderAsAdmin(page: React.ReactNode) {
     session: {
       token: 'test-token',
       userId: admin.userId,
+      authUserId: admin.authUserId,
+      run: admin.run,
       firstName: admin.firstName,
       lastName: admin.lastName,
       email: admin.email,
       role: admin.role,
+      active: admin.active,
     },
     user: admin,
     isAuthenticated: true,

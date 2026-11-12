@@ -60,6 +60,9 @@ public class RoleAuthorizationPolicy {
                 "/api/v3/patient-profiles/**",
                 "/api/v3/receptionist-profiles/**",
                 "/api/v3/administrator-profiles/**")) {
+            if (HttpMethod.GET.equals(method) && "/api/v3/users/me".equals(path)) {
+                return hasAny(normalizedRoles, PATIENT, DOCTOR, RECEPTIONIST);
+            }
             if (normalizedRoles.contains(RECEPTIONIST)) {
                 return true;
             }

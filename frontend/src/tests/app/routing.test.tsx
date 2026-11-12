@@ -23,10 +23,13 @@ function saveUserSession(user: User) {
   saveSession({
     token: 'test-token',
     userId: user.userId,
+    authUserId: user.authUserId,
+    run: user.run,
     firstName: user.firstName,
     lastName: user.lastName,
     email: user.email,
     role: user.role,
+    active: user.active,
   })
 }
 

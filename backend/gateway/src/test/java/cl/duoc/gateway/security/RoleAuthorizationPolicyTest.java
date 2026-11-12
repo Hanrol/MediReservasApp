@@ -20,13 +20,17 @@ class RoleAuthorizationPolicyTest {
     @Test
     void patientCanReadCatalogAndOwnCollectionRoutesButNotManageDoctors() {
         assertTrue(policy.isAllowed("/api/v3/specialties", HttpMethod.GET, List.of("PATIENT")));
+        assertTrue(policy.isAllowed("/api/v3/users/me", HttpMethod.GET, List.of("PATIENT")));
         assertTrue(policy.isAllowed("/api/v3/appointments/patient/12", HttpMethod.GET, List.of("PATIENT")));
         assertFalse(policy.isAllowed("/api/v3/doctors", HttpMethod.POST, List.of("PATIENT")));
+        assertFalse(policy.isAllowed("/api/v3/users/email/other@example.test", HttpMethod.GET, List.of("PATIENT")));
+        assertFalse(policy.isAllowed("/api/v3/users/me", HttpMethod.GET, List.of()));
     }
 
     @Test
     void doctorCanManageScheduleButCannotManageUsersOrInternalAppointments() {
         assertTrue(policy.isAllowed("/api/v3/doctor-schedules", HttpMethod.POST, List.of("DOCTOR")));
+        assertTrue(policy.isAllowed("/api/v3/users/me", HttpMethod.GET, List.of("DOCTOR")));
         assertFalse(policy.isAllowed("/api/v3/users", HttpMethod.GET, List.of("DOCTOR")));
         assertFalse(policy.isAllowed("/api/v3/appointments/internal/10", HttpMethod.GET, List.of("DOCTOR")));
         assertFalse(policy.isAllowed("/api/v3/appointments/internal/10", HttpMethod.GET, List.of("ADMIN")));

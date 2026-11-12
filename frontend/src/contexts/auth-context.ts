@@ -6,7 +6,7 @@ interface AuthContextValue {
   session: Session | null
   user: User | undefined
   isAuthenticated: boolean
-  startSession: (user: User) => void
+  startSession: (user: User, token?: string) => void
   logout: () => void
   refreshSession: () => void
 }

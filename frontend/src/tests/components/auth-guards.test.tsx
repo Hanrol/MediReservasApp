@@ -26,10 +26,13 @@ function guardAuth(role: 'ADMIN' | 'PATIENT' = 'PATIENT', authenticated = true) 
     session: authenticated && user ? {
       token: 'test-token',
       userId: user.userId,
+      authUserId: user.authUserId,
+      run: user.run,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
       role: user.role,
+      active: user.active,
     } : null,
     user: authenticated ? user : undefined,
     isAuthenticated: authenticated,
@@ -114,10 +117,13 @@ describe('Protección de rutas y sesión', () => {
     saveSession({
       token: 'test-token',
       userId: patient.userId,
+      authUserId: patient.authUserId,
+      run: patient.run,
       firstName: patient.firstName,
       lastName: patient.lastName,
       email: patient.email,
       role: patient.role,
+      active: patient.active,
     })
     mockedUseAuth.mockImplementation((await vi.importActual<typeof import('../../hooks/useAuth')>('../../hooks/useAuth')).useAuth)
     render(<MemoryRouter initialEntries={['/dashboard']}><AuthProvider><AuthConsumer /></AuthProvider></MemoryRouter>)

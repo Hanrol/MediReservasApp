@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthContext } from '../../contexts/auth-context'
 import { mockUsers } from '../../data/mockUsers'
+import { ApiError } from '../../services/api-client'
+import { authenticate } from '../../services/auth.service'
 import Contacto from '../../pages/public/Contacto'
 import Home from '../../pages/public/Home'
 import Login from '../../pages/public/Login'
@@ -12,6 +14,13 @@ import Registro from '../../pages/public/Registro'
 import { getUsers } from '../../services/users.service'
 import * as usersService from '../../services/users.service'
 import { saveUsers } from '../../storage/users.storage'
+
+vi.mock('../../services/auth.service', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../../services/auth.service')>()
+  return { ...original, authenticate: vi.fn() }
+})
+
+const mockedAuthenticate = vi.mocked(authenticate)
 
 function anonymousAuth() {
   return {
@@ -36,6 +45,7 @@ describe('Requisitos de las páginas públicas', () => {
   beforeEach(() => {
     localStorage.clear()
     saveUsers(mockUsers)
+    mockedAuthenticate.mockReset()
   })
 
   afterEach(() => {
@@ -91,19 +101,34 @@ describe('Requisitos de las páginas públicas', () => {
 
   it('CP-081 · RF-03 · login informa credenciales incorrectas', async () => {
     const user = userEvent.setup()
+    mockedAuthenticate.mockRejectedValue(new ApiError('Credenciales inválidas', 401))
     renderPublic(<Login />)
 
     await user.type(screen.getByLabelText('Correo electrónico'), 'paciente@medireservas.cl')
     await user.type(screen.getByLabelText('Contraseña'), 'Incorrecta123')
     await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
-    expect(screen.getByText('El correo o la contraseña no son correctos, o la cuenta está inactiva.')).toBeInTheDocument()
+    expect(await screen.findByText('El correo o la contraseña no son correctos.')).toBeInTheDocument()
+  })
+
+  it('login indica cuando el backend no está disponible', async () => {
+    const user = userEvent.setup()
+    mockedAuthenticate.mockRejectedValue(new TypeError('Failed to fetch'))
+    renderPublic(<Login />)
+
+    await user.type(screen.getByLabelText('Correo electrónico'), 'paciente@example.test')
+    await user.type(screen.getByLabelText('Contraseña'), 'clave-correcta')
+    await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+
+    expect(await screen.findByText('No se pudo conectar con el servidor. Verifica que el backend esté disponible.'))
+      .toBeInTheDocument()
   })
 
   it('CP-082 · RF-03 · login inicia sesión y redirige al panel', async () => {
     vi.useFakeTimers()
     const authValue = anonymousAuth()
     const startSession = vi.fn()
+    mockedAuthenticate.mockResolvedValue({ user: mockUsers[3], token: 'jwt-real' })
 
     render(
       <MemoryRouter initialEntries={['/login']}>
@@ -118,9 +143,13 @@ describe('Requisitos de las páginas públicas', () => {
 
     fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: ' PACIENTE@MEDIRESERVAS.CL ' } })
     fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Paciente123' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
 
-    expect(startSession).toHaveBeenCalledWith(expect.objectContaining({ role: 'PATIENT' }))
+    expect(startSession).toHaveBeenCalledWith(expect.objectContaining({ role: 'PATIENT' }), 'jwt-real')
     await act(async () => {
       vi.advanceTimersByTime(500)
     })
@@ -180,10 +209,13 @@ describe('Requisitos de las páginas públicas', () => {
       session: {
         token: 'test-token',
         userId: patient.userId,
+        authUserId: patient.authUserId,
+        run: patient.run,
         firstName: patient.firstName,
         lastName: patient.lastName,
         email: patient.email,
         role: patient.role,
+        active: patient.active,
       },
       user: patient,
       isAuthenticated: true,
@@ -209,6 +241,7 @@ describe('Requisitos de las páginas públicas', () => {
   it('CP-139 · RF-03/RF-29 · login evita reutilizar una ruta exclusiva de otro rol', async () => {
     vi.useFakeTimers()
     const startSession = vi.fn()
+    mockedAuthenticate.mockResolvedValue({ user: mockUsers.find((user) => user.role === 'DOCTOR')!, token: 'doctor-jwt' })
 
     render(
       <MemoryRouter initialEntries={[{ pathname: '/login', state: { from: '/solicitar-cita' } }]}>
@@ -225,9 +258,13 @@ describe('Requisitos de las páginas públicas', () => {
 
     fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'medico@medireservas.cl' } })
     fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Medico123' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
 
-    expect(startSession).toHaveBeenCalledWith(expect.objectContaining({ role: 'DOCTOR' }))
+    expect(startSession).toHaveBeenCalledWith(expect.objectContaining({ role: 'DOCTOR' }), 'doctor-jwt')
     await act(async () => {
       vi.advanceTimersByTime(500)
     })

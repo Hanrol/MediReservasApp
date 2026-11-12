@@ -25,10 +25,13 @@ function renderAs(user: User, page: React.ReactNode, logout = vi.fn()) {
     session: {
       token: 'test-token',
       userId: user.userId,
+      authUserId: user.authUserId,
+      run: user.run,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
       role: user.role,
+      active: user.active,
     },
     user,
     isAuthenticated: true,
