@@ -87,6 +87,11 @@ public class DoctorsService {
 
         UserInternalResponseDTO user = usersClient.getUserById(dto.getUserId());
 
+        var authUser = authClient.getAuthUserByEmail(user.email());
+        if (!authUser.enabled() || authUser.roles() == null || !authUser.roles().contains("DOCTOR")) {
+            throw new RuntimeException("El usuario debe tener una cuenta activa con rol DOCTOR");
+        }
+
         if (!user.active()) {
             throw new RuntimeException("El usuario se encuentra inactivo");
         }
@@ -136,8 +141,6 @@ public class DoctorsService {
 
         saveDoctorSpecialties(savedDoctor, specialties);
 
-        authClient.assignDoctorRole(user.authUserId());
-
         return convertToDTO(savedDoctor);
     }
 
@@ -167,6 +170,8 @@ public class DoctorsService {
         doctor.setActive(dto.isActive());
         doctor.setMedicalLicenseNumber(dto.getMedicalLicenseNumber());
         doctorSpecialtiesRepository.deleteByDoctor(doctor);
+        // Ensure removed unique (doctor_id, specialty_id) rows are gone before reinserting them.
+        doctorSpecialtiesRepository.flush();
 
         if (dto.getSpecialtyIds() != null) {
             List<Long> specialtyIds = dto.getSpecialtyIds().stream().distinct().toList();

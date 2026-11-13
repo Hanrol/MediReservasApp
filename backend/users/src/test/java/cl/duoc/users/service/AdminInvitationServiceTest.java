@@ -72,7 +72,7 @@ class AdminInvitationServiceTest {
     void createInvitation_normalizesEmailAndStoresOnlyTokenHash() {
         when(userRepository.existsByEmail("doctor@example.test")).thenReturn(false);
         when(authClient.authUserExistsByEmail("doctor@example.test")).thenReturn(false);
-        when(invitationRepository.findFirstByEmailIgnoreCaseAndAcceptedAtIsNullOrderByCreatedAtDesc(
+        when(invitationRepository.findFirstByEmailIgnoreCaseAndAcceptedAtIsNullAndCanceledAtIsNullOrderByCreatedAtDesc(
                 "doctor@example.test")).thenReturn(Optional.empty());
         when(invitationRepository.save(any(AdminInvitation.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
@@ -116,7 +116,7 @@ class AdminInvitationServiceTest {
         pending.setInvitedByEmail("admin@example.test");
         pending.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(12));
         when(userRepository.existsByEmail("recovery@example.test")).thenReturn(false);
-        when(invitationRepository.findFirstByEmailIgnoreCaseAndAcceptedAtIsNullOrderByCreatedAtDesc(
+        when(invitationRepository.findFirstByEmailIgnoreCaseAndAcceptedAtIsNullAndCanceledAtIsNullOrderByCreatedAtDesc(
                 "recovery@example.test")).thenReturn(Optional.of(pending));
         when(authClient.authUserExistsByEmail("recovery@example.test")).thenReturn(true);
         when(invitationRepository.save(any(AdminInvitation.class)))
@@ -130,6 +130,55 @@ class AdminInvitationServiceTest {
         assertNotEquals("old-token-hash", pending.getTokenHash());
         assertEquals(response.role(), pending.getRoleName());
         verify(invitationRepository).save(pending);
+    }
+
+    @Test
+    void resendInvitation_rotatesTokenAndRenewsExpiration() {
+        AdminInvitation pending = new AdminInvitation();
+        pending.setInvitationId(31L);
+        pending.setEmail("doctor@example.test");
+        pending.setRoleName("DOCTOR");
+        pending.setTokenHash("old-hash");
+        pending.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).minusHours(1));
+        when(invitationRepository.findById(31L)).thenReturn(Optional.of(pending));
+        when(invitationRepository.save(pending)).thenReturn(pending);
+
+        var response = invitationService.resendInvitation(31L, "admin@example.test");
+
+        assertEquals(31L, response.invitationId());
+        assertNotEquals("old-hash", pending.getTokenHash());
+        assertNotEquals(response.token(), pending.getTokenHash());
+        assertTrue(pending.getExpiresAt().isAfter(LocalDateTime.now(ZoneOffset.UTC)));
+        assertEquals("admin@example.test", pending.getInvitedByEmail());
+    }
+
+    @Test
+    void cancelInvitation_invalidatesPendingInvitation() {
+        AdminInvitation pending = new AdminInvitation();
+        pending.setInvitationId(32L);
+        pending.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(1));
+        when(invitationRepository.findById(32L)).thenReturn(Optional.of(pending));
+        when(invitationRepository.save(pending)).thenReturn(pending);
+
+        invitationService.cancelInvitation(32L);
+
+        assertTrue(pending.getCanceledAt() != null);
+        verify(invitationRepository).save(pending);
+    }
+
+    @Test
+    void acceptInvitation_rejectsCanceledInvite() throws Exception {
+        String rawToken = "canceled-token";
+        AdminInvitation invitation = invitation(rawToken, "canceled@example.test", "DOCTOR");
+        invitation.setCanceledAt(LocalDateTime.now(ZoneOffset.UTC).minusMinutes(1));
+        when(invitationRepository.findByTokenHash(sha256(rawToken))).thenReturn(Optional.of(invitation));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> invitationService.acceptInvitation(new AcceptAdminInvitationRequestDTO(
+                        rawToken, "12345678-5", "Doctor", "Prueba", null, null, null, "password-safe-123")));
+
+        assertEquals(HttpStatus.GONE, exception.getStatusCode());
+        verify(authClient, never()).registerUser(any(), any());
     }
 
     @Test

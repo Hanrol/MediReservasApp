@@ -22,6 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import cl.duoc.users.client.AuthClient;
 import cl.duoc.users.client.DoctorsClient;
@@ -80,6 +81,19 @@ class UserServiceTest {
                 true,
                 null,
                 List.of());
+    }
+
+    @Test
+    void masterAdminCannotBeDeactivatedOrHaveItsEmailChanged() {
+        user.setEmail("master@test.cl");
+        ReflectionTestUtils.setField(userService, "masterAdminEmail", "master@test.cl");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> userService.deactivateUser(1L));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> userService.updateUser(1L, new UpdateUserRequestDTO("12345678-9", "changed@test.cl")));
+        verify(userRepository, never()).save(any());
     }
 
     // =========================================================

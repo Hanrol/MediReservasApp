@@ -22,6 +22,10 @@ public class RoleAuthorizationPolicy {
             return false;
         }
 
+        if (paths.match("/api/v3/patient-profiles/internal/**", path)) {
+            return false;
+        }
+
         if (HttpMethod.PATCH.equals(method) && paths.match("/api/v3/auth/users/*/roles", path)) {
             return false;
         }
@@ -30,8 +34,7 @@ public class RoleAuthorizationPolicy {
                 && matches(path,
                         "/api/v3/patient-profiles",
                         "/api/v3/receptionist-profiles",
-                        "/api/v3/administrator-profiles",
-                        "/api/v3/doctors")) {
+                        "/api/v3/administrator-profiles")) {
             return false;
         }
 

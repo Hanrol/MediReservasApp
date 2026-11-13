@@ -79,7 +79,7 @@ public class UsersClient {
 
     public boolean hasPatientProfile(Long userId) {
         return getBoolean(
-                "http://users-service/api/v3/patient-profiles/user/{userId}/exists",
+                "http://users-service/api/v3/patient-profiles/internal/user/{userId}/exists",
                 userId
         );
     }

@@ -2,9 +2,11 @@ package cl.duoc.doctors.client;
 
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
-import cl.duoc.doctors.dto.AssignRoleRequestDTO;
+import cl.duoc.doctors.dto.ApiResponse;
+import cl.duoc.doctors.dto.AuthUserRoleResponseDTO;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -13,33 +15,22 @@ public class AuthClient {
 
     private final WebClient.Builder webClientBuilder;
 
-    public void assignDoctorRole(Long authUserId) {
+    public AuthUserRoleResponseDTO getAuthUserByEmail(String email) {
         try {
-            webClientBuilder.build()
-                    .patch()
-                    .uri(
-                            "http://auth-service/api/v3/auth/users/{authUserId}/roles",
-                            authUserId
-                    )
-                    .bodyValue(new AssignRoleRequestDTO("DOCTOR"))
+            ApiResponse<AuthUserRoleResponseDTO> response = webClientBuilder.build()
+                    .get()
+                    .uri("http://auth-service/api/v3/auth/users/email/{email}", email)
                     .retrieve()
-                    .bodyToMono(Void.class)
+                    .bodyToMono(new ParameterizedTypeReference<ApiResponse<AuthUserRoleResponseDTO>>() {})
                     .block();
-
+            if (response == null || response.getData() == null) {
+                throw new RuntimeException("Auth Service no devolvió el usuario");
+            }
+            return response.getData();
         } catch (WebClientResponseException.NotFound ex) {
-            throw new RuntimeException(
-                    "Usuario de autenticación o rol DOCTOR no encontrado"
-            );
-
-        } catch (WebClientResponseException.Conflict ex) {
-            throw new RuntimeException(
-                    "El usuario ya tiene asignado el rol DOCTOR"
-            );
-
+            throw new RuntimeException("Usuario de autenticación no encontrado", ex);
         } catch (WebClientResponseException ex) {
-            throw new RuntimeException(
-                    "Error al asignar el rol DOCTOR en Auth Service"
-            );
+            throw new RuntimeException("Error al consultar Auth Service", ex);
         }
     }
 }

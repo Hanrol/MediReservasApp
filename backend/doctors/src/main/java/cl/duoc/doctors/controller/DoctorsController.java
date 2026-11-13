@@ -70,9 +70,22 @@ public class DoctorsController {
 
     @PostMapping
     @Operation(summary = "Crear un nuevo doctor", description = "Registra un nuevo médico en el sistema de forma activa.")
-    public ResponseEntity<DoctorsDTO> createDoctor(@RequestBody DoctorsDTO doctorsDTO) {
+    public ResponseEntity<DoctorsDTO> createDoctor(
+            @RequestHeader("X-Authenticated-Roles") String authenticatedRoles,
+            @RequestBody DoctorsDTO doctorsDTO) {
+        requireAdminRole(authenticatedRoles);
         DoctorsDTO createdDoctor = doctorsService.save(doctorsDTO);
         return new ResponseEntity<>(createdDoctor, HttpStatus.CREATED);
+    }
+
+    private void requireAdminRole(String roles) {
+        boolean isAdmin = java.util.Arrays.stream(roles.split(","))
+                .map(String::trim)
+                .anyMatch("ADMIN"::equalsIgnoreCase);
+        if (!isAdmin) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Solo un administrador puede crear fichas profesionales para otros usuarios");
+        }
     }
 
     private void requireDoctorRole(String roles) {

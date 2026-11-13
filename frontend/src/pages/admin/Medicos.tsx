@@ -74,9 +74,11 @@ function Medicos() {
     })
   }, [query, status, doctors])
 
-  const doctorUsers = users.filter((user) => (user.roles?.includes('DOCTOR') || user.role === 'DOCTOR') && user.active)
-  const activeSpecialties = specialties.filter((specialty) => specialty.active)
-
+  const doctorUsers = users.filter((user) =>
+    (user.roles?.includes('DOCTOR') || user.role === 'DOCTOR')
+      && user.active
+      && !doctors.some((doctor) => doctor.userId === user.userId),
+  )
   async function refreshData() {
     if (!session?.token) return false
     setLoading(true)
@@ -106,11 +108,10 @@ function Medicos() {
   }
 
   function openEdit(doctor: Doctor) {
-    const availableUsers = users.filter((user) => user.role === 'DOCTOR' && user.active)
     const availableSpecialties = specialties.filter((specialty) => specialty.active)
     setValues({
       doctorId: doctor.doctorId,
-      userId: availableUsers.some((user) => user.userId === doctor.userId) ? doctor.userId ?? 0 : 0,
+      userId: doctor.userId ?? 0,
       firstName: doctor.firstName ?? '',
       lastName: doctor.lastName ?? '',
       run: doctor.run ?? '',
@@ -149,6 +150,23 @@ function Medicos() {
       setErrors({...errors, [field]: nextErrors[field as keyof DoctorErrors]})
     }
     setFormMessage('')
+  }
+
+  function selectPrimarySpecialty(specialtyId: number) {
+    setValues((current) => ({
+      ...current,
+      specialtyId,
+      extraSpecialtyIds: current.extraSpecialtyIds.filter((id) => id !== specialtyId),
+    }))
+    setErrors((current) => ({ ...current, specialtyId: undefined }))
+    setFormMessage('')
+  }
+
+  function toggleExtraSpecialty(specialtyId: number, checked: boolean) {
+    const nextIds = checked
+      ? [...new Set([...values.extraSpecialtyIds, specialtyId])]
+      : values.extraSpecialtyIds.filter((id) => id !== specialtyId)
+    updateField('extraSpecialtyIds', nextIds)
   }
 
   function validateField(field: keyof DoctorErrors) {
@@ -325,11 +343,18 @@ function Medicos() {
                   className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
                   id="doctor-user-id" name="userId" value={values.userId || ''} aria-invalid={Boolean(errors.userId)}
                   aria-describedby="doctor-user-error"
+                  disabled={Boolean(values.doctorId)}
                   onChange={(event) => updateField('userId', Number(event.target.value))}
                   onBlur={() => validateField('userId')}>
-                  <option value="">Selecciona un usuario con rol médico</option>
-                  {doctorUsers.map((user) => <option value={user.userId}
-                                                     key={user.userId}>{user.firstName} {user.lastName} — {user.email}</option>)}
+                  {values.doctorId ? (() => {
+                    const associatedUser = users.find((user) => user.userId === values.userId)
+                    const name = `${associatedUser?.firstName ?? values.firstName} ${associatedUser?.lastName ?? values.lastName}`.trim()
+                    return <option value={values.userId}>{name || 'Médico'} — {associatedUser?.email ?? values.email}</option>
+                  })() : <>
+                    <option value="">Selecciona un usuario con rol médico</option>
+                    {doctorUsers.map((user) => <option value={user.userId}
+                                                       key={user.userId}>{user.firstName} {user.lastName} — {user.email}</option>)}
+                  </>}
                 </select>
                 <p className="mt-1.5 min-h-5 text-sm text-red-600" id="doctor-user-error"
                    role="alert">{errors.userId}</p>
@@ -353,11 +378,12 @@ function Medicos() {
                   className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
                   id="doctor-specialty-id" name="specialtyId" value={values.specialtyId || ''}
                   aria-invalid={Boolean(errors.specialtyId)} aria-describedby="doctor-specialty-error"
-                  onChange={(event) => updateField('specialtyId', Number(event.target.value))}
+                  onChange={(event) => selectPrimarySpecialty(Number(event.target.value))}
                   onBlur={() => validateField('specialtyId')}>
                   <option value="">Selecciona una especialidad</option>
-                  {activeSpecialties.map((specialty) => <option value={specialty.specialtyId}
-                                                                key={specialty.specialtyId}>{specialty.specialtyName}</option>)}
+                  {specialties.filter((specialty) => specialty.active || specialty.specialtyId === values.specialtyId)
+                    .map((specialty) => <option value={specialty.specialtyId}
+                                                key={specialty.specialtyId}>{specialty.specialtyName}{specialty.active ? '' : ' (inactiva)'}</option>)}
                 </select>
                 <p className="mt-1.5 min-h-5 text-sm text-red-600" id="doctor-specialty-error"
                    role="alert">{errors.specialtyId}</p>
@@ -365,16 +391,20 @@ function Medicos() {
               <div className="sm:col-span-2">
                 <label className="mb-2 block text-sm font-semibold" htmlFor="doctor-extra-specialties">Especialidades
                   adicionales</label>
-                <select
-                  className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
-                  id="doctor-extra-specialties" name="extraSpecialtyIds" multiple size={4}
-                  aria-describedby="doctor-extra-specialties-help" value={values.extraSpecialtyIds.map(String)}
-                  onChange={(event) => updateField('extraSpecialtyIds', Array.from(event.target.selectedOptions, (option) => Number(option.value)))}>
-                  {activeSpecialties.map((specialty) => <option value={specialty.specialtyId}
-                                                                key={specialty.specialtyId}>{specialty.specialtyName}</option>)}
-                </select>
-                <p className="mt-1.5 text-xs text-muted" id="doctor-extra-specialties-help">Opcional. Usa Ctrl para
-                  seleccionar varias.</p>
+                <fieldset className="max-h-52 space-y-1 overflow-y-auto rounded-xl border border-line bg-white p-2"
+                          aria-describedby="doctor-extra-specialties-help">
+                  <legend className="sr-only">Especialidades adicionales</legend>
+                  {specialties.filter((specialty) => specialty.specialtyId !== values.specialtyId
+                    && (specialty.active || values.extraSpecialtyIds.includes(specialty.specialtyId)))
+                    .map((specialty) => <label key={specialty.specialtyId}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-primary-light">
+                      <input className="size-4 accent-emerald-600" type="checkbox"
+                        checked={values.extraSpecialtyIds.includes(specialty.specialtyId)}
+                        onChange={(event) => toggleExtraSpecialty(specialty.specialtyId, event.target.checked)} />
+                      <span>{specialty.specialtyName}{specialty.active ? '' : ' (inactiva)'}</span>
+                    </label>)}
+                </fieldset>
+                <p className="mt-1.5 text-xs text-muted" id="doctor-extra-specialties-help">Opcional. Marca todas las especialidades que correspondan; la principal no se repite aquí.</p>
               </div>
               <div className="sm:col-span-2"><label
                 className="flex items-center gap-3 rounded-xl border border-line bg-page px-4 py-3 text-sm font-semibold"><input
