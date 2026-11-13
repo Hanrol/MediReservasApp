@@ -140,6 +140,19 @@ public class AuthClient {
         }
     }
 
+    public void enableUser(Long authUserId) {
+        try {
+            webClientBuilder.build().patch()
+                    .uri("http://auth-service/api/v3/auth/users/{authUserId}/enable", authUserId)
+                    .retrieve().bodyToMono(Void.class).block();
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException.Conflict ex) {
+            // Enabling an already enabled account is harmless for the bootstrap.
+        } catch (Exception ex) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudo habilitar la cuenta maestra en Auth Service", ex);
+        }
+    }
+
     public boolean authUserExistsByEmail(String email) {
         try {
             ApiResponse<AuthUserResponseDTO> response = webClientBuilder.build()

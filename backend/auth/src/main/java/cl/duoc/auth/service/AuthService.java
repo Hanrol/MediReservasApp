@@ -6,6 +6,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -34,6 +37,9 @@ public class AuthService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
+
+    @Value("${app.master-admin.email:}")
+    private String masterAdminEmail;
 
     public AuthResponseDTO register(RegisterRequestDTO request) {
 
@@ -238,6 +244,11 @@ public class AuthService {
 
     public AuthUserResponseDTO disableUser(Long authUserId) {
         AuthUser authUser = findAuthUserEntityById(authUserId);
+
+        if (masterAdminEmail != null && !masterAdminEmail.isBlank()
+                && authUser.getEmail().equalsIgnoreCase(masterAdminEmail.trim())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No se puede deshabilitar el administrador maestro");
+        }
 
         if (!authUser.isEnabled()) {
             logger.warn("Deshabilitación rechazada: el usuario ya estaba deshabilitado. authUserId={}", authUserId);

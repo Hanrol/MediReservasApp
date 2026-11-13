@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.server.ResponseStatusException;
 
 import cl.duoc.users.client.AuthClient;
@@ -37,6 +38,9 @@ public class UserService {
     private final DoctorsClient doctorsClient;
     private final PatientProfileRepository patientProfileRepository;
     private final ReceptionistProfileRepository receptionistProfileRepository;
+
+    @Value("${app.master-admin.email:}")
+    private String masterAdminEmail;
 
     public UserResponseDTO createUser(CreateUserRequestDTO request) {
 
@@ -199,6 +203,10 @@ public class UserService {
     public UserResponseDTO updateUser(Long userId, UpdateUserRequestDTO request) {
         User user = findUserEntityById(userId);
 
+        if (isMasterAdmin(user) && !user.getEmail().equalsIgnoreCase(request.email())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No se puede cambiar el correo del administrador maestro");
+        }
+
         if (!user.getRun().equalsIgnoreCase(request.run())
                 && userRepository.existsByRun(request.run())) {
             logger.warn("Actualización rechazada: RUN duplicado {}", request.run());
@@ -237,6 +245,10 @@ public class UserService {
     public UserResponseDTO deactivateUser(Long userId) {
         User user = findUserEntityById(userId);
 
+        if (isMasterAdmin(user)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No se puede desactivar el administrador maestro");
+        }
+
         if (!user.isActive()) {
             logger.warn("Desactivación rechazada: usuario ya estaba desactivado. userId={}", userId);
             throw new RuntimeException("El usuario ya está desactivado");
@@ -247,6 +259,23 @@ public class UserService {
         User savedUser = userRepository.save(user);
 
         return toResponseDTO(savedUser);
+    }
+
+    public UserResponseDTO ensureMasterAdminActive(Long userId) {
+        User user = findUserEntityById(userId);
+        if (!isMasterAdmin(user)) {
+            throw new IllegalArgumentException("El usuario no corresponde al administrador maestro configurado");
+        }
+        if (!user.isActive()) {
+            user.setActive(true);
+            user = userRepository.save(user);
+        }
+        return toResponseDTO(user);
+    }
+
+    private boolean isMasterAdmin(User user) {
+        return masterAdminEmail != null && !masterAdminEmail.isBlank()
+                && user.getEmail().equalsIgnoreCase(masterAdminEmail.trim());
     }
 
     private UserResponseDTO toResponseDTO(User user) {

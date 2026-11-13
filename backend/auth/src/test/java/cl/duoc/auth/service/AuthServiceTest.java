@@ -19,6 +19,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -392,6 +393,17 @@ class AuthServiceTest {
         assertFalse(authUser.isEnabled());
 
         verify(authUserRepository).save(authUser);
+    }
+
+    @Test
+    void disableUser_rechazaDeshabilitarAdministradorMaestro() {
+        authUser.setEmail("master@test.cl");
+        ReflectionTestUtils.setField(authService, "masterAdminEmail", "master@test.cl");
+        when(authUserRepository.findById(1L)).thenReturn(java.util.Optional.of(authUser));
+
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> authService.disableUser(1L));
+        verify(authUserRepository, never()).save(any());
     }
 
     @Test
