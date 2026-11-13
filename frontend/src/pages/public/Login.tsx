@@ -4,8 +4,8 @@ import FormMessage from '../../components/forms/FormMessage'
 import SkipLink from '../../components/ui/SkipLink'
 import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
+import { ApiError } from '../../services/api-client'
 import { authenticate } from '../../services/auth.service'
-import { initializeUsers } from '../../services/users.service'
 import type { LoginErrors, LoginValues } from '../../types/auth'
 import { getLoginRedirectPath } from '../../utils/loginRedirect'
 import { validateLogin } from '../../utils/validations'
@@ -29,7 +29,6 @@ function Login() {
 
   useEffect(() => {
     document.title = 'Iniciar sesión | MediReservas'
-    initializeUsers()
     return () => {
       if (timerRef.current) window.clearTimeout(timerRef.current)
     }
@@ -47,7 +46,7 @@ function Login() {
     setErrors((current) => ({ ...current, [field]: nextErrors[field] }))
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const normalizedValues = { ...values, email: values.email.trim().toLowerCase() }
     const nextErrors = validateLogin(normalizedValues)
@@ -61,17 +60,31 @@ function Login() {
       return
     }
 
-    const user = authenticate(normalizedValues.email, normalizedValues.password)
-    if (!user) {
-      setMessage('El correo o la contraseña no son correctos, o la cuenta está inactiva.')
-      return
-    }
-
-    startSession(user)
     setIsSubmitting(true)
-    setMessage('Sesión iniciada. Redirigiendo al panel...')
-    const destination = getLoginRedirectPath(requestedPath, user.role)
-    timerRef.current = window.setTimeout(() => navigate(destination, { replace: true }), 500)
+    try {
+      const { user, token } = await authenticate(normalizedValues.email, normalizedValues.password)
+      startSession(user, token)
+      setMessage('Sesión iniciada. Redirigiendo al panel...')
+      const destination = getLoginRedirectPath(requestedPath, user.role)
+      timerRef.current = window.setTimeout(() => navigate(destination, { replace: true }), 500)
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        setMessage('El correo o la contraseña no son correctos.')
+      } else if (error instanceof ApiError && error.status === 403) {
+        setMessage('La cuenta está deshabilitada o no tiene permiso para ingresar.')
+      } else if (error instanceof ApiError && error.status === 503) {
+        setMessage('El servicio de autenticación no está disponible. Intenta más tarde.')
+      } else if (error instanceof ApiError && error.status === 404) {
+        setMessage('La cuenta no tiene un perfil completo. Contacta con la administración.')
+      } else if (error instanceof TypeError) {
+        setMessage('No se pudo conectar con el servidor. Verifica que el backend esté disponible.')
+      } else if (error instanceof Error) {
+        setMessage(error.message)
+      } else {
+        setMessage('No se pudo iniciar sesión. Intenta nuevamente.')
+      }
+      setIsSubmitting(false)
+    }
   }
 
   if (isAuthenticated) return <Navigate to={getLoginRedirectPath(requestedPath, user?.role)} replace />

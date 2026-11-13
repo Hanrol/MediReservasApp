@@ -5,6 +5,9 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import cl.duoc.users.client.AuthClient;
 import cl.duoc.users.dto.AdministratorProfileResponseDTO;
@@ -30,6 +33,9 @@ public class AdministratorProfileService {
     private final UserProfileRepository userProfileRepository;
     private final UserService userService;
     private final AuthClient authClient;
+
+    @Value("${app.master-admin.email:}")
+    private String masterAdminEmail;
 
     public AdministratorProfileResponseDTO createAdministratorProfile(CreateAdministratorProfileRequestDTO request) {
 
@@ -131,6 +137,11 @@ public class AdministratorProfileService {
                             administratorProfileId);
                     return new RuntimeException("Perfil de administrador no encontrado");
                 });
+
+        if (masterAdminEmail != null && !masterAdminEmail.isBlank()
+                && profile.getUser().getEmail().equalsIgnoreCase(masterAdminEmail.trim())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No se puede eliminar el perfil del administrador maestro");
+        }
 
         administratorProfileRepository.delete(profile);
     }

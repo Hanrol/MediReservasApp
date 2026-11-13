@@ -3,6 +3,7 @@ export const ROUTES = {
   contact: '/contacto',
   login: '/login',
   register: '/registro',
+  activateInvitation: '/activar-cuenta',
   medicalDirectory: '/medicos-especialidades',
   accessDenied: '/acceso-denegado',
   dashboard: '/dashboard',

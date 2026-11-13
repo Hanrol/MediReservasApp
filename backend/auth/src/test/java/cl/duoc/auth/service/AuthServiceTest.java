@@ -19,6 +19,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -357,7 +358,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void assignRole_deberiaFallarCuandoUsuarioYaTieneRol() {
+    void assignRole_deberiaSerIdempotenteCuandoUsuarioYaTieneRol() {
         authUser.getRoles().add(patientRole);
 
         when(authUserRepository.findById(1L))
@@ -366,16 +367,12 @@ class AuthServiceTest {
         when(roleRepository.findByRoleName("PATIENT"))
                 .thenReturn(Optional.of(patientRole));
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> authService.assignRole(1L, "PATIENT"));
-
-        assertEquals(
-                "El usuario ya tiene asignado ese rol",
-                exception.getMessage());
+        AuthUserResponseDTO response = authService.assignRole(1L, "PATIENT");
 
         verify(authUserRepository, never())
                 .save(any(AuthUser.class));
+        assertNotNull(response);
+        assertTrue(response.roles().contains("PATIENT"));
     }
 
     // =========================================================
@@ -396,6 +393,17 @@ class AuthServiceTest {
         assertFalse(authUser.isEnabled());
 
         verify(authUserRepository).save(authUser);
+    }
+
+    @Test
+    void disableUser_rechazaDeshabilitarAdministradorMaestro() {
+        authUser.setEmail("master@test.cl");
+        ReflectionTestUtils.setField(authService, "masterAdminEmail", "master@test.cl");
+        when(authUserRepository.findById(1L)).thenReturn(java.util.Optional.of(authUser));
+
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> authService.disableUser(1L));
+        verify(authUserRepository, never()).save(any());
     }
 
     @Test

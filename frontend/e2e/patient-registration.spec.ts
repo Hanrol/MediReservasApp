@@ -1,6 +1,22 @@
 import { expect, test } from '@playwright/test'
+import { mockAuthApi, seedMockAppData } from './helpers'
+import { mockUsers } from '../src/data/mockUsers'
 
 test('CP-138 · RF-02/RF-03 · paciente se registra y luego inicia sesión', async ({ page }) => {
+  await seedMockAppData(page)
+  await page.route('**/api/v3/patient-registrations', (route) => route.fulfill({
+    status: 201,
+    json: {
+      code: 201,
+      message: 'Cuenta creada correctamente',
+      data: {
+        userId: 7,
+        email: 'camila.playwright@example.cl',
+        firstName: 'Camila',
+        lastName: 'Playwright',
+      },
+    },
+  }))
   await page.goto('/#/registro')
 
   await page.getByLabel('RUN').fill('12345678-5')
@@ -18,6 +34,16 @@ test('CP-138 · RF-02/RF-03 · paciente se registra y luego inicia sesión', asy
   await expect(page.getByRole('status')).toContainText('Cuenta creada correctamente')
   await expect(page).toHaveURL(/#\/login$/, { timeout: 5_000 })
 
+  const patient = {
+    ...mockUsers.find((user) => user.role === 'PATIENT')!,
+    userId: 7,
+    authUserId: 7,
+    run: '12345678-5',
+    firstName: 'Camila',
+    lastName: 'Playwright',
+    email: 'camila.playwright@example.cl',
+  }
+  await mockAuthApi(page, patient)
   await page.getByLabel('Correo electrónico').fill('camila.playwright@example.cl')
   await page.getByLabel('Contraseña', { exact: true }).fill('Paciente123')
   await page.getByRole('button', { name: 'Iniciar sesión' }).click()

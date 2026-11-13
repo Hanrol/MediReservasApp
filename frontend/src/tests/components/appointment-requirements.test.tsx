@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthContext } from '../../contexts/auth-context'
 import { mockAppointments } from '../../data/mockAppointments'
 import { mockDoctors } from '../../data/mockDoctors'
+import { mockSchedules } from '../../data/mockSchedules'
 import { mockSpecialties } from '../../data/mockSpecialties'
 import { mockUsers } from '../../data/mockUsers'
 import Agenda from '../../pages/medico/Agenda'
@@ -16,6 +17,9 @@ import ObservacionClinica from '../../pages/medico/ObservacionClinica'
 import Registro from '../../pages/public/Registro'
 import SolicitarCita from '../../pages/paciente/SolicitarCita'
 import { clinicalService } from '../../services/clinical.service'
+import { ApiError } from '../../services/api-client'
+import { registerPatient } from '../../services/registration.service'
+import * as receptionApi from '../../services/reception-api.service'
 import { appointmentsStorage } from '../../storage/appointments.storage'
 import { clinicalStorage } from '../../storage/clinical.storage'
 import { schedulesStorage } from '../../storage/schedules.storage'
@@ -24,15 +28,22 @@ import { saveSpecialties } from '../../storage/specialties.storage'
 import { saveUsers } from '../../storage/users.storage'
 import type { User } from '../../types/user'
 
+vi.mock('../../services/registration.service', () => ({ registerPatient: vi.fn() }))
+
+const mockedRegisterPatient = vi.mocked(registerPatient)
+
 function renderAs(user: User, page: React.ReactNode, initialPath = '/') {
   const authValue = {
     session: {
       token: 'test-token',
       userId: user.userId,
+      authUserId: user.authUserId,
+      run: user.run,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
       role: user.role,
+      active: user.active,
     },
     user,
     isAuthenticated: true,
@@ -49,14 +60,28 @@ function renderAs(user: User, page: React.ReactNode, initialPath = '/') {
 }
 
 describe('Requisitos de citas en las pantallas por rol', () => {
+  let receptionAppointments = [...mockAppointments]
+  let receptionSchedules = [...mockSchedules]
+
   beforeEach(() => {
     localStorage.clear()
     appointmentsStorage.reset()
     clinicalStorage.reset()
     schedulesStorage.reset()
     saveUsers(mockUsers)
+    mockedRegisterPatient.mockReset()
     saveDoctors(mockDoctors)
     saveSpecialties(mockSpecialties)
+    receptionAppointments = [...mockAppointments]
+    receptionSchedules = [...mockSchedules]
+    vi.spyOn(receptionApi, 'getReceptionData').mockImplementation(async () => ({
+      appointments: receptionAppointments,
+      schedules: receptionSchedules,
+      patientRunById: new Map(mockUsers.map((user) => [user.userId, user.run])),
+    }))
+    vi.spyOn(receptionApi, 'confirmReceptionAppointment').mockResolvedValue()
+    vi.spyOn(receptionApi, 'cancelReceptionAppointment').mockResolvedValue()
+    vi.spyOn(receptionApi, 'rescheduleReceptionAppointment').mockResolvedValue()
   })
 
   afterEach(() => {
@@ -81,13 +106,13 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     expect(screen.queryByText('La cita se canceló correctamente.')).not.toBeInTheDocument()
   })
 
-  it('CP-072 · RF-19 · recepción ve el motivo de cada solicitud', () => {
+  it('CP-072 · RF-19 · recepción ve el motivo de cada solicitud', async () => {
     const receptionist = mockUsers.find((item) => item.role === 'RECEPTIONIST')!
 
     renderAs(receptionist, <GestionCitas />)
 
+    await screen.findByText('Control general')
     expect(screen.getByRole('columnheader', { name: 'Motivo' })).toBeInTheDocument()
-    expect(screen.getByText('Control general')).toBeInTheDocument()
   })
 
   it('CP-073 · RF-19 · recepción filtra las solicitudes por estado y fecha', async () => {
@@ -96,14 +121,15 @@ describe('Requisitos de citas en las pantallas por rol', () => {
 
     renderAs(receptionist, <GestionCitas />)
 
+    await screen.findByText('Control preventivo')
     await user.type(screen.getByLabelText('Buscar cita'), 'Paula')
     await user.selectOptions(screen.getByLabelText('Estado'), 'PENDING')
     fireEvent.change(screen.getByLabelText('Fecha'), { target: { value: '2026-10-10' } })
 
-    expect(screen.getByText('Control preventivo')).toBeInTheDocument()
+    expect(await screen.findByText('Control preventivo')).toBeInTheDocument()
     expect(screen.queryByText('Control general')).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Limpiar filtros' }))
-    expect(screen.getByText('5 citas encontradas')).toBeInTheDocument()
+    expect(await screen.findByText('5 citas encontradas')).toBeInTheDocument()
   })
 
   it('CP-074 · RF-24 · guardar una observación completa la cita atendida', async () => {
@@ -167,17 +193,16 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     expect(screen.getByLabelText(/Especialidad/)).toHaveValue('1')
   })
 
-  it('CP-094 · RF-20 · recepción confirma una solicitud pendiente', () => {
+  it('CP-094 · RF-20 · recepción confirma una solicitud pendiente', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const receptionist = mockUsers.find((item) => item.role === 'RECEPTIONIST')!
     renderAs(receptionist, <GestionCitas />)
 
-    const appointmentRow = screen.getByText('Control preventivo').closest('tr')!
+    const appointmentRow = (await screen.findByText('Control preventivo')).closest('tr')!
     fireEvent.click(within(appointmentRow).getByRole('button', { name: 'Confirmar' }))
 
-    expect(appointmentsStorage.getAll().find((item) => item.appointmentId === 2)?.appointmentStatus).toBe('CONFIRMED')
-    expect(within(appointmentRow).getByText('Confirmada')).toBeInTheDocument()
-    expect(screen.getByRole('status')).toHaveTextContent('fue confirmada')
+    expect(receptionApi.confirmReceptionAppointment).toHaveBeenCalledWith('test-token', 2, receptionist.userId)
+    expect(await screen.findByRole('status')).toHaveTextContent('fue confirmada')
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar mensaje' }))
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
@@ -187,33 +212,27 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     const receptionist = mockUsers.find((item) => item.role === 'RECEPTIONIST')!
     renderAs(receptionist, <GestionCitas />)
 
-    const appointmentRow = screen.getByText('Control preventivo').closest('tr')!
+    const appointmentRow = (await screen.findByText('Control preventivo')).closest('tr')!
     await user.click(within(appointmentRow).getByRole('button', { name: 'Reagendar' }))
     await user.selectOptions(screen.getByLabelText('Nueva fecha'), '2026-10-12')
     await user.selectOptions(screen.getByLabelText('Nueva hora'), '11:30')
     await user.click(screen.getByRole('button', { name: 'Guardar nueva fecha' }))
 
-    expect(appointmentsStorage.getAll().find((item) => item.appointmentId === 2)).toMatchObject({
-      date: '2026-10-12',
-      time: '11:30',
-      scheduleSlotId: 7,
-      appointmentStatus: 'PENDING',
-    })
-    expect(schedulesStorage.getAll().find((item) => item.id === 6)?.available).toBe(true)
-    expect(schedulesStorage.getAll().find((item) => item.id === 7)?.available).toBe(false)
+    expect(receptionApi.rescheduleReceptionAppointment).toHaveBeenCalledWith(
+      'test-token', expect.objectContaining({ appointmentId: 2 }), 7, receptionist.userId,
+    )
   })
 
-  it('CP-096 · RF-22 · recepción confirma la cancelación de una cita y libera el horario', () => {
+  it('CP-096 · RF-22 · recepción confirma la cancelación de una cita y libera el horario', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
     const receptionist = mockUsers.find((item) => item.role === 'RECEPTIONIST')!
     renderAs(receptionist, <GestionCitas />)
 
-    const appointmentRow = screen.getByText('Control general').closest('tr')!
+    const appointmentRow = (await screen.findByText('Control general')).closest('tr')!
     fireEvent.click(within(appointmentRow).getByRole('button', { name: 'Cancelar' }))
 
-    expect(appointmentsStorage.getAll().find((item) => item.appointmentId === 1)?.appointmentStatus).toBe('CANCELLED')
-    expect(schedulesStorage.getAll().find((item) => item.id === 1)?.available).toBe(true)
-    expect(screen.getByRole('status')).toHaveTextContent('fue cancelada')
+    expect(receptionApi.cancelReceptionAppointment).toHaveBeenCalledWith('test-token', 1, receptionist.userId)
+    expect(await screen.findByRole('status')).toHaveTextContent('fue cancelada')
   })
 
   it('CP-097 · RF-15/RF-16 · paciente valida el formulario y registra una cita', () => {
@@ -399,7 +418,7 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     const receptionist = mockUsers.find((item) => item.role === 'RECEPTIONIST')!
     renderAs(receptionist, <GestionCitas />)
 
-    const appointmentRow = screen.getByText('Control preventivo').closest('tr')!
+    const appointmentRow = (await screen.findByText('Control preventivo')).closest('tr')!
     await user.click(within(appointmentRow).getByRole('button', { name: 'Reagendar' }))
     await user.click(screen.getByRole('button', { name: 'Guardar nueva fecha' }))
 
@@ -431,7 +450,8 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     expect(clinicalStorage.getAll()).toHaveLength(1)
   })
 
-  it('CP-120 · RF-02/RNF-07 · registro detecta correo ya asociado a otra cuenta', () => {
+  it('CP-120 · RF-02/RNF-07 · registro informa correo o RUN ya asociados', async () => {
+    mockedRegisterPatient.mockRejectedValueOnce(new ApiError('duplicate', 409))
     const patient = mockUsers.find((item) => item.role === 'PATIENT')!
     renderAs(patient, <Registro />, '/registro')
 
@@ -445,9 +465,13 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Paciente123' } })
     fireEvent.change(screen.getByLabelText('Confirmar contraseña'), { target: { value: 'Paciente123' } })
     fireEvent.click(screen.getByRole('checkbox'))
-    fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }))
+      await Promise.resolve()
+      await Promise.resolve()
+    })
 
-    expect(screen.getByText('Ya existe una cuenta asociada a este RUN o correo.')).toBeInTheDocument()
+    expect(await screen.findByText('Ya existe una cuenta asociada a este RUN o correo.')).toBeInTheDocument()
   })
 
   it('CP-121 · RF-15/RF-16 · informa si el horario se ocupa durante el envío', () => {

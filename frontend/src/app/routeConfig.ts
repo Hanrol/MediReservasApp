@@ -18,6 +18,7 @@ import Perfil from '../pages/shared/Perfil'
 import MedicosEspecialidades from '../pages/public/MedicosEspecialidades'
 import GestionCitas from '../pages/recepcion/GestionCitas'
 import Registro from '../pages/public/Registro'
+import ActivateInvitation from '../pages/public/ActivateInvitation'
 import HistorialClinico from '../pages/shared/HistorialClinico'
 
 export interface AppRoute {
@@ -32,6 +33,7 @@ export const routeConfig: readonly AppRoute[] = [
   { path: ROUTES.contact, component: Contacto },
   { path: ROUTES.login, component: Login },
   { path: ROUTES.register, component: Registro },
+  { path: ROUTES.activateInvitation, component: ActivateInvitation },
   { path: ROUTES.medicalDirectory, component: MedicosEspecialidades },
   { path: ROUTES.accessDenied, component: AccesoDenegado },
   { path: ROUTES.dashboard, component: Dashboard, requiresAuth: true },

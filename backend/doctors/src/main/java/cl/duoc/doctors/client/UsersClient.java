@@ -53,6 +53,23 @@ public class UsersClient {
         }
     }
 
+    public UserInternalResponseDTO getUserByEmail(String email) {
+        try {
+            ApiResponse<UserInternalResponseDTO> response = webClientBuilder.build()
+                    .get()
+                    .uri("http://users-service/api/v3/users/email/{email}", email)
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<ApiResponse<UserInternalResponseDTO>>() {})
+                    .block();
+            if (response == null || response.getData() == null) {
+                throw new RuntimeException("Usuario no encontrado");
+            }
+            return response.getData();
+        } catch (WebClientResponseException ex) {
+            throw new RuntimeException("No se pudo resolver el usuario autenticado", ex);
+        }
+    }
+
     public boolean hasGeneralProfile(Long userId) {
         return getBoolean(
                 "http://users-service/api/v3/user-profiles/user/{userId}/exists",
@@ -62,7 +79,7 @@ public class UsersClient {
 
     public boolean hasPatientProfile(Long userId) {
         return getBoolean(
-                "http://users-service/api/v3/patient-profiles/user/{userId}/exists",
+                "http://users-service/api/v3/patient-profiles/internal/user/{userId}/exists",
                 userId
         );
     }
