@@ -3,9 +3,9 @@ import DashboardLayout from '../../components/layout/DashboardLayout.tsx'
 import Breadcrumbs from '../../components/layout/Breadcrumbs.tsx'
 import { DASHBOARD_CONFIG } from '../../constants/roles.ts'
 import { ROUTES } from '../../constants/routes.ts'
-import {editUser, getUsers, isUserDataTaken, setUserStatus} from '../../services/users.service.ts'
 import { createAdminInvitation, getAdminInvitations } from '../../services/admin-invitations.service.ts'
 import { ApiError } from '../../services/api-client.ts'
+import { getAdminUsers, saveAdminUser, setAdminUserStatus } from '../../services/admin-api.service.ts'
 import { useAuth } from '../../hooks/useAuth.ts'
 import type { Role } from '../../types/role.ts'
 import type { ManagedUserErrors, ManagedUserValues, User } from '../../types/user.ts'
@@ -24,7 +24,7 @@ const emptyForm: ManagedUserValues = {
 
 function Usuarios() {
   const { session } = useAuth()
-  const [users, setUsers] = useState<User[]>(getUsers())
+  const [users, setUsers] = useState<User[]>([])
   const [invitations, setInvitations] = useState<Awaited<ReturnType<typeof getAdminInvitations>>>([])
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
@@ -38,6 +38,8 @@ function Usuarios() {
   const [inviteUrl, setInviteUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [inviteLoadError, setInviteLoadError] = useState('')
+  const [usersLoadError, setUsersLoadError] = useState('')
+  const [usersLoading, setUsersLoading] = useState(true)
 
   useEffect(() => {
     document.title = 'Gestión de usuarios | MediReservas'
@@ -47,6 +49,15 @@ function Usuarios() {
     getAdminInvitations(session.token)
       .then(setInvitations)
       .catch(() => setInviteLoadError('No se pudieron cargar las invitaciones pendientes.'))
+  }, [session?.token])
+  useEffect(() => {
+    if (!session?.token) return
+    let active = true
+    void getAdminUsers(session.token)
+      .then((loaded) => { if (active) { setUsers(loaded); setUsersLoadError('') } })
+      .catch(() => { if (active) setUsersLoadError('No se pudieron cargar los usuarios desde el servidor.') })
+      .finally(() => { if (active) setUsersLoading(false) })
+    return () => { active = false }
   }, [session?.token])
   useEffect(() => {
     const locked = formOpen || Boolean(statusUser)
@@ -62,8 +73,16 @@ function Usuarios() {
     })
   }, [query, status, users])
 
-  function refreshUsers() {
-    setUsers(getUsers())
+  async function refreshUsers() {
+    if (!session?.token) return false
+    try {
+      setUsers(await getAdminUsers(session.token))
+      setUsersLoadError('')
+      return true
+    } catch {
+      setUsersLoadError('No se pudieron actualizar los usuarios desde el servidor.')
+      return false
+    }
   }
 
   function openCreate() {
@@ -151,15 +170,36 @@ function Usuarios() {
     setErrors(nextErrors);
     setFormMessage('')
     if (Object.keys(nextErrors).length) return
-    if (isUserDataTaken(normalized.run, normalized.email, normalized.userId || undefined)) {
+    if (users.some((user) => user.userId !== normalized.userId
+      && (user.run.toLowerCase() === normalized.run.toLowerCase()
+        || user.email.toLowerCase() === normalized.email.toLowerCase()))) {
       setFormMessage('El RUN o correo ya está asociado a otra cuenta.');
       return
     }
     if (!normalized.userId) return
-    const {userId, password, ...changes} = normalized
-    editUser(userId, password ? {...changes, password} : changes)
-    setFormOpen(false);
-    refreshUsers()
+    const {userId} = normalized
+    const changes = {
+      run: normalized.run,
+      firstName: normalized.firstName,
+      lastName: normalized.lastName,
+      email: normalized.email,
+      phone: normalized.phone,
+      address: normalized.address,
+    }
+    const existing = users.find((user) => user.userId === userId)
+    if (!existing || !session?.token) {
+      setFormMessage('No se pudo encontrar el usuario o tu sesión expiró.')
+      return
+    }
+    setIsSubmitting(true)
+    try {
+      await saveAdminUser(session.token, { ...existing, ...changes })
+      if (await refreshUsers()) setFormOpen(false)
+    } catch (requestError) {
+      setFormMessage(requestError instanceof ApiError ? requestError.message : 'No se pudo guardar el usuario.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   async function copyInvitationLink() {
@@ -172,11 +212,18 @@ function Usuarios() {
     }
   }
 
-  function confirmStatusChange() {
+  async function confirmStatusChange() {
     if (!statusUser) return
-    if (!setUserStatus(statusUser.userId, !statusUser.active)) return
-    setStatusUser(null);
-    refreshUsers()
+    if (!session?.token) return
+    setIsSubmitting(true)
+    try {
+      await setAdminUserStatus(session.token, statusUser, !statusUser.active)
+      if (await refreshUsers()) setStatusUser(null)
+    } catch (requestError) {
+      setUsersLoadError(requestError instanceof ApiError ? requestError.message : 'No se pudo cambiar el estado del usuario.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -207,9 +254,11 @@ function Usuarios() {
                 <option value="inactive">Inactivos</option>
               </select></label>
             </form>
-            <p className="mt-6 text-sm font-medium text-muted"
+             {usersLoadError && <p className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-800" role="alert">{usersLoadError}</p>}
+             {usersLoading && <p className="mt-5 text-sm text-muted" role="status">Cargando usuarios…</p>}
+             <p className="mt-6 text-sm font-medium text-muted"
                aria-live="polite">{filteredUsers.length} {filteredUsers.length === 1 ? 'usuario encontrado' : 'usuarios encontrados'}</p>
-            {filteredUsers.length ?
+             {!usersLoading && !usersLoadError && filteredUsers.length ?
               <div className="mt-3 overflow-x-auto rounded-2xl border border-line bg-white shadow-sm">
                 <table className="w-full min-w-4xl text-left">
                   <caption className="sr-only">Usuarios registrados en MediReservas</caption>
@@ -242,9 +291,9 @@ function Usuarios() {
                   </tr>)}
                   </tbody>
                 </table>
-              </div> :
+              </div> : !usersLoading && !usersLoadError ?
               <p className="mt-6 rounded-2xl border border-line bg-white p-8 text-center text-muted">No se encontraron
-                usuarios con los filtros seleccionados.</p>}
+                usuarios con los filtros seleccionados.</p> : null}
       </section>
 
       <section className="mt-10" aria-labelledby="invitations-title">
@@ -274,7 +323,7 @@ function Usuarios() {
               ] as const).map(([field, label, type, maxLength]) => <label className="text-sm font-semibold"
                                                                           key={field}>{label}<input
                 className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-primary"
-                type={type} maxLength={maxLength} value={values[field]} aria-invalid={Boolean(errors[field])}
+                type={type} maxLength={maxLength} value={values[field]} readOnly={field === 'email'} aria-invalid={Boolean(errors[field])}
                 onChange={(event) => updateField(field, event.target.value)}
                 onBlur={() => field === 'run' && updateField('run', normalizeRun(values.run))}/><span
                 className="mt-1.5 block min-h-5 font-normal text-red-600">{errors[field]}</span></label>) : (
@@ -283,12 +332,6 @@ function Usuarios() {
                   <label className="text-sm font-semibold sm:col-span-2">Rol asignado<select className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 font-normal outline-none focus:border-primary" value={inviteRole} disabled={Boolean(inviteUrl)} onChange={(event) => setInviteRole(event.target.value as Role)}><option value="PATIENT">Paciente</option><option value="DOCTOR">Médico</option><option value="RECEPTIONIST">Recepcionista</option><option value="ADMIN">Administrador</option></select><span className="mt-1 block text-xs font-normal text-muted">La persona invitada no podrá cambiar el rol durante la activación.</span></label>
                 </>
               )}
-              {values.userId && <label className="text-sm font-semibold sm:col-span-2">Contraseña temporal<input
-                className="mt-2 w-full rounded-xl border border-line px-4 py-3 font-normal outline-none focus:border-primary"
-                type="password" maxLength={100} value={values.password} aria-invalid={Boolean(errors.password)}
-                onChange={(event) => updateField('password', event.target.value)}/><span
-                className="mt-1.5 block text-xs font-normal text-muted">Es obligatoria al crear la cuenta. Déjala vacía al editar para conservar la actual.</span><span
-                className="mt-1.5 block min-h-5 font-normal text-red-600">{errors.password}</span></label>}
             </div>
             {inviteUrl && <div className="mt-4 rounded-xl border border-emerald-200 bg-primary-light p-4"><label className="block text-sm font-semibold text-primary-dark" htmlFor="invitation-link">Enlace de activación</label><input className="mt-2 w-full rounded-lg border border-line bg-white px-3 py-2 text-sm font-normal" id="invitation-link" readOnly value={inviteUrl} onFocus={(event) => event.currentTarget.select()} /><button className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-dark" type="button" onClick={copyInvitationLink}>Copiar enlace</button></div>}
             <p className={`text-center text-sm font-medium ${inviteUrl ? 'text-primary-dark' : 'text-red-600'}`} role="status">{formMessage}</p>

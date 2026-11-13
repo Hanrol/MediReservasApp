@@ -2,7 +2,9 @@ import { type FormEvent, useEffect, useState } from 'react'
 import DashboardLayout from '../../components/layout/DashboardLayout.tsx'
 import Breadcrumbs from '../../components/layout/Breadcrumbs.tsx'
 import { ROUTES } from '../../constants/routes.ts'
-import {createSpecialty, editSpecialty, getSpecialties, initializeSpecialties, isSpecialtyNameTaken, setSpecialtyStatus} from '../../services/specialties.service.ts'
+import { getAdminSpecialties, saveAdminSpecialty } from '../../services/admin-api.service.ts'
+import { ApiError } from '../../services/api-client.ts'
+import { useAuth } from '../../hooks/useAuth.ts'
 import type {Specialty, SpecialtyErrors, SpecialtyValues} from '../../types/specialty.ts'
 import {validateSpecialty} from '../../utils/validations.ts'
 
@@ -13,10 +15,12 @@ const emptyForm: SpecialtyValues = {
   active: true,
 }
 
-initializeSpecialties()
-
 function Especialidades() {
-  const [specialties, setSpecialties] = useState<Specialty[]>(getSpecialties())
+  const { session } = useAuth()
+  const [specialties, setSpecialties] = useState<Specialty[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [saving, setSaving] = useState(false)
   const [formOpen, setFormOpen] = useState(false)
   const [statusSpecialty, setStatusSpecialty] = useState<Specialty | null>(null)
   const [values, setValues] = useState<SpecialtyValues>(emptyForm)
@@ -27,6 +31,15 @@ function Especialidades() {
   useEffect(() => {
     document.title = 'Gestión de especialidades | MediReservas'
   }, [])
+  useEffect(() => {
+    if (!session?.token) return
+    let active = true
+    void getAdminSpecialties(session.token)
+      .then((loaded) => { if (active) { setSpecialties(loaded); setLoadError('') } })
+      .catch(() => { if (active) setLoadError('No se pudieron cargar las especialidades desde el servidor.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [session?.token])
   useEffect(() => {
     const locked = formOpen || Boolean(statusSpecialty)
     document.body.classList.toggle('overflow-hidden', locked)
@@ -52,7 +65,7 @@ function Especialidades() {
     setFormMessage('')
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const normalized = {...values, specialtyName: values.specialtyName.trim(), description: values.description.trim()}
     const nextErrors = validateSpecialty(normalized)
@@ -64,31 +77,45 @@ function Especialidades() {
       if (input instanceof HTMLElement) input.focus()
       return
     }
-    if (isSpecialtyNameTaken(normalized.specialtyName, normalized.specialtyId || undefined)) {
+    if (specialties.some((specialty) => specialty.specialtyId !== normalized.specialtyId
+      && specialty.specialtyName.trim().toLowerCase() === normalized.specialtyName.toLowerCase())) {
       setFormMessage('Ya existe una especialidad con ese nombre.')
       return
     }
-    if (normalized.specialtyId) {
-      const {specialtyId, ...changes} = normalized
-      if (!editSpecialty(specialtyId, changes)) {
-        setFormMessage('No fue posible encontrar la especialidad seleccionada.')
-        return
-      }
-    } else {
-      createSpecialty(normalized)
-    }
-    setFormOpen(false)
-    setSpecialties(getSpecialties())
-  }
-
-  function confirmStatusChange() {
-    if (!statusSpecialty) return
-    if (!setSpecialtyStatus(statusSpecialty.specialtyId, !statusSpecialty.active)) {
-      setStatusMessage('No fue posible encontrar la especialidad seleccionada.')
+    if (!session?.token) {
+      setFormMessage('Tu sesión expiró. Inicia sesión nuevamente.')
       return
     }
-    setStatusSpecialty(null)
-    setSpecialties(getSpecialties())
+    setSaving(true)
+    try {
+      const previousActive = specialties.find((item) => item.specialtyId === normalized.specialtyId)?.active
+      await saveAdminSpecialty(session.token, normalized, !normalized.specialtyId, previousActive)
+      setSpecialties(await getAdminSpecialties(session.token))
+      setLoadError('')
+      setFormOpen(false)
+    } catch (requestError) {
+      setFormMessage(requestError instanceof ApiError ? requestError.message : 'No se pudo guardar la especialidad.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function confirmStatusChange() {
+    if (!statusSpecialty) return
+    if (!session?.token) {
+      setStatusMessage('Tu sesión expiró. Inicia sesión nuevamente.')
+      return
+    }
+    setSaving(true)
+    try {
+      await saveAdminSpecialty(session.token, { ...statusSpecialty, active: !statusSpecialty.active }, false, statusSpecialty.active)
+      setSpecialties(await getAdminSpecialties(session.token))
+      setStatusSpecialty(null)
+    } catch (requestError) {
+      setStatusMessage(requestError instanceof ApiError ? requestError.message : 'No se pudo cambiar el estado de la especialidad.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -105,6 +132,8 @@ function Especialidades() {
                 type="button" onClick={openCreate}>+ Crear especialidad
               </button>
             </header>
+            {loadError && <p className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-800" role="alert">{loadError}</p>}
+            {loading && <p className="mt-5 text-sm text-muted" role="status">Cargando especialidades…</p>}
             <div className="mt-8" aria-live="polite"><p
               className="text-sm font-medium text-muted">{specialties.length} {specialties.length === 1 ? 'especialidad registrada' : 'especialidades registradas'}</p>
             </div>
@@ -142,7 +171,7 @@ function Especialidades() {
                 </tbody>
               </table>
             </div>
-            {!specialties.length &&
+            {!loading && !loadError && !specialties.length &&
               <p className="mt-6 rounded-2xl border border-line bg-white p-8 text-center text-muted">No hay
                 especialidades registradas.</p>}
       </section>
@@ -197,7 +226,7 @@ function Especialidades() {
               </button>
               <button
                 className="rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark"
-                type="submit">Guardar especialidad
+                type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Guardar especialidad'}
               </button>
             </footer>
             <p className="mt-4 text-center text-sm font-medium text-red-600" role="status">{formMessage}</p>
