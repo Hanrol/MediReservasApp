@@ -77,6 +77,22 @@ class JwtAuthenticationFilterTest {
         assertNull(exchange.getResponse().getStatusCode());
     }
 
+    @Test
+    void invitationAcceptanceIsPublicAndContinuesWithoutJwtValidation() {
+        var exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.post("/api/v3/invitations/accept").build());
+        var filter = filterReturning(HttpStatus.INTERNAL_SERVER_ERROR);
+        boolean[] continued = { false };
+
+        filter.filter(exchange, ignored -> {
+            continued[0] = true;
+            return Mono.empty();
+        }).block();
+
+        assertEquals(true, continued[0]);
+        assertNull(exchange.getResponse().getStatusCode());
+    }
+
     private JwtAuthenticationFilter filterReturning(HttpStatus authStatus) {
         String responseBody = authStatus == HttpStatus.OK ? AUTHORIZATION_RESPONSE : "auth error";
         ExchangeFunction exchangeFunction = request -> Mono.just(ClientResponse.create(authStatus)

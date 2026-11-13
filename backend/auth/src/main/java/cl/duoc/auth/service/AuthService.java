@@ -285,8 +285,9 @@ public class AuthService {
                 .anyMatch(existingRole -> existingRole.getRoleName().equalsIgnoreCase(roleName));
 
         if (alreadyAssigned) {
-            logger.warn("Asignación de rol rechazada: usuario ya tiene el rol {}. authUserId={}", roleName, authUserId);
-            throw new RuntimeException("El usuario ya tiene asignado ese rol");
+            logger.debug("Asignación de rol idempotente: usuario ya tiene el rol {}. authUserId={}", roleName,
+                    authUserId);
+            return toAuthUserResponseDTO(authUser);
         }
 
         authUser.getRoles().add(role);

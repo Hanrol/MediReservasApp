@@ -52,6 +52,41 @@ public class AuthClient {
         }
     }
 
+    public AuthRegistrationResponseDTO authenticateExistingUser(String email, String password) {
+        try {
+            ApiResponse<AuthRegistrationResponseDTO> response = webClientBuilder.build()
+                    .post()
+                    .uri("http://auth-service/api/v3/auth/login")
+                    .bodyValue(new AuthRegistrationRequest(email, password))
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<ApiResponse<AuthRegistrationResponseDTO>>() {
+                    })
+                    .block();
+
+            if (response == null || response.getData() == null) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "Auth Service no devolvió la cuenta autenticada");
+            }
+
+            return response.getData();
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException.BadRequest
+                | org.springframework.web.reactive.function.client.WebClientResponseException.Unauthorized ex) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Ya existe una cuenta para este correo. Para continuar, usa la contraseña elegida en el intento anterior o solicita ayuda a administración.", ex);
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudo validar la cuenta existente en Auth Service", ex);
+        } catch (Exception ex) {
+            if (ex instanceof ResponseStatusException responseStatusException) {
+                throw responseStatusException;
+            }
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudo conectar con Auth Service", ex);
+        }
+    }
+
     public AuthUserResponseDTO getAuthUserByEmail(String email) {
         try {
             ApiResponse<AuthUserResponseDTO> response = webClientBuilder.build()
@@ -102,6 +137,25 @@ public class AuthClient {
 
         } catch (Exception ex) {
             throw new RuntimeException("No se pudo conectar con Auth Service para asignar rol");
+        }
+    }
+
+    public boolean authUserExistsByEmail(String email) {
+        try {
+            ApiResponse<AuthUserResponseDTO> response = webClientBuilder.build()
+                    .get()
+                    .uri("http://auth-service/api/v3/auth/users/email/{email}", email)
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<ApiResponse<AuthUserResponseDTO>>() {
+                    })
+                    .block();
+            return response != null && response.getData() != null;
+        } catch (org.springframework.web.reactive.function.client.WebClientResponseException.NotFound ex) {
+            return false;
+        } catch (Exception ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudo validar el correo en Auth Service", ex);
         }
     }
 

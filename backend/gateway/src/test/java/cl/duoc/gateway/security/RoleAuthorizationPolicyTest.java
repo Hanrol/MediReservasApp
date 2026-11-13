@@ -25,6 +25,8 @@ class RoleAuthorizationPolicyTest {
         assertFalse(policy.isAllowed("/api/v3/doctors", HttpMethod.POST, List.of("PATIENT")));
         assertFalse(policy.isAllowed("/api/v3/users/email/other@example.test", HttpMethod.GET, List.of("PATIENT")));
         assertFalse(policy.isAllowed("/api/v3/users/me", HttpMethod.GET, List.of()));
+        assertTrue(policy.isAllowed("/api/v3/admin/invitations", HttpMethod.POST, List.of("ADMIN")));
+        assertFalse(policy.isAllowed("/api/v3/admin/invitations", HttpMethod.POST, List.of("RECEPTIONIST")));
     }
 
     @Test

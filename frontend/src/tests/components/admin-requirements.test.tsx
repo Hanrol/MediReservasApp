@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { AuthContext } from '../../contexts/auth-context'
 import { mockDoctors } from '../../data/mockDoctors'
@@ -47,6 +47,8 @@ function renderAsAdmin(page: React.ReactNode) {
 }
 
 describe('Requisitos de administración', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
   beforeEach(() => {
     localStorage.clear()
     saveUsers(mockUsers)
@@ -54,44 +56,28 @@ describe('Requisitos de administración', () => {
     saveSpecialties(mockSpecialties)
   })
 
-  it('CP-085 · RF-07/RF-09 · crea y luego desactiva una cuenta solicitando confirmación', async () => {
+  it('CP-085 · RF-07/RF-09 · invita una cuenta con rol y enlace de activación', async () => {
     const user = userEvent.setup()
+    const fetchMock = vi.fn().mockImplementation((_input: RequestInfo | URL, init?: RequestInit) => {
+      const isPost = init?.method === 'POST'
+      const data = isPost
+        ? { code: 201, message: 'Invitación creada', data: { invitationId: 10, email: 'camila.admin-test@example.cl', role: 'DOCTOR', token: 'invite-token', expiresAt: '2026-11-14T12:00:00' } }
+        : { code: 200, message: 'Invitaciones', data: [] }
+      return Promise.resolve(new Response(JSON.stringify(data), { status: isPost ? 201 : 200, headers: { 'Content-Type': 'application/json' } }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
     renderAsAdmin(<Usuarios />)
 
     await user.click(screen.getByRole('button', { name: '+ Crear usuario' }))
-    const createDialog = screen.getByRole('dialog', { name: 'Crear usuario' })
-    fireEvent.change(within(createDialog).getByLabelText('RUN'), { target: { value: '12345678-5' } })
-    fireEvent.change(within(createDialog).getByLabelText('Nombre'), { target: { value: 'Camila' } })
-    fireEvent.change(within(createDialog).getByLabelText('Apellidos'), { target: { value: 'Torres' } })
-    fireEvent.change(within(createDialog).getByLabelText('Correo electrónico'), { target: { value: 'camila.admin-test@example.cl' } })
-    fireEvent.change(within(createDialog).getByLabelText('Teléfono'), { target: { value: '912345678' } })
-    fireEvent.change(within(createDialog).getByLabelText('Dirección'), { target: { value: 'Santiago Centro' } })
-    fireEvent.change(within(createDialog).getByLabelText(/Contraseña temporal/), { target: { value: 'Paciente123' } })
-    await user.click(within(createDialog).getByRole('button', { name: 'Guardar usuario' }))
+    const dialog = screen.getByRole('dialog', { name: 'Invitar usuario' })
+    fireEvent.change(within(dialog).getByLabelText('Correo electrónico'), { target: { value: 'camila.admin-test@example.cl' } })
+    await user.selectOptions(within(dialog).getByLabelText(/Rol asignado/), 'DOCTOR')
+    await user.click(within(dialog).getByRole('button', { name: 'Crear invitación' }))
 
-    const createdUserRow = screen.getByRole('row', { name: /Camila Torres/ })
-    await user.click(within(createdUserRow).getByRole('button', { name: 'Desactivar' }))
-    const statusDialog = screen.getByRole('dialog', { name: 'Desactivar usuario' })
-    expect(statusDialog).toHaveTextContent('¿Confirmas que deseas desactivar la cuenta de Camila Torres?')
-    await user.click(within(statusDialog).getByRole('button', { name: 'Desactivar cuenta' }))
-
-    const inactiveUserRow = screen.getByRole('row', { name: /Camila Torres.*Inactivo/ })
-    expect(inactiveUserRow).toBeInTheDocument()
-    await user.click(within(inactiveUserRow).getByRole('button', { name: 'Editar' }))
-    const editDialog = screen.getByRole('dialog', { name: 'Editar usuario' })
-    fireEvent.change(within(editDialog).getByLabelText('Teléfono'), { target: { value: '998765432' } })
-    expect(within(editDialog).getByLabelText(/Contraseña temporal/)).toHaveValue('')
-    await user.click(within(editDialog).getByRole('button', { name: 'Guardar usuario' }))
-
-    expect(getUsers().find((item) => item.email === 'camila.admin-test@example.cl')).toMatchObject({
-      phone: '998765432',
-      active: false,
-    })
-    const editedUserRow = screen.getByRole('row', { name: /Camila Torres.*Inactivo/ })
-    await user.click(within(editedUserRow).getByRole('button', { name: 'Activar' }))
-    const activateDialog = screen.getByRole('dialog', { name: 'Activar usuario' })
-    await user.click(within(activateDialog).getByRole('button', { name: 'Cancelar' }))
-    expect(screen.getByRole('row', { name: /Camila Torres.*Inactivo/ })).toBeInTheDocument()
+    const linkInput = await within(dialog).findByLabelText('Enlace de activación')
+    expect(linkInput).toHaveValue('http://localhost:3000/#/activar-cuenta?token=invite-token')
+    expect(fetchMock).toHaveBeenCalledWith('/api/v3/admin/invitations', expect.objectContaining({ method: 'POST' }))
+    expect(getUsers()).not.toContainEqual(expect.objectContaining({ email: 'camila.admin-test@example.cl' }))
   })
 
   it('CP-086 · RF-08 · asigna un rol disponible y refleja el cambio en la tabla', async () => {
@@ -245,27 +231,31 @@ describe('Requisitos de administración', () => {
     expect(screen.getByRole('row', { name: /María Soto.*Inactivo/ })).toBeInTheDocument()
     expect(screen.queryByRole('row', { name: /Paula Contreras/ })).not.toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '+ Crear usuario' }))
-    const dialog = screen.getByRole('dialog', { name: 'Crear usuario' })
+    const dialog = screen.getByRole('dialog', { name: 'Invitar usuario' })
     fireEvent.click(within(dialog).getByRole('button', { name: '×' }))
-    expect(screen.queryByRole('dialog', { name: 'Crear usuario' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('dialog', { name: 'Invitar usuario' })).not.toBeInTheDocument()
   })
 
-  it('CP-118 · RF-07/RNF-07 · usuarios rechaza un RUN o correo duplicado', async () => {
+  it('CP-118 · RF-07/RNF-07 · usuarios informa cuando el correo ya tiene cuenta', async () => {
     const user = userEvent.setup()
+    const fetchMock = vi.fn().mockImplementation((_input: RequestInfo | URL, init?: RequestInit) => {
+      const isPost = init?.method === 'POST'
+      const data = isPost
+        ? { code: 409, message: 'Ya existe una cuenta asociada a este correo', data: null }
+        : { code: 200, message: 'ok', data: [] }
+      return Promise.resolve(new Response(JSON.stringify(data), { status: isPost ? 409 : 200, headers: { 'Content-Type': 'application/json' } }))
+    })
+    vi.stubGlobal('fetch', fetchMock)
     renderAsAdmin(<Usuarios />)
 
     await user.click(screen.getByRole('button', { name: '+ Crear usuario' }))
-    const dialog = screen.getByRole('dialog', { name: 'Crear usuario' })
-    fireEvent.change(within(dialog).getByLabelText('RUN'), { target: { value: '12345678-5' } })
-    fireEvent.change(within(dialog).getByLabelText('Nombre'), { target: { value: 'Camila' } })
-    fireEvent.change(within(dialog).getByLabelText('Apellidos'), { target: { value: 'Duplicada' } })
+    const dialog = screen.getByRole('dialog', { name: 'Invitar usuario' })
     fireEvent.change(within(dialog).getByLabelText('Correo electrónico'), { target: { value: 'paciente@medireservas.cl' } })
-    fireEvent.change(within(dialog).getByLabelText(/Contraseña temporal/), { target: { value: 'Paciente123' } })
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Guardar usuario' }))
+    await user.click(within(dialog).getByRole('button', { name: 'Crear invitación' }))
 
-    expect(within(dialog).getByText('El RUN o correo ya está asociado a otra cuenta.')).toBeInTheDocument()
-    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
-    expect(screen.queryByRole('dialog', { name: 'Crear usuario' })).not.toBeInTheDocument()
+    expect(await within(dialog).findByText('Ya existe una cuenta asociada a este correo')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'Cancelar' }))
+    expect(screen.queryByRole('dialog', { name: 'Invitar usuario' })).not.toBeInTheDocument()
   })
 
   it('CP-119 · RF-14/RNF-07 · médicos rechaza un RUN o registro duplicado', async () => {

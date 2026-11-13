@@ -357,7 +357,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void assignRole_deberiaFallarCuandoUsuarioYaTieneRol() {
+    void assignRole_deberiaSerIdempotenteCuandoUsuarioYaTieneRol() {
         authUser.getRoles().add(patientRole);
 
         when(authUserRepository.findById(1L))
@@ -366,16 +366,12 @@ class AuthServiceTest {
         when(roleRepository.findByRoleName("PATIENT"))
                 .thenReturn(Optional.of(patientRole));
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> authService.assignRole(1L, "PATIENT"));
-
-        assertEquals(
-                "El usuario ya tiene asignado ese rol",
-                exception.getMessage());
+        AuthUserResponseDTO response = authService.assignRole(1L, "PATIENT");
 
         verify(authUserRepository, never())
                 .save(any(AuthUser.class));
+        assertNotNull(response);
+        assertTrue(response.roles().contains("PATIENT"));
     }
 
     // =========================================================
