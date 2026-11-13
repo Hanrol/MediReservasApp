@@ -16,6 +16,7 @@ import type { Appointment, AppointmentStatus as AppointmentStatusValue } from '.
 
 function GestionCitas() {
   const { session } = useAuth()
+  const token = session?.token
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [schedules, setSchedules] = useState<Awaited<ReturnType<typeof getReceptionData>>['schedules']>([])
   const [patientRunById, setPatientRunById] = useState<Map<number, string>>(new Map())
@@ -30,11 +31,11 @@ function GestionCitas() {
   const [rescheduleTime, setRescheduleTime] = useState('')
   const [rescheduleError, setRescheduleError] = useState('')
   const loadData = useCallback(async (showLoading = true) => {
-    if (!session?.token) return false
+    if (!token) return false
     if (showLoading) setLoading(true)
     setError(null)
     try {
-      const data = await getReceptionData(session.token)
+      const data = await getReceptionData(token)
       setAppointments(data.appointments)
       setSchedules(data.schedules)
       setPatientRunById(data.patientRunById)
@@ -45,14 +46,17 @@ function GestionCitas() {
     } finally {
       setLoading(false)
     }
-  }, [session?.token])
+  }, [token])
 
   useEffect(() => {
     document.title = 'Gestión de citas | MediReservas'
   }, [])
 
   useEffect(() => {
-    void loadData()
+    const timer = window.setTimeout(() => {
+      void loadData()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [loadData])
 
   const filteredAppointments = useMemo(() => {
