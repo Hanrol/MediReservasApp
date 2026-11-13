@@ -17,7 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 import cl.duoc.users.dto.ApiResponse;
 import cl.duoc.users.dto.CreateUserRequestDTO;
 import cl.duoc.users.dto.CurrentUserResponseDTO;
+import cl.duoc.users.dto.ProfileCompletionResponseDTO;
 import cl.duoc.users.dto.UpdateUserRequestDTO;
+import cl.duoc.users.dto.UpdateUserProfileRequestDTO;
 import cl.duoc.users.dto.UserResponseDTO;
 import cl.duoc.users.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -41,6 +43,22 @@ public class UserController {
 
 		return ResponseEntity.ok(
 				new ApiResponse<>(200, "Usuario autenticado obtenido correctamente", response));
+	}
+
+	@GetMapping("/me/profile-completion")
+	public ResponseEntity<ApiResponse<ProfileCompletionResponseDTO>> getProfileCompletion(
+			@RequestHeader("X-Authenticated-Email") String authenticatedEmail,
+			@RequestHeader(value = "X-Authenticated-Roles", required = false) String roles) {
+		return ResponseEntity.ok(new ApiResponse<>(200, "Estado del perfil obtenido correctamente",
+				userService.getProfileCompletion(authenticatedEmail, roles)));
+	}
+
+	@PutMapping("/me/profile")
+	public ResponseEntity<ApiResponse<CurrentUserResponseDTO>> updateCurrentUserProfile(
+			@RequestHeader("X-Authenticated-Email") String authenticatedEmail,
+			@Valid @RequestBody UpdateUserProfileRequestDTO request) {
+		return ResponseEntity.ok(new ApiResponse<>(200, "Perfil actualizado correctamente",
+				userService.updateCurrentUserProfile(authenticatedEmail, request)));
 	}
 
 	@PostMapping

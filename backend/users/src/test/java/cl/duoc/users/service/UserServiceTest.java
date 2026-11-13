@@ -24,6 +24,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import cl.duoc.users.client.AuthClient;
+import cl.duoc.users.client.DoctorsClient;
 import cl.duoc.users.dto.AuthUserResponseDTO;
 import cl.duoc.users.dto.CreateUserRequestDTO;
 import cl.duoc.users.dto.CurrentUserResponseDTO;
@@ -33,6 +34,8 @@ import cl.duoc.users.model.User;
 import cl.duoc.users.model.UserProfile;
 import cl.duoc.users.repository.UserRepository;
 import cl.duoc.users.repository.UserProfileRepository;
+import cl.duoc.users.repository.PatientProfileRepository;
+import cl.duoc.users.repository.ReceptionistProfileRepository;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -45,6 +48,15 @@ class UserServiceTest {
 
     @Mock
     private AuthClient authClient;
+
+    @Mock
+    private DoctorsClient doctorsClient;
+
+    @Mock
+    private PatientProfileRepository patientProfileRepository;
+
+    @Mock
+    private ReceptionistProfileRepository receptionistProfileRepository;
 
     @InjectMocks
     private UserService userService;
@@ -252,6 +264,41 @@ class UserServiceTest {
         assertEquals(
                 "Usuario no encontrado",
                 exception.getMessage());
+    }
+
+    @Test
+    void getProfileCompletion_deberiaConsiderarCompletoAlPacienteSinDatosOpcionales() {
+        UserProfile profile = new UserProfile();
+        profile.setUser(user);
+        profile.setFirstName("Ana");
+        profile.setLastName("Pérez");
+        when(userRepository.findByEmail("paciente@test.cl")).thenReturn(Optional.of(user));
+        when(userProfileRepository.findByUserUserId(1L)).thenReturn(Optional.of(profile));
+        when(patientProfileRepository.existsByUserUserId(1L)).thenReturn(true);
+
+        var result = userService.getProfileCompletion("paciente@test.cl", "PATIENT");
+
+        assertEquals("PATIENT", result.role());
+        assertTrue(result.complete());
+        assertTrue(result.missingFields().isEmpty());
+    }
+
+    @Test
+    void getProfileCompletion_deberiaExigirPerfilProfesionalParaDoctor() {
+        UserProfile profile = new UserProfile();
+        profile.setUser(user);
+        profile.setFirstName("Diego");
+        profile.setLastName("Médico");
+        profile.setPhone("912345678");
+        profile.setBirthDate(LocalDate.of(1985, 2, 1));
+        profile.setAddress("Santiago");
+        when(userRepository.findByEmail("paciente@test.cl")).thenReturn(Optional.of(user));
+        when(userProfileRepository.findByUserUserId(1L)).thenReturn(Optional.of(profile));
+        when(doctorsClient.hasDoctorProfile(1L)).thenReturn(false);
+
+        var result = userService.getProfileCompletion("paciente@test.cl", "DOCTOR");
+
+        assertEquals(List.of("doctorProfile"), result.missingFields());
     }
 
     @Test

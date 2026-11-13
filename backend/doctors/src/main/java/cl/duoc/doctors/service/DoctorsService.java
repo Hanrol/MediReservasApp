@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import cl.duoc.doctors.client.AuthClient;
 import cl.duoc.doctors.client.UsersClient;
 import cl.duoc.doctors.dto.DoctorsDTO;
+import cl.duoc.doctors.dto.DoctorOnboardingRequestDTO;
 import cl.duoc.doctors.dto.UserInternalResponseDTO;
 import cl.duoc.doctors.model.DoctorSpecialties;
 import cl.duoc.doctors.model.Doctors;
@@ -43,6 +44,30 @@ public class DoctorsService {
                     return new RuntimeException("Doctor no encontrado");
                 });
         return convertToDTO(doctor);
+    }
+
+    public DoctorsDTO findByUserId(Long userId) {
+        Doctors doctor = doctorsRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Perfil profesional de doctor no encontrado"));
+        return convertToDTO(doctor);
+    }
+
+    public boolean existsByUserId(Long userId) {
+        return doctorsRepository.existsByUserId(userId);
+    }
+
+    public Long getUserIdByEmail(String email) {
+        return usersClient.getUserByEmail(email).userId();
+    }
+
+    @Transactional
+    public DoctorsDTO createOwnProfile(String authenticatedEmail, DoctorOnboardingRequestDTO request) {
+        UserInternalResponseDTO user = usersClient.getUserByEmail(authenticatedEmail);
+        DoctorsDTO dto = new DoctorsDTO();
+        dto.setUserId(user.userId());
+        dto.setMedicalLicenseNumber(request.medicalLicenseNumber().trim());
+        dto.setSpecialtyIds(request.specialtyIds());
+        return save(dto);
     }
 
     @Transactional

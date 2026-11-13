@@ -114,6 +114,14 @@ public class PatientProfileController {
 						response));
 	}
 
+	@PutMapping("/me")
+	public ResponseEntity<ApiResponse<PatientProfileResponseDTO>> updateOwnPatientProfile(
+			@RequestHeader("X-Authenticated-Email") String authenticatedEmail,
+			@Valid @RequestBody UpdatePatientProfileRequestDTO request) {
+		PatientProfileResponseDTO response = patientProfileService.updateOwnPatientProfile(authenticatedEmail, request);
+		return ResponseEntity.ok(new ApiResponse<>(200, "Datos opcionales del paciente actualizados", response));
+	}
+
 	@DeleteMapping("/{patientProfileId}")
 	@Operation(summary = "Eliminar perfil de paciente", description = "Elimina un perfil de paciente registrado.")
 	public ResponseEntity<ApiResponse<Object>> deletePatientProfile(

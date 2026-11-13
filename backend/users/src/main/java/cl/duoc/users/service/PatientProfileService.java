@@ -146,6 +146,17 @@ public class PatientProfileService {
         return toResponseDTO(savedProfile);
     }
 
+    public PatientProfileResponseDTO updateOwnPatientProfile(
+            String authenticatedEmail,
+            UpdatePatientProfileRequestDTO request) {
+        Long userId = userService.getUserByEmail(authenticatedEmail).userId();
+        assertPatientOwnsUserId(userId, authenticatedEmail);
+        PatientProfile profile = patientProfileRepository.findByUserUserId(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Perfil de paciente no encontrado"));
+        return updatePatientProfile(profile.getPatientProfileId(), request);
+    }
+
     public void deletePatientProfile(Long patientProfileId) {
         PatientProfile profile = patientProfileRepository.findById(patientProfileId)
                 .orElseThrow(() -> {

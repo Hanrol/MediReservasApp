@@ -71,51 +71,47 @@ describe('Requisitos de las páginas públicas', () => {
     expect(screen.getByRole('link', { name: 'Registrarme' })).toHaveAttribute('href', '/registro')
   })
 
-  it('CP-079 · RF-26/RF-27 · contacto muestra el mapa, valida el formulario y confirma el envío', async () => {
-    const user = userEvent.setup()
+  it('CP-079 · RF-26/RF-27 · contacto muestra el mapa, valida el formulario y confirma el envío', () => {
     renderPublic(<Contacto />)
 
     expect(screen.getByTitle('Mapa de MediReservas en San Joaquín')).toBeInTheDocument()
     expect(document.body.textContent).toContain('Av. Vicuña Mackenna 4917')
 
-    await user.click(screen.getByRole('button', { name: 'Enviar mensaje' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar mensaje' }))
     expect(screen.getByText('El nombre es obligatorio.')).toBeInTheDocument()
     expect(screen.getByText('El correo electrónico es obligatorio.')).toBeInTheDocument()
 
-    await user.type(screen.getByLabelText('Correo electrónico'), 'correo-invalido')
-    await user.click(screen.getByRole('button', { name: 'Enviar mensaje' }))
+    fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'correo-invalido' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar mensaje' }))
     expect(screen.getByText('Ingresa un correo electrónico válido.')).toBeInTheDocument()
 
-    await user.type(screen.getByLabelText('Nombre'), 'Camila Torres')
-    await user.clear(screen.getByLabelText('Correo electrónico'))
-    await user.type(screen.getByLabelText('Correo electrónico'), 'camila@example.cl')
-    await user.type(screen.getByLabelText('Asunto'), 'Consulta médica')
-    await user.type(screen.getByLabelText('Mensaje'), 'Quisiera conocer los horarios de atención.')
-    await user.click(screen.getByRole('button', { name: 'Enviar mensaje' }))
+    fireEvent.change(screen.getByLabelText('Nombre'), { target: { value: 'Camila Torres' } })
+    fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'camila@example.cl' } })
+    fireEvent.change(screen.getByLabelText('Asunto'), { target: { value: 'Consulta médica' } })
+    fireEvent.change(screen.getByLabelText('Mensaje'), { target: { value: 'Quisiera conocer los horarios de atención.' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar mensaje' }))
 
     expect(screen.getByRole('status')).toHaveTextContent('El mensaje fue enviado correctamente.')
   })
 
-  it('CP-080 · RF-03 · login indica los campos obligatorios', async () => {
-    const user = userEvent.setup()
+  it('CP-080 · RF-03 · login indica los campos obligatorios', () => {
     renderPublic(<Login />)
 
-    await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
     expect(screen.getByText('El correo electrónico es obligatorio.')).toBeInTheDocument()
     expect(screen.getByText('La contraseña es obligatoria.')).toBeInTheDocument()
-    await user.type(screen.getByLabelText('Correo electrónico'), 'paciente@medireservas.cl')
+    fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'paciente@medireservas.cl' } })
     expect(screen.queryByText('El correo electrónico es obligatorio.')).not.toBeInTheDocument()
   })
 
   it('CP-081 · RF-03 · login informa credenciales incorrectas', async () => {
-    const user = userEvent.setup()
     mockedAuthenticate.mockRejectedValue(new ApiError('Credenciales inválidas', 401))
     renderPublic(<Login />)
 
-    await user.type(screen.getByLabelText('Correo electrónico'), 'paciente@medireservas.cl')
-    await user.type(screen.getByLabelText('Contraseña'), 'Incorrecta123')
-    await user.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
+    fireEvent.change(screen.getByLabelText('Correo electrónico'), { target: { value: 'paciente@medireservas.cl' } })
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Incorrecta123' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }))
 
     expect(await screen.findByText('El correo o la contraseña no son correctos.')).toBeInTheDocument()
   })
