@@ -6,6 +6,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +40,22 @@ public class AdminInvitationController {
         CreatedAdminInvitationResponseDTO response = adminInvitationService.createInvitation(request, authenticatedEmail);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(new ApiResponse<>(201, "Invitación creada correctamente", response));
+    }
+
+    @PostMapping("/api/v3/admin/invitations/{invitationId}/resend")
+    @Operation(summary = "Reenviar invitación", description = "Rota el enlace de activación y renueva su vigencia por 48 horas.")
+    public ResponseEntity<ApiResponse<CreatedAdminInvitationResponseDTO>> resendInvitation(
+            @PathVariable Long invitationId,
+            @RequestHeader("X-Authenticated-Email") String authenticatedEmail) {
+        CreatedAdminInvitationResponseDTO response = adminInvitationService.resendInvitation(invitationId, authenticatedEmail);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Nuevo enlace de invitación generado correctamente", response));
+    }
+
+    @PatchMapping("/api/v3/admin/invitations/{invitationId}/cancel")
+    @Operation(summary = "Cancelar invitación", description = "Invalida el enlace de activación de una invitación pendiente.")
+    public ResponseEntity<ApiResponse<Object>> cancelInvitation(@PathVariable Long invitationId) {
+        adminInvitationService.cancelInvitation(invitationId);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Invitación cancelada correctamente", null));
     }
 
     @GetMapping("/api/v3/admin/invitations")

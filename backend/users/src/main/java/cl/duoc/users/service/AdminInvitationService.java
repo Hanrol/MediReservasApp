@@ -60,7 +60,7 @@ public class AdminInvitationService {
         }
 
         var pendingInvitation = invitationRepository
-                .findFirstByEmailIgnoreCaseAndAcceptedAtIsNullOrderByCreatedAtDesc(email);
+                .findFirstByEmailIgnoreCaseAndAcceptedAtIsNullAndCanceledAtIsNullOrderByCreatedAtDesc(email);
         boolean authAccountExists = authClient.authUserExistsByEmail(email);
         if (authAccountExists && pendingInvitation.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya existe una cuenta asociada a este correo");
@@ -78,10 +78,45 @@ public class AdminInvitationService {
         invitation.setTokenHash(hashToken(token));
         invitation.setInvitedByEmail(invitedByEmail);
         invitation.setExpiresAt(expiresAt);
+        invitation.setCanceledAt(null);
 
         AdminInvitation saved = invitationRepository.save(invitation);
         return new CreatedAdminInvitationResponseDTO(
                 saved.getInvitationId(), saved.getEmail(), saved.getRoleName(), token, saved.getExpiresAt());
+    }
+
+    @Transactional
+    public CreatedAdminInvitationResponseDTO resendInvitation(Long invitationId, String invitedByEmail) {
+        AdminInvitation invitation = invitationRepository.findById(invitationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invitación no encontrada"));
+        if (invitation.getAcceptedAt() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La invitación ya fue utilizada");
+        }
+        if (invitation.getCanceledAt() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La invitación fue cancelada");
+        }
+
+        String token = generateToken();
+        invitation.setTokenHash(hashToken(token));
+        invitation.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusHours(EXPIRATION_HOURS));
+        invitation.setInvitedByEmail(invitedByEmail);
+        AdminInvitation saved = invitationRepository.save(invitation);
+        return new CreatedAdminInvitationResponseDTO(
+                saved.getInvitationId(), saved.getEmail(), saved.getRoleName(), token, saved.getExpiresAt());
+    }
+
+    @Transactional
+    public void cancelInvitation(Long invitationId) {
+        AdminInvitation invitation = invitationRepository.findById(invitationId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Invitación no encontrada"));
+        if (invitation.getAcceptedAt() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La invitación ya fue utilizada");
+        }
+        if (invitation.getCanceledAt() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "La invitación ya fue cancelada");
+        }
+        invitation.setCanceledAt(LocalDateTime.now(ZoneOffset.UTC));
+        invitationRepository.save(invitation);
     }
 
     @Transactional(readOnly = true)
@@ -93,7 +128,8 @@ public class AdminInvitationService {
                         invitation.getEmail(),
                         invitation.getRoleName(),
                         invitation.getExpiresAt(),
-                        invitation.getExpiresAt().isBefore(now) ? "EXPIRED" : "PENDING"))
+                        invitation.getCanceledAt() != null ? "CANCELED"
+                                : invitation.getExpiresAt().isBefore(now) ? "EXPIRED" : "PENDING"))
                 .toList();
     }
 
@@ -104,6 +140,9 @@ public class AdminInvitationService {
         LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
         if (invitation.getAcceptedAt() != null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "La invitación ya fue utilizada");
+        }
+        if (invitation.getCanceledAt() != null) {
+            throw new ResponseStatusException(HttpStatus.GONE, "La invitación fue cancelada");
         }
         if (invitation.getExpiresAt().isBefore(now)) {
             throw new ResponseStatusException(HttpStatus.GONE, "La invitación venció; solicita una nueva");

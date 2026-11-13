@@ -3,7 +3,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout.tsx'
 import Breadcrumbs from '../../components/layout/Breadcrumbs.tsx'
 import { DASHBOARD_CONFIG } from '../../constants/roles.ts'
 import { ROUTES } from '../../constants/routes.ts'
-import { createAdminInvitation, getAdminInvitations } from '../../services/admin-invitations.service.ts'
+import { cancelAdminInvitation, createAdminInvitation, getAdminInvitations, resendAdminInvitation } from '../../services/admin-invitations.service.ts'
 import { ApiError } from '../../services/api-client.ts'
 import { getAdminUsers, saveAdminUser, setAdminUserStatus } from '../../services/admin-api.service.ts'
 import { useAuth } from '../../hooks/useAuth.ts'
@@ -38,6 +38,7 @@ function Usuarios() {
   const [inviteUrl, setInviteUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [inviteLoadError, setInviteLoadError] = useState('')
+  const [invitationActionId, setInvitationActionId] = useState<number | null>(null)
   const [usersLoadError, setUsersLoadError] = useState('')
   const [usersLoading, setUsersLoading] = useState(true)
 
@@ -212,6 +213,46 @@ function Usuarios() {
     }
   }
 
+  function invitationUrl(token: string) {
+    const link = new URL(window.location.href)
+    link.hash = `${ROUTES.activateInvitation}?${new URLSearchParams({ token }).toString()}`
+    return link.toString()
+  }
+
+  async function handleResendInvitation(invitationId: number) {
+    if (!session?.token) return
+    setInvitationActionId(invitationId)
+    setInviteLoadError('')
+    try {
+      const resent = await resendAdminInvitation(invitationId, session.token)
+      setInviteEmail(resent.email)
+      setInviteRole(resent.role)
+      setValues(emptyForm)
+      setInviteUrl(invitationUrl(resent.token))
+      setFormMessage('Se generó un nuevo enlace de activación. El enlace anterior dejó de ser válido.')
+      setFormOpen(true)
+      setInvitations(await getAdminInvitations(session.token))
+    } catch (requestError) {
+      setInviteLoadError(requestError instanceof ApiError ? requestError.message : 'No se pudo renovar la invitación.')
+    } finally {
+      setInvitationActionId(null)
+    }
+  }
+
+  async function handleCancelInvitation(invitationId: number) {
+    if (!session?.token || !window.confirm('¿Cancelar esta invitación? Su enlace dejará de ser válido.')) return
+    setInvitationActionId(invitationId)
+    setInviteLoadError('')
+    try {
+      await cancelAdminInvitation(invitationId, session.token)
+      setInvitations(await getAdminInvitations(session.token))
+    } catch (requestError) {
+      setInviteLoadError(requestError instanceof ApiError ? requestError.message : 'No se pudo cancelar la invitación.')
+    } finally {
+      setInvitationActionId(null)
+    }
+  }
+
   async function confirmStatusChange() {
     if (!statusUser) return
     if (!session?.token) return
@@ -301,7 +342,7 @@ function Usuarios() {
           <div><p className="text-sm font-bold uppercase tracking-widest text-primary">Acceso de cuentas nuevas</p><h2 className="mt-2 text-2xl font-bold" id="invitations-title">Invitaciones</h2><p className="mt-2 text-muted">Los enlaces vencen en 48 horas y solo se pueden usar una vez.</p></div>
         </header>
         {inviteLoadError && <p className="mt-4 text-sm text-red-600" role="alert">{inviteLoadError}</p>}
-        {invitations.length > 0 ? <div className="mt-4 overflow-x-auto rounded-2xl border border-line bg-white shadow-sm"><table className="w-full min-w-2xl text-left"><thead className="border-b border-line bg-page text-xs uppercase tracking-wider text-muted"><tr>{['Correo', 'Rol', 'Vencimiento', 'Estado'].map((heading) => <th className="px-5 py-4 font-semibold" key={heading}>{heading}</th>)}</tr></thead><tbody>{invitations.map((invitation) => <tr className="border-b border-line last:border-0" key={invitation.invitationId}><td className="px-5 py-4">{invitation.email}</td><td className="px-5 py-4">{DASHBOARD_CONFIG[invitation.role].label}</td><td className="px-5 py-4">{new Date(invitation.expiresAt).toLocaleString()}</td><td className="px-5 py-4">{invitation.status === 'PENDING' ? 'Pendiente' : 'Vencida'}</td></tr>)}</tbody></table></div> : !inviteLoadError && <p className="mt-4 rounded-2xl border border-line bg-white p-6 text-muted">No hay invitaciones pendientes.</p>}
+        {invitations.length > 0 ? <div className="mt-4 overflow-x-auto rounded-2xl border border-line bg-white shadow-sm"><table className="w-full min-w-2xl text-left"><thead className="border-b border-line bg-page text-xs uppercase tracking-wider text-muted"><tr>{['Correo', 'Rol', 'Vencimiento', 'Estado', 'Acciones'].map((heading) => <th className="px-5 py-4 font-semibold" key={heading}>{heading}</th>)}</tr></thead><tbody>{invitations.map((invitation) => <tr className="border-b border-line last:border-0" key={invitation.invitationId}><td className="px-5 py-4">{invitation.email}</td><td className="px-5 py-4">{DASHBOARD_CONFIG[invitation.role].label}</td><td className="px-5 py-4">{new Date(invitation.expiresAt).toLocaleString()}</td><td className="px-5 py-4">{invitation.status === 'PENDING' ? 'Pendiente' : invitation.status === 'EXPIRED' ? 'Vencida' : 'Cancelada'}</td><td className="px-5 py-4"><div className="flex justify-end gap-2">{invitation.status !== 'CANCELED' && <><button className="rounded-lg border border-line px-3 py-2 text-sm font-semibold text-primary-dark hover:bg-primary-light disabled:opacity-50" type="button" disabled={invitationActionId === invitation.invitationId} onClick={() => void handleResendInvitation(invitation.invitationId)}>Reenviar enlace</button><button className="rounded-lg px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-50 disabled:opacity-50" type="button" disabled={invitationActionId === invitation.invitationId} onClick={() => void handleCancelInvitation(invitation.invitationId)}>Cancelar</button></>}</div></td></tr>)}</tbody></table></div> : !inviteLoadError && <p className="mt-4 rounded-2xl border border-line bg-white p-6 text-muted">No hay invitaciones pendientes.</p>}
       </section>
 
       {formOpen &&

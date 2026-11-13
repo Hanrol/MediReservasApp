@@ -11,7 +11,7 @@ public interface AdminInvitationRepository extends JpaRepository<AdminInvitation
 
     Optional<AdminInvitation> findByTokenHash(String tokenHash);
 
-    Optional<AdminInvitation> findFirstByEmailIgnoreCaseAndAcceptedAtIsNullOrderByCreatedAtDesc(String email);
+    Optional<AdminInvitation> findFirstByEmailIgnoreCaseAndAcceptedAtIsNullAndCanceledAtIsNullOrderByCreatedAtDesc(String email);
 
     List<AdminInvitation> findAllByAcceptedAtIsNullOrderByCreatedAtDesc();
 }

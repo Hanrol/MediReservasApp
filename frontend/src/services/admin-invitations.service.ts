@@ -6,7 +6,7 @@ export interface AdminInvitation {
   email: string
   role: Role
   expiresAt: string
-  status: 'PENDING' | 'EXPIRED'
+  status: 'PENDING' | 'EXPIRED' | 'CANCELED'
 }
 
 interface CreatedInvitation extends Omit<AdminInvitation, 'status'> {
@@ -36,6 +36,21 @@ export async function createAdminInvitation(
 export async function getAdminInvitations(token: string): Promise<AdminInvitation[]> {
   const response = await apiRequest<ApiResponse<AdminInvitation[]>>('/admin/invitations', { token })
   return response.data
+}
+
+export async function resendAdminInvitation(invitationId: number, token: string): Promise<CreatedInvitation> {
+  const response = await apiRequest<ApiResponse<CreatedInvitation>>(`/admin/invitations/${invitationId}/resend`, {
+    method: 'POST',
+    token,
+  })
+  return response.data
+}
+
+export async function cancelAdminInvitation(invitationId: number, token: string): Promise<void> {
+  await apiRequest<ApiResponse<null>>(`/admin/invitations/${invitationId}/cancel`, {
+    method: 'PATCH',
+    token,
+  })
 }
 
 export interface AcceptInvitationRequest {
