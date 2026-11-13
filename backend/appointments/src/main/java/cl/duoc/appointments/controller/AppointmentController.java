@@ -129,8 +129,11 @@ public class AppointmentController {
                description = "Actualiza los datos de una cita. Solo permitido si está en estado PENDING.")
     public ResponseEntity<ApiResponse<AppointmentResponseDTO>> updateAppointment(
             @PathVariable Long appointmentId,
-            @Valid @RequestBody AppointmentUpdateRequestDTO dto) {
-        AppointmentResponseDTO response = appointmentService.updateAppointment(appointmentId, dto);
+            @Valid @RequestBody AppointmentUpdateRequestDTO dto,
+            @RequestHeader("X-Authenticated-Email") String email,
+            @RequestHeader("X-Authenticated-Roles") String roleHeader) {
+        AppointmentResponseDTO response = appointmentService.updateAppointment(
+                appointmentId, dto, email, parseRoles(roleHeader));
         return ResponseEntity.ok(
                 new ApiResponse<>(200, "Cita actualizada exitosamente", response));
     }

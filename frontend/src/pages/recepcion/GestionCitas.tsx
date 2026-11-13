@@ -1,26 +1,26 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AppointmentStatus } from '../../components/appointments/AppointmentStatus'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import Breadcrumbs from '../../components/layout/Breadcrumbs'
 import Modal from '../../components/ui/Modal'
 import { APPOINTMENT_STATUS_OPTIONS } from '../../constants/appointmentStatuses'
 import { ROUTES } from '../../constants/routes'
-import { useAppointments } from '../../hooks/useAppointments'
-import { useSchedules } from '../../hooks/useSchedules'
-import { getUsers } from '../../services/users.service'
+import { useAuth } from '../../hooks/useAuth'
+import {
+  cancelReceptionAppointment,
+  confirmReceptionAppointment,
+  getReceptionData,
+  rescheduleReceptionAppointment,
+} from '../../services/reception-api.service'
 import type { Appointment, AppointmentStatus as AppointmentStatusValue } from '../../types/appointment'
 
 function GestionCitas() {
-  const {
-    appointments,
-    loading,
-    error,
-    refresh,
-    confirmAppointment: confirmAppointmentAction,
-    cancelAppointmentByStaff,
-    rescheduleAppointment: rescheduleAppointmentAction,
-  } = useAppointments()
-  const { schedules, refresh: refreshSchedules } = useSchedules()
+  const { session } = useAuth()
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [schedules, setSchedules] = useState<Awaited<ReturnType<typeof getReceptionData>>['schedules']>([])
+  const [patientRunById, setPatientRunById] = useState<Map<number, string>>(new Map())
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState<AppointmentStatusValue | 'all'>('all')
   const [date, setDate] = useState('')
@@ -29,14 +29,31 @@ function GestionCitas() {
   const [rescheduleDate, setRescheduleDate] = useState('')
   const [rescheduleTime, setRescheduleTime] = useState('')
   const [rescheduleError, setRescheduleError] = useState('')
-  const patientRunById = useMemo(
-    () => new Map(getUsers().map((user) => [user.userId, user.run])),
-    [],
-  )
+  const loadData = useCallback(async (showLoading = true) => {
+    if (!session?.token) return false
+    if (showLoading) setLoading(true)
+    setError(null)
+    try {
+      const data = await getReceptionData(session.token)
+      setAppointments(data.appointments)
+      setSchedules(data.schedules)
+      setPatientRunById(data.patientRunById)
+      return true
+    } catch {
+      setError('No se pudieron cargar las citas desde el servidor. Intenta actualizar la página.')
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }, [session?.token])
 
   useEffect(() => {
     document.title = 'Gestión de citas | MediReservas'
   }, [])
+
+  useEffect(() => {
+    void loadData()
+  }, [loadData])
 
   const filteredAppointments = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase('es')
@@ -73,19 +90,28 @@ function GestionCitas() {
     setDate('')
   }
 
-  function confirmAppointment(appointment: Appointment) {
+  async function confirmAppointment(appointment: Appointment) {
     if (!window.confirm(`¿Confirmas la cita de ${appointment.patientName}?`)) return
-    const updated = confirmAppointmentAction(appointment.appointmentId)
-    if (updated) setFeedback(`La cita de ${appointment.patientName} fue confirmada.`)
+    if (!session) return
+    try {
+      await confirmReceptionAppointment(session.token, appointment.appointmentId, session.userId)
+      await loadData(false)
+      setFeedback(`La cita de ${appointment.patientName} fue confirmada.`)
+    } catch {
+      setError('No se pudo confirmar la cita. Actualiza la lista e inténtalo nuevamente.')
+    }
   }
 
-  function cancelAppointment(appointment: Appointment) {
+  async function cancelAppointment(appointment: Appointment) {
     if (!window.confirm(`¿Confirmas la cancelación de la cita de ${appointment.patientName}?`)) return
-    const updated = cancelAppointmentByStaff(appointment.appointmentId)
-    if (!updated) return
-
-    refreshSchedules()
-    setFeedback(`La cita de ${appointment.patientName} fue cancelada.`)
+    if (!session) return
+    try {
+      await cancelReceptionAppointment(session.token, appointment.appointmentId, session.userId)
+      await loadData(false)
+      setFeedback(`La cita de ${appointment.patientName} fue cancelada.`)
+    } catch {
+      setError('No se pudo cancelar la cita. Actualiza la lista e inténtalo nuevamente.')
+    }
   }
 
   function openReschedule(appointment: Appointment) {
@@ -100,7 +126,7 @@ function GestionCitas() {
     setRescheduleError('')
   }
 
-  function rescheduleAppointment() {
+  async function rescheduleAppointment() {
     if (!selectedAppointment || !rescheduleDate || !rescheduleTime) {
       setRescheduleError('Selecciona la nueva fecha y hora.')
       return
@@ -116,12 +142,17 @@ function GestionCitas() {
       return
     }
 
-    const updated = rescheduleAppointmentAction(selectedAppointment.appointmentId, newSchedule.id)
-    if (!updated) return
-
-    refreshSchedules()
-    setFeedback(`La cita de ${selectedAppointment.patientName} fue reagendada para el ${newSchedule.date} a las ${newSchedule.time}.`)
-    closeReschedule()
+    if (!session) return
+    try {
+      await rescheduleReceptionAppointment(
+        session.token, selectedAppointment, newSchedule.id, session.userId,
+      )
+      await loadData(false)
+      setFeedback(`La cita de ${selectedAppointment.patientName} fue reagendada para el ${newSchedule.date} a las ${newSchedule.time}.`)
+      closeReschedule()
+    } catch {
+      setRescheduleError('No se pudo reagendar la cita. El horario puede haber sido ocupado; vuelve a actualizar.')
+    }
   }
 
   return (
@@ -162,7 +193,7 @@ function GestionCitas() {
           <p className="text-sm font-medium text-muted" aria-live="polite">
             {loading ? 'Cargando citas...' : `${filteredAppointments.length} ${filteredAppointments.length === 1 ? 'cita encontrada' : 'citas encontradas'}`}
           </p>
-          <button className="text-sm font-semibold text-primary hover:text-primary-dark disabled:opacity-50" type="button" disabled={loading} onClick={refresh}>Actualizar</button>
+          <button className="text-sm font-semibold text-primary hover:text-primary-dark disabled:opacity-50" type="button" disabled={loading} onClick={() => void loadData()}>Actualizar</button>
         </div>
 
         {!loading && filteredAppointments.length > 0 ? (

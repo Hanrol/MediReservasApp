@@ -11,9 +11,12 @@ import cl.duoc.appointments.enums.AppointmentStatus;
 import cl.duoc.appointments.model.Appointment;
 import cl.duoc.appointments.model.AppointmentCancellation;
 import cl.duoc.appointments.model.AppointmentStatusHistory;
+import cl.duoc.appointments.model.ScheduleSlot;
+import cl.duoc.appointments.model.SlotStatus;
 import cl.duoc.appointments.repository.AppointmentCancellationRepository;
 import cl.duoc.appointments.repository.AppointmentRepository;
 import cl.duoc.appointments.repository.AppointmentStatusHistoryRepository;
+import cl.duoc.appointments.repository.ScheduleSlotRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -38,6 +41,7 @@ public class AppointmentService {
     // Cambio: cliente para validar patientUserId contra users-service.
     private final UsersClient usersClient;
     private final DoctorsClient doctorsClient;
+    private final ScheduleSlotRepository scheduleSlotRepository;
 
     public AppointmentResponseDTO createAppointment(AppointmentCreateRequestDTO dto) {
 
@@ -47,6 +51,7 @@ public class AppointmentService {
             throw new RuntimeException("Usuario no encontrado con ID: " + dto.getPatientUserId());
         }
 
+        ScheduleSlot slot = findAvailableSlot(dto.getScheduleSlotId(), dto.getDoctorId());
         Appointment appointment = new Appointment();
         appointment.setPatientUserId(dto.getPatientUserId());
         appointment.setDoctorId(dto.getDoctorId());
@@ -56,6 +61,7 @@ public class AppointmentService {
         appointment.setAppointmentStatus(AppointmentStatus.PENDING);
 
         Appointment saved = appointmentRepository.save(appointment);
+        reserveSlot(slot, saved.getAppointmentId());
 
         // Primer registro en historial: old_status null porque la cita recién nace
         saveHistory(saved, null, AppointmentStatus.PENDING, null, "Cita creada");
@@ -131,12 +137,30 @@ public class AppointmentService {
                 + appointment.getAppointmentStatus());
         }
 
+        ScheduleSlot oldSlot = scheduleSlotRepository.findById(appointment.getScheduleSlotId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "El horario actual de la cita no existe"));
+        if (!oldSlot.getDoctorId().equals(dto.getDoctorId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "El médico debe coincidir con el horario seleccionado");
+        }
+        ScheduleSlot newSlot = oldSlot;
+        if (!appointment.getScheduleSlotId().equals(dto.getScheduleSlotId())) {
+            newSlot = findAvailableSlot(dto.getScheduleSlotId(), dto.getDoctorId());
+            oldSlot.setSlotStatus(SlotStatus.LIBERADO_POR_CANCELACION);
+            oldSlot.setAppointmentId(null);
+        }
+
         appointment.setDoctorId(dto.getDoctorId());
         appointment.setSpecialtyId(dto.getSpecialtyId());
         appointment.setScheduleSlotId(dto.getScheduleSlotId());
         appointment.setReason(dto.getReason());
 
         Appointment updated = appointmentRepository.save(appointment);
+        if (!oldSlot.getScheduleSlotId().equals(newSlot.getScheduleSlotId())) {
+            reserveSlot(newSlot, updated.getAppointmentId());
+            scheduleSlotRepository.save(oldSlot);
+        }
 
         // Historial: status no cambia, pero igual queda trazado que se editó
         saveHistory(updated, AppointmentStatus.PENDING, AppointmentStatus.PENDING,
@@ -162,9 +186,18 @@ public class AppointmentService {
         return toResponseDTO(updated);
     }
 
+    public AppointmentResponseDTO updateAppointment(
+            Long id, AppointmentUpdateRequestDTO dto, String email, Set<String> roles) {
+        assertDoctorOwnsAppointment(findOrThrow(id), email, roles);
+        if (email != null && !email.isBlank()) {
+            dto.setChangedByUserId(usersClient.getUserIdByEmail(email));
+        }
+        return updateAppointment(id, dto);
+    }
+
     public AppointmentResponseDTO confirmAppointment(Long id, AppointmentStatusChangeRequestDTO dto, String email, Set<String> roles) {
         assertDoctorOwnsAppointment(findOrThrow(id), email, roles);
-        if (roles.contains("DOCTOR") && !roles.contains("ADMIN") && !roles.contains("RECEPTIONIST")) {
+        if (email != null && !email.isBlank()) {
             dto.setChangedByUserId(usersClient.getUserIdByEmail(email));
         }
         return confirmAppointment(id, dto);
@@ -186,6 +219,7 @@ public class AppointmentService {
         appointment.setAppointmentStatus(AppointmentStatus.CANCELLED);
 
         Appointment updated = appointmentRepository.save(appointment);
+        releaseSlot(appointment.getScheduleSlotId());
 
         // Regla diferencial: cancelar además crea registro en appointment_cancellations
         AppointmentCancellation cancellation = new AppointmentCancellation();
@@ -206,6 +240,8 @@ public class AppointmentService {
         if (roles.contains("PATIENT") && !hasStaffOverride(roles)) {
             assertPatientOwnsUser(email, appointment.getPatientUserId());
             // Never accept a caller-supplied identity as the cancellation actor.
+            dto.setCancelledByUserId(usersClient.getUserIdByEmail(email));
+        } else if (email != null && !email.isBlank()) {
             dto.setCancelledByUserId(usersClient.getUserIdByEmail(email));
         }
         return cancelAppointment(id, dto);
@@ -231,6 +267,7 @@ public class AppointmentService {
         appointment.setAppointmentStatus(AppointmentStatus.COMPLETED);
 
         Appointment updated = appointmentRepository.save(appointment);
+        updateSlotStatus(appointment.getScheduleSlotId(), SlotStatus.COMPLETADO);
         saveHistory(updated, oldStatus, AppointmentStatus.COMPLETED,
                 dto.getChangedByUserId(), dto.getChangeReason());
 
@@ -240,7 +277,7 @@ public class AppointmentService {
 
     public AppointmentResponseDTO completeAppointment(Long id, AppointmentStatusChangeRequestDTO dto, String email, Set<String> roles) {
         assertDoctorOwnsAppointment(findOrThrow(id), email, roles);
-        if (roles.contains("DOCTOR") && !roles.contains("ADMIN") && !roles.contains("RECEPTIONIST")) {
+        if (email != null && !email.isBlank()) {
             dto.setChangedByUserId(usersClient.getUserIdByEmail(email));
         }
         return completeAppointment(id, dto);
@@ -256,6 +293,7 @@ public class AppointmentService {
         appointment.setAppointmentStatus(AppointmentStatus.NO_SHOW);
 
         Appointment updated = appointmentRepository.save(appointment);
+        updateSlotStatus(appointment.getScheduleSlotId(), SlotStatus.NO_ASISTIO);
         saveHistory(updated, oldStatus, AppointmentStatus.NO_SHOW,
                 dto.getChangedByUserId(), dto.getChangeReason());
 
@@ -264,7 +302,7 @@ public class AppointmentService {
 
     public AppointmentResponseDTO markNoShow(Long id, AppointmentStatusChangeRequestDTO dto, String email, Set<String> roles) {
         assertDoctorOwnsAppointment(findOrThrow(id), email, roles);
-        if (roles.contains("DOCTOR") && !roles.contains("ADMIN") && !roles.contains("RECEPTIONIST")) {
+        if (email != null && !email.isBlank()) {
             dto.setChangedByUserId(usersClient.getUserIdByEmail(email));
         }
         return markNoShow(id, dto);
@@ -279,6 +317,41 @@ public class AppointmentService {
                 && (email == null || !usersClient.getUserIdByEmail(email).equals(doctorsClient.getUserIdForDoctor(doctorId)))) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No puedes acceder a recursos de otro médico");
         }
+    }
+
+    private ScheduleSlot findAvailableSlot(Long slotId, Long doctorId) {
+        ScheduleSlot slot = scheduleSlotRepository.findById(slotId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "El horario seleccionado ya no está disponible"));
+        boolean availableStatus = slot.getSlotStatus() == SlotStatus.DISPONIBLE
+                || slot.getSlotStatus() == SlotStatus.LIBERADO_POR_CANCELACION;
+        if (!availableStatus || slot.getAppointmentId() != null || !slot.getDoctorId().equals(doctorId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "El horario seleccionado ya no está disponible para este médico");
+        }
+        return slot;
+    }
+
+    private void reserveSlot(ScheduleSlot slot, Long appointmentId) {
+        slot.setSlotStatus(SlotStatus.RESERVADO);
+        slot.setAppointmentId(appointmentId);
+        scheduleSlotRepository.save(slot);
+    }
+
+    private void releaseSlot(Long slotId) {
+        ScheduleSlot slot = scheduleSlotRepository.findById(slotId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
+                        "No se pudo liberar el horario asociado a la cita"));
+        slot.setSlotStatus(SlotStatus.LIBERADO_POR_CANCELACION);
+        slot.setAppointmentId(null);
+        scheduleSlotRepository.save(slot);
+    }
+
+    private void updateSlotStatus(Long slotId, SlotStatus status) {
+        scheduleSlotRepository.findById(slotId).ifPresent(slot -> {
+            slot.setSlotStatus(status);
+            scheduleSlotRepository.save(slot);
+        });
     }
 
     // Busca la cita o lanza 404 — centraliza el findById().orElseThrow
