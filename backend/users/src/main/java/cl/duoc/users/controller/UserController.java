@@ -10,12 +10,16 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import cl.duoc.users.dto.ApiResponse;
 import cl.duoc.users.dto.CreateUserRequestDTO;
+import cl.duoc.users.dto.CurrentUserResponseDTO;
+import cl.duoc.users.dto.ProfileCompletionResponseDTO;
 import cl.duoc.users.dto.UpdateUserRequestDTO;
+import cl.duoc.users.dto.UpdateUserProfileRequestDTO;
 import cl.duoc.users.dto.UserResponseDTO;
 import cl.duoc.users.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,6 +34,32 @@ import lombok.RequiredArgsConstructor;
 public class UserController {
 
 	private final UserService userService;
+
+	@GetMapping("/me")
+	@Operation(summary = "Obtener mi usuario", description = "Obtiene únicamente los datos del usuario autenticado a partir del correo verificado por el Gateway.")
+	public ResponseEntity<ApiResponse<CurrentUserResponseDTO>> getCurrentUser(
+			@RequestHeader("X-Authenticated-Email") String authenticatedEmail) {
+		CurrentUserResponseDTO response = userService.getCurrentUser(authenticatedEmail);
+
+		return ResponseEntity.ok(
+				new ApiResponse<>(200, "Usuario autenticado obtenido correctamente", response));
+	}
+
+	@GetMapping("/me/profile-completion")
+	public ResponseEntity<ApiResponse<ProfileCompletionResponseDTO>> getProfileCompletion(
+			@RequestHeader("X-Authenticated-Email") String authenticatedEmail,
+			@RequestHeader(value = "X-Authenticated-Roles", required = false) String roles) {
+		return ResponseEntity.ok(new ApiResponse<>(200, "Estado del perfil obtenido correctamente",
+				userService.getProfileCompletion(authenticatedEmail, roles)));
+	}
+
+	@PutMapping("/me/profile")
+	public ResponseEntity<ApiResponse<CurrentUserResponseDTO>> updateCurrentUserProfile(
+			@RequestHeader("X-Authenticated-Email") String authenticatedEmail,
+			@Valid @RequestBody UpdateUserProfileRequestDTO request) {
+		return ResponseEntity.ok(new ApiResponse<>(200, "Perfil actualizado correctamente",
+				userService.updateCurrentUserProfile(authenticatedEmail, request)));
+	}
 
 	@PostMapping
 	@Operation(summary = "Crear usuario base", description = "Crea un usuario base del sistema validando previamente que exista un usuario de autenticación en Auth Service con el correo indicado.")

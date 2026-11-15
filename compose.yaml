@@ -63,9 +63,13 @@ services:
       DB_USER: auth_app
       DB_PASSWORD: ${AUTH_DB_PASSWORD:-auth_dev_123}
       JWT_SECRET: ${JWT_SECRET:-MiClaveSuperSecretaDeAlMenos32Caracteres123456}
+      MASTER_ADMIN_EMAIL: ${MASTER_ADMIN_EMAIL:-admin@medireservas.local}
 
   users:
     <<: *backend
+    depends_on:
+      auth:
+        condition: service_started
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -76,6 +80,13 @@ services:
       DB_URL: jdbc:mysql://mysql:3306/users_db
       DB_USER: users_app
       DB_PASSWORD: ${USERS_DB_PASSWORD:-users_dev_123}
+      MASTER_ADMIN_EMAIL: ${MASTER_ADMIN_EMAIL:-admin@medireservas.local}
+      MASTER_ADMIN_PASSWORD: ${MASTER_ADMIN_PASSWORD:-Admin123!}
+      MASTER_ADMIN_RUN: ${MASTER_ADMIN_RUN:-11.111.111-1}
+      MASTER_ADMIN_FIRST_NAME: ${MASTER_ADMIN_FIRST_NAME:-Administrador}
+      MASTER_ADMIN_LAST_NAME: ${MASTER_ADMIN_LAST_NAME:-Maestro}
+      MASTER_ADMIN_DEPARTMENT: ${MASTER_ADMIN_DEPARTMENT:-Administración}
+      MASTER_ADMIN_POSITION: ${MASTER_ADMIN_POSITION:-Administrador maestro}
 
   doctors:
     <<: *backend

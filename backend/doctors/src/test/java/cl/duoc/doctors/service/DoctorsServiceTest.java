@@ -18,9 +18,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import cl.duoc.doctors.client.AuthClient;
 import cl.duoc.doctors.client.UsersClient;
 import cl.duoc.doctors.dto.DoctorsDTO;
+import cl.duoc.doctors.dto.AuthUserRoleResponseDTO;
+import cl.duoc.doctors.dto.UserInternalResponseDTO;
 import cl.duoc.doctors.model.Doctors;
+import cl.duoc.doctors.model.Specialty;
 import cl.duoc.doctors.repository.DoctorsRepository;
 import cl.duoc.doctors.repository.DoctorsSpecialtiesRepository;
+import cl.duoc.doctors.repository.SpecialtyRepository;
 
 @ExtendWith(MockitoExtension.class)
 public class DoctorsServiceTest {
@@ -36,6 +40,9 @@ public class DoctorsServiceTest {
 
     @Mock
     private DoctorsSpecialtiesRepository doctorSpecialtiesRepository;
+
+    @Mock
+    private SpecialtyRepository specialtyRepository;
 
     @InjectMocks
     private DoctorsService doctorsService;
@@ -135,5 +142,74 @@ public class DoctorsServiceTest {
         assertEquals("Doctor no encontrado", exception.getMessage());
         verify(doctorsRepository, times(1)).findById(doctorId);
         verify(doctorsRepository, never()).save(any(Doctors.class));
+    }
+
+    @Test
+    void save_createsProfessionalProfileWithoutAssigningRoleWhenUserIsAlreadyDoctor() {
+        doctorDTO.setSpecialtyIds(List.of(1L));
+        UserInternalResponseDTO user = new UserInternalResponseDTO(100L, 200L, "12345678-5", "doctor@example.test", true);
+        Specialty specialty = new Specialty();
+        specialty.setSpecialtyId(1L);
+        specialty.setActive(true);
+        when(doctorsRepository.existsByUserId(100L)).thenReturn(false);
+        when(doctorsRepository.existsByMedicalLicenseNumber("LIC-12345")).thenReturn(false);
+        when(usersClient.getUserById(100L)).thenReturn(user);
+        when(authClient.getAuthUserByEmail("doctor@example.test")).thenReturn(
+                new AuthUserRoleResponseDTO(200L, "doctor@example.test", true, List.of("DOCTOR")));
+        when(usersClient.hasGeneralProfile(100L)).thenReturn(true);
+        when(usersClient.hasPatientProfile(100L)).thenReturn(false);
+        when(usersClient.hasReceptionistProfile(100L)).thenReturn(false);
+        when(usersClient.hasAdministratorProfile(100L)).thenReturn(false);
+        when(specialtyRepository.findById(1L)).thenReturn(Optional.of(specialty));
+        when(doctorsRepository.save(any(Doctors.class))).thenAnswer(invocation -> {
+            Doctors saved = invocation.getArgument(0);
+            saved.setDoctorId(7L);
+            return saved;
+        });
+        when(doctorSpecialtiesRepository.saveAll(any())).thenReturn(List.of());
+
+        DoctorsDTO result = doctorsService.save(doctorDTO);
+
+        assertEquals(7L, result.getDoctorId());
+        assertEquals(100L, result.getUserId());
+        verify(authClient).getAuthUserByEmail("doctor@example.test");
+        verifyNoMoreInteractions(authClient);
+    }
+
+    @Test
+    void save_rejectsUserWithoutDoctorRole() {
+        when(doctorsRepository.existsByUserId(100L)).thenReturn(false);
+        when(doctorsRepository.existsByMedicalLicenseNumber("LIC-12345")).thenReturn(false);
+        when(usersClient.getUserById(100L)).thenReturn(
+                new UserInternalResponseDTO(100L, 200L, "12345678-5", "patient@example.test", true));
+        when(authClient.getAuthUserByEmail("patient@example.test")).thenReturn(
+                new AuthUserRoleResponseDTO(200L, "patient@example.test", true, List.of("PATIENT")));
+
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> doctorsService.save(doctorDTO));
+
+        assertEquals("El usuario debe tener una cuenta activa con rol DOCTOR", exception.getMessage());
+        verify(doctorsRepository, never()).save(any(Doctors.class));
+        verifyNoMoreInteractions(authClient);
+    }
+
+    @Test
+    void update_flushesRemovedSpecialtiesBeforeRecreatingRelations() {
+        Specialty cardio = new Specialty();
+        cardio.setSpecialtyId(1L);
+        Specialty pediatrics = new Specialty();
+        pediatrics.setSpecialtyId(2L);
+        when(doctorsRepository.findById(1L)).thenReturn(Optional.of(doctor));
+        when(specialtyRepository.findById(1L)).thenReturn(Optional.of(cardio));
+        when(specialtyRepository.findById(2L)).thenReturn(Optional.of(pediatrics));
+        when(doctorSpecialtiesRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(doctorsRepository.save(doctor)).thenReturn(doctor);
+
+        DoctorsDTO result = doctorsService.update(1L, doctorDTO);
+
+        assertEquals(List.of(1L, 2L), result.getSpecialtyIds());
+        org.mockito.InOrder order = inOrder(doctorSpecialtiesRepository);
+        order.verify(doctorSpecialtiesRepository).deleteByDoctor(doctor);
+        order.verify(doctorSpecialtiesRepository).flush();
+        order.verify(doctorSpecialtiesRepository).saveAll(any());
     }
 }

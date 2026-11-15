@@ -144,6 +144,8 @@ Desde la raíz del repositorio, copiar `.env.example` a `.env` y cambiar las cre
 cp .env.example .env
 ```
 
+En el Compose local, `users` crea automáticamente la cuenta ADMIN maestra al iniciar y repara sus perfiles/estado en reinicios. Valores locales iniciales: `admin@medireservas.local` / `Admin123!` (configurables con `MASTER_ADMIN_EMAIL` y `MASTER_ADMIN_PASSWORD`). Son credenciales solo de desarrollo: cámbialas en `.env` antes de compartir o desplegar. En `compose.prod.yaml`, correo, contraseña y RUN de la cuenta se exigen como variables; usa secretos propios y únicos.
+
 Levantar solo MySQL (útil para el flujo de desarrollo con Maven):
 
 ```bash

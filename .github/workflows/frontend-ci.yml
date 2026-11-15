@@ -6,17 +6,17 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
+      - '.gitattributes'
   pull_request:
     branches: [main]
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
+      - '.gitattributes'
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: frontend-ci-${{ github.ref }}
@@ -48,8 +48,8 @@ jobs:
       - name: Ejecutar lint
         run: npm run lint
 
-      - name: Ejecutar tests unitarios y medir cobertura
-        run: npm run test:coverage
+      - name: Ejecutar tests unitarios
+        run: npm test
 
       - name: Instalar Chromium para Playwright
         run: npx playwright install --with-deps chromium
@@ -63,7 +63,6 @@ jobs:
         with:
           name: frontend-testing-reports-${{ github.run_number }}
           path: |
-            frontend/coverage/
             frontend/playwright-report/
             frontend/test-results/
           if-no-files-found: warn
@@ -87,6 +86,10 @@ jobs:
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: validate
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

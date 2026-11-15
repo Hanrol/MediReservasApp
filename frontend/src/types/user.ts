@@ -13,6 +13,10 @@ export interface User {
   birthDate?: string
   phone?: string
   address?: string
+  userProfileId?: number
+  roles?: Role[]
+  serviceActive?: boolean
+  authEnabled?: boolean
 }
 
 export interface RegistrationValues {

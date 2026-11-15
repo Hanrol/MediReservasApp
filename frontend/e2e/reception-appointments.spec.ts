@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
-import { freezeMockDate, loginAs } from './helpers'
+import { freezeMockDate, loginAs, mockReceptionApi } from './helpers'
 
 test('CP-129 · RF-19/RF-20 · recepción confirma una cita pendiente', async ({ page }) => {
   await freezeMockDate(page)
+  const api = await mockReceptionApi(page)
   await loginAs(page, 'recepcion@medireservas.cl', 'Recepcion123')
   await page.goto('/#/gestion-citas')
 
@@ -16,15 +17,13 @@ test('CP-129 · RF-19/RF-20 · recepción confirma una cita pendiente', async ({
   await appointmentRow.getByRole('button', { name: 'Confirmar' }).click()
 
   await expect(page.getByRole('status')).toContainText('fue confirmada')
-  await expect.poll(() => page.evaluate(() => {
-    const appointments = JSON.parse(localStorage.getItem('medireservas_appointments') ?? '[]')
-    return appointments.find((appointment: { appointmentId: number }) => appointment.appointmentId === 2)?.appointmentStatus
-  })).toBe('CONFIRMED')
+  expect(api.appointments.find((appointment) => appointment.appointmentId === 2)?.appointmentStatus).toBe('CONFIRMED')
   await expect(appointmentRow).toContainText('Confirmada')
 })
 
 test('CP-136 · RF-21 · recepción reagenda una cita pendiente a un horario disponible', async ({ page }) => {
   await freezeMockDate(page)
+  const api = await mockReceptionApi(page)
   await loginAs(page, 'recepcion@medireservas.cl', 'Recepcion123')
   await page.goto('/#/gestion-citas')
 
@@ -38,14 +37,20 @@ test('CP-136 · RF-21 · recepción reagenda una cita pendiente a un horario dis
   await expect(page.getByRole('status')).toContainText('fue reagendada')
   await expect(appointmentRow).toContainText('2026-10-12')
   await expect(appointmentRow).toContainText('11:30')
-  await expect.poll(() => page.evaluate(() => {
-    const appointments = JSON.parse(localStorage.getItem('medireservas_appointments') ?? '[]')
-    return appointments.find((appointment: { appointmentId: number }) => appointment.appointmentId === 2)?.scheduleSlotId
-  })).toBe(7)
+  expect(api.appointments.find((appointment) => appointment.appointmentId === 2)?.scheduleSlotId).toBe(7)
+  expect(api.slots.find((slot) => slot.scheduleSlotId === 6)).toMatchObject({
+    slotStatus: 'LIBERADO_POR_CANCELACION',
+    appointmentId: null,
+  })
+  expect(api.slots.find((slot) => slot.scheduleSlotId === 7)).toMatchObject({
+    slotStatus: 'RESERVADO',
+    appointmentId: 2,
+  })
 })
 
 test('CP-137 · RF-22 · recepción cancela una cita confirmada y libera el horario', async ({ page }) => {
   await freezeMockDate(page)
+  const api = await mockReceptionApi(page)
   await loginAs(page, 'recepcion@medireservas.cl', 'Recepcion123')
   await page.goto('/#/gestion-citas')
 
@@ -57,8 +62,9 @@ test('CP-137 · RF-22 · recepción cancela una cita confirmada y libera el hora
 
   await expect(page.getByRole('status')).toContainText('fue cancelada')
   await expect(appointmentRow).toContainText('Cancelada')
-  await expect.poll(() => page.evaluate(() => {
-    const schedules = JSON.parse(localStorage.getItem('medireservas_schedules') ?? '[]')
-    return schedules.find((schedule: { id: number }) => schedule.id === 1)?.available
-  })).toBe(true)
+  expect(api.appointments.find((appointment) => appointment.appointmentId === 1)?.appointmentStatus).toBe('CANCELLED')
+  expect(api.slots.find((slot) => slot.scheduleSlotId === 1)).toMatchObject({
+    slotStatus: 'LIBERADO_POR_CANCELACION',
+    appointmentId: null,
+  })
 })

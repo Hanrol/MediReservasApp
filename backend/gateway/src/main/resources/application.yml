@@ -25,7 +25,7 @@ spring:
         - id: users-service
           uri: lb://users-service
           predicates:
-            - Path=/api/v3/users/**,/api/v3/user-profiles/**,/api/v3/patient-profiles/**,/api/v3/receptionist-profiles/**,/api/v3/administrator-profiles/**
+            - Path=/api/v3/users/**,/api/v3/user-profiles/**,/api/v3/patient-profiles/**,/api/v3/receptionist-profiles/**,/api/v3/administrator-profiles/**,/api/v3/patient-registrations/**,/api/v3/admin/invitations/**,/api/v3/invitations/accept
 
         # DOCTORS SERVICE
         - id: doctors-service

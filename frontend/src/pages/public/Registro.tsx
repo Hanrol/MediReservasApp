@@ -4,7 +4,8 @@ import { Link, useNavigate } from 'react-router-dom'
 import FormMessage from '../../components/forms/FormMessage'
 import SkipLink from '../../components/ui/SkipLink'
 import { ROUTES } from '../../constants/routes'
-import { createUser, initializeUsers, userExists } from '../../services/users.service'
+import { ApiError } from '../../services/api-client'
+import { registerPatient } from '../../services/registration.service'
 import type { RegistrationErrors, RegistrationValues } from '../../types/user'
 import { getLocalDateString, normalizeRun, validateRegistration } from '../../utils/validations'
 
@@ -33,13 +34,13 @@ function Registro() {
   const [errors, setErrors] = useState<RegistrationErrors>({})
   const [message, setMessage] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const formRef = useRef<HTMLFormElement>(null)
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const navigate = useNavigate()
 
   useEffect(() => {
     document.title = 'Crear cuenta | MediReservas'
-    initializeUsers()
     return () => { if (timerRef.current !== null) clearTimeout(timerRef.current) }
   }, [])
 
@@ -54,9 +55,9 @@ function Registro() {
     if (errors[name] || name === 'terms') validateField(name, next)
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (submitted) return
+    if (submitted || isSubmitting) return
     const normalized = {
       ...values, run: normalizeRun(values.run), firstName: values.firstName.trim(),
       lastName: values.lastName.trim(), phone: values.phone.trim(), address: values.address.trim(),
@@ -71,22 +72,35 @@ function Registro() {
       if (field instanceof HTMLInputElement) field.focus()
       return
     }
+    setIsSubmitting(true)
     try {
-      if (userExists(normalized.run, normalized.email)) {
-        setMessage('Ya existe una cuenta asociada a este RUN o correo.')
-        return
-      }
-      createUser({
-        run: normalized.run, firstName: normalized.firstName,
-        lastName: normalized.lastName, birthDate: normalized.birthDate, phone: normalized.phone,
-        address: normalized.address, email: normalized.email, password: normalized.password,
+      await registerPatient({
+        run: normalized.run,
+        firstName: normalized.firstName,
+        lastName: normalized.lastName,
+        birthDate: normalized.birthDate || null,
+        phone: normalized.phone,
+        address: normalized.address,
+        email: normalized.email,
+        password: normalized.password,
+        termsAccepted: normalized.terms,
       })
       setSubmitted(true)
       setValues(initialValues)
       setMessage('Cuenta creada correctamente. Ya puedes iniciar sesión.')
       timerRef.current = setTimeout(() => navigate(ROUTES.login), 800)
-    } catch {
-      setMessage('No se pudo guardar la cuenta. Intenta nuevamente.')
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 409) {
+        setMessage('Ya existe una cuenta asociada a este RUN o correo.')
+      } else if (error instanceof ApiError && error.status === 503) {
+        setMessage('El servicio de registro no está disponible. Intenta más tarde.')
+      } else if (error instanceof TypeError) {
+        setMessage('No se pudo conectar con el servidor. Verifica que el backend esté disponible.')
+      } else {
+        setMessage('No se pudo completar el registro. Revisa tus datos e intenta nuevamente.')
+      }
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -102,7 +116,7 @@ function Registro() {
           max={field.name === 'birthDate' ? getLocalDateString() : undefined}
           minLength={field.type === 'password' ? 6 : undefined}
           aria-describedby={field.name === 'run' ? 'run-help run-error' : `${field.id}-error`}
-          aria-invalid={Boolean(errors[field.name])} value={values[field.name]} disabled={submitted}
+          aria-invalid={Boolean(errors[field.name])} value={values[field.name]} disabled={submitted || isSubmitting}
           onChange={(event) => changeField(field.name, event.target.value)}
           onBlur={() => {
             const next = field.name === 'run' ? { ...values, run: normalizeRun(values.run) } : values
@@ -141,12 +155,12 @@ function Registro() {
             <fieldset><legend className="mb-6 text-xl font-bold text-primary-dark">Datos de acceso</legend><div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">{accessFields.map(renderField)}</div></fieldset>
             <div>
               <div className="flex items-start gap-3">
-                <input className="mt-1 size-4 accent-primary" id="terms" name="terms" type="checkbox" aria-describedby="terms-error" aria-invalid={Boolean(errors.terms)} checked={values.terms} disabled={submitted} onChange={(event) => changeField('terms', event.target.checked)} />
+                <input className="mt-1 size-4 accent-primary" id="terms" name="terms" type="checkbox" aria-describedby="terms-error" aria-invalid={Boolean(errors.terms)} checked={values.terms} disabled={submitted || isSubmitting} onChange={(event) => changeField('terms', event.target.checked)} />
                 <label className="text-sm leading-6 text-muted" htmlFor="terms">Acepto los términos de uso y la política de privacidad.</label>
               </div>
               <FormMessage id="terms-error">{errors.terms}</FormMessage>
             </div>
-            <button className="w-full rounded-xl bg-primary px-6 py-3.5 font-semibold text-white shadow-sm transition hover:bg-primary-dark focus:ring-3 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60" type="submit" disabled={submitted}>Crear cuenta</button>
+            <button className="w-full rounded-xl bg-primary px-6 py-3.5 font-semibold text-white shadow-sm transition hover:bg-primary-dark focus:ring-3 focus:ring-emerald-100 disabled:cursor-not-allowed disabled:opacity-60" type="submit" disabled={submitted || isSubmitting}>{isSubmitting ? 'Creando cuenta…' : 'Crear cuenta'}</button>
             <p className={`text-center text-sm font-medium ${submitted ? 'text-primary-dark' : 'text-red-600'}`} id="register-message" role="status">{message}</p>
           </form>
         </section>

@@ -19,6 +19,6 @@ export interface Appointment {
   date: string;
   time: string;
   reason: string;
-  modality: AppointmentModality;
+  modality?: AppointmentModality;
   appointmentStatus: AppointmentStatus;
 }

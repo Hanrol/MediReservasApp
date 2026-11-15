@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +27,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import cl.duoc.users.dto.CreateUserRequestDTO;
+import cl.duoc.users.dto.CurrentUserResponseDTO;
 import cl.duoc.users.dto.UpdateUserRequestDTO;
 import cl.duoc.users.dto.UserResponseDTO;
 import cl.duoc.users.service.UserService;
@@ -152,6 +154,24 @@ class UserControllerTest {
 
         verify(userService)
                 .getAllUsers();
+    }
+
+    @Test
+    void getCurrentUser_deberiaUsarCorreoValidadoPorGateway() throws Exception {
+        CurrentUserResponseDTO currentUser = new CurrentUserResponseDTO(
+                1L, 10L, "12345678-9", "paciente@test.cl", true,
+                "Ana", "Pérez", "912345678", LocalDate.of(1990, 5, 10), "Santiago");
+        when(userService.getCurrentUser("paciente@test.cl")).thenReturn(currentUser);
+
+        mockMvc.perform(get("/api/v3/users/me")
+                .header("X-Authenticated-Email", "paciente@test.cl"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.userId").value(1))
+                .andExpect(jsonPath("$.data.authUserId").value(10))
+                .andExpect(jsonPath("$.data.firstName").value("Ana"))
+                .andExpect(jsonPath("$.data.lastName").value("Pérez"));
+
+        verify(userService).getCurrentUser("paciente@test.cl");
     }
 
     @Test

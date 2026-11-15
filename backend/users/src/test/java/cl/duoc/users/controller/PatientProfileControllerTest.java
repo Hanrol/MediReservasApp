@@ -212,6 +212,18 @@ class PatientProfileControllerTest {
                 .existsByUserId(1L, "paciente@test.cl");
     }
 
+    @Test
+    void existsByUserIdForInternalService_noRequiereEmailAutenticado() throws Exception {
+        when(patientProfileService.existsByUserId(1L)).thenReturn(false);
+
+        mockMvc.perform(get("/api/v3/patient-profiles/internal/user/1/exists"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value(200))
+                .andExpect(jsonPath("$.data").value(false));
+
+        verify(patientProfileService).existsByUserId(1L);
+    }
+
     // =========================================================
     // UPDATE
     // =========================================================

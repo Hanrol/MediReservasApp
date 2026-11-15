@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -16,6 +17,13 @@ import cl.duoc.doctors.dto.ApiResponse;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+	@ExceptionHandler(ResponseStatusException.class)
+	public ResponseEntity<ApiResponse<Object>> handleResponseStatusException(ResponseStatusException ex) {
+		HttpStatus status = HttpStatus.valueOf(ex.getStatusCode().value());
+		return ResponseEntity.status(status)
+				.body(new ApiResponse<>(status.value(), ex.getReason(), null));
+	}
 
 	@ExceptionHandler(MethodArgumentNotValidException.class)
 	public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationErrors(

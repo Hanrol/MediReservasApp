@@ -13,24 +13,48 @@ class RoleAuthorizationPolicyTest {
     private final RoleAuthorizationPolicy policy = new RoleAuthorizationPolicy();
 
     @Test
-    void administratorCanAccessSensitiveRoutes() {
-        assertTrue(policy.isAllowed("/api/v3/auth/users/1/roles", HttpMethod.PATCH, List.of("ADMIN")));
+    void administratorCannotChangeExistingUserRolesThroughGateway() {
+        assertFalse(policy.isAllowed("/api/v3/auth/users/1/roles", HttpMethod.PATCH, List.of("ADMIN")));
+        assertFalse(policy.isAllowed("/api/v3/auth/users/1/roles", HttpMethod.PATCH, List.of("PATIENT")));
+        assertFalse(policy.isAllowed("/api/v3/patient-profiles", HttpMethod.POST, List.of("ADMIN")));
+        assertFalse(policy.isAllowed("/api/v3/receptionist-profiles", HttpMethod.POST, List.of("ADMIN")));
+        assertFalse(policy.isAllowed("/api/v3/administrator-profiles", HttpMethod.POST, List.of("ADMIN")));
+        assertTrue(policy.isAllowed("/api/v3/doctors", HttpMethod.POST, List.of("ADMIN")));
+        assertFalse(policy.isAllowed("/api/v3/doctors", HttpMethod.POST, List.of("DOCTOR")));
+        assertFalse(policy.isAllowed("/api/v3/doctors", HttpMethod.POST, List.of("PATIENT")));
+        assertTrue(policy.isAllowed("/api/v3/doctors/me", HttpMethod.POST, List.of("DOCTOR")));
+        assertTrue(policy.isAllowed("/api/v3/admin/invitations", HttpMethod.POST, List.of("ADMIN")));
     }
 
     @Test
     void patientCanReadCatalogAndOwnCollectionRoutesButNotManageDoctors() {
         assertTrue(policy.isAllowed("/api/v3/specialties", HttpMethod.GET, List.of("PATIENT")));
+        assertTrue(policy.isAllowed("/api/v3/users/me", HttpMethod.GET, List.of("PATIENT")));
         assertTrue(policy.isAllowed("/api/v3/appointments/patient/12", HttpMethod.GET, List.of("PATIENT")));
         assertFalse(policy.isAllowed("/api/v3/doctors", HttpMethod.POST, List.of("PATIENT")));
+        assertFalse(policy.isAllowed("/api/v3/users/email/other@example.test", HttpMethod.GET, List.of("PATIENT")));
+        assertFalse(policy.isAllowed("/api/v3/users/me", HttpMethod.GET, List.of()));
+        assertTrue(policy.isAllowed("/api/v3/admin/invitations", HttpMethod.POST, List.of("ADMIN")));
+        assertFalse(policy.isAllowed("/api/v3/admin/invitations", HttpMethod.POST, List.of("RECEPTIONIST")));
     }
 
     @Test
     void doctorCanManageScheduleButCannotManageUsersOrInternalAppointments() {
         assertTrue(policy.isAllowed("/api/v3/doctor-schedules", HttpMethod.POST, List.of("DOCTOR")));
+        assertTrue(policy.isAllowed("/api/v3/users/me", HttpMethod.GET, List.of("DOCTOR")));
+        assertTrue(policy.isAllowed("/api/v3/doctors/me", HttpMethod.POST, List.of("DOCTOR")));
+        assertFalse(policy.isAllowed("/api/v3/doctors/me", HttpMethod.POST, List.of("PATIENT")));
+        assertTrue(policy.isAllowed("/api/v3/users/me/profile", HttpMethod.PUT, List.of("DOCTOR")));
+        assertTrue(policy.isAllowed("/api/v3/users/me/profile", HttpMethod.PUT, List.of("PATIENT")));
+        assertTrue(policy.isAllowed("/api/v3/users/me/profile-completion", HttpMethod.GET, List.of("PATIENT")));
+        assertTrue(policy.isAllowed("/api/v3/patient-profiles/me", HttpMethod.PUT, List.of("PATIENT")));
+        assertFalse(policy.isAllowed("/api/v3/patient-profiles/me", HttpMethod.PUT, List.of("DOCTOR")));
         assertFalse(policy.isAllowed("/api/v3/users", HttpMethod.GET, List.of("DOCTOR")));
         assertFalse(policy.isAllowed("/api/v3/appointments/internal/10", HttpMethod.GET, List.of("DOCTOR")));
         assertFalse(policy.isAllowed("/api/v3/appointments/internal/10", HttpMethod.GET, List.of("ADMIN")));
         assertFalse(policy.isAllowed("/api/v3/appointments/internal/10", HttpMethod.GET, List.of("RECEPTIONIST")));
+        assertFalse(policy.isAllowed("/api/v3/patient-profiles/internal/user/10/exists", HttpMethod.GET, List.of("ADMIN")));
+        assertFalse(policy.isAllowed("/api/v3/patient-profiles/internal/user/10/exists", HttpMethod.GET, List.of("PATIENT")));
     }
 
     @Test

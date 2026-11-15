@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import cl.duoc.doctors.client.AuthClient;
 import cl.duoc.doctors.client.UsersClient;
 import cl.duoc.doctors.dto.DoctorsDTO;
+import cl.duoc.doctors.dto.DoctorOnboardingRequestDTO;
 import cl.duoc.doctors.dto.UserInternalResponseDTO;
 import cl.duoc.doctors.model.DoctorSpecialties;
 import cl.duoc.doctors.model.Doctors;
@@ -45,6 +46,30 @@ public class DoctorsService {
         return convertToDTO(doctor);
     }
 
+    public DoctorsDTO findByUserId(Long userId) {
+        Doctors doctor = doctorsRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("Perfil profesional de doctor no encontrado"));
+        return convertToDTO(doctor);
+    }
+
+    public boolean existsByUserId(Long userId) {
+        return doctorsRepository.existsByUserId(userId);
+    }
+
+    public Long getUserIdByEmail(String email) {
+        return usersClient.getUserByEmail(email).userId();
+    }
+
+    @Transactional
+    public DoctorsDTO createOwnProfile(String authenticatedEmail, DoctorOnboardingRequestDTO request) {
+        UserInternalResponseDTO user = usersClient.getUserByEmail(authenticatedEmail);
+        DoctorsDTO dto = new DoctorsDTO();
+        dto.setUserId(user.userId());
+        dto.setMedicalLicenseNumber(request.medicalLicenseNumber().trim());
+        dto.setSpecialtyIds(request.specialtyIds());
+        return save(dto);
+    }
+
     @Transactional
     public DoctorsDTO save(DoctorsDTO dto) {
 
@@ -61,6 +86,11 @@ public class DoctorsService {
         }
 
         UserInternalResponseDTO user = usersClient.getUserById(dto.getUserId());
+
+        var authUser = authClient.getAuthUserByEmail(user.email());
+        if (!authUser.enabled() || authUser.roles() == null || !authUser.roles().contains("DOCTOR")) {
+            throw new RuntimeException("El usuario debe tener una cuenta activa con rol DOCTOR");
+        }
 
         if (!user.active()) {
             throw new RuntimeException("El usuario se encuentra inactivo");
@@ -111,8 +141,6 @@ public class DoctorsService {
 
         saveDoctorSpecialties(savedDoctor, specialties);
 
-        authClient.assignDoctorRole(user.authUserId());
-
         return convertToDTO(savedDoctor);
     }
 
@@ -142,6 +170,8 @@ public class DoctorsService {
         doctor.setActive(dto.isActive());
         doctor.setMedicalLicenseNumber(dto.getMedicalLicenseNumber());
         doctorSpecialtiesRepository.deleteByDoctor(doctor);
+        // Ensure removed unique (doctor_id, specialty_id) rows are gone before reinserting them.
+        doctorSpecialtiesRepository.flush();
 
         if (dto.getSpecialtyIds() != null) {
             List<Long> specialtyIds = dto.getSpecialtyIds().stream().distinct().toList();

@@ -7,10 +7,13 @@ function isSession(value: unknown): value is Session {
   const session = value as Partial<Session>
   return typeof session.token === 'string' &&
     typeof session.userId === 'number' &&
+    typeof session.authUserId === 'number' &&
+    typeof session.run === 'string' &&
     typeof session.firstName === 'string' &&
     typeof session.lastName === 'string' &&
     typeof session.email === 'string' &&
     typeof session.role === 'string' &&
+    typeof session.active === 'boolean' &&
     isValidRole(session.role)
 }
 

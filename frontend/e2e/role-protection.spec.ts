@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
-import { loginAs } from './helpers'
+import { loginAs, mockAuthApi, seedMockAppData } from './helpers'
+import { mockUsers } from '../src/data/mockUsers'
 
 test('CP-133 · RF-29 · rutas privadas redirigen al login cuando no hay sesión', async ({ page }) => {
   await page.goto('/#/usuarios')
@@ -20,6 +21,8 @@ test('CP-140 · RF-03/RF-29 · médico no hereda una ruta exclusiva de paciente 
   await page.goto('/#/solicitar-cita')
   await expect(page).toHaveURL(/#\/login$/)
 
+  await seedMockAppData(page)
+  await mockAuthApi(page, mockUsers.find((user) => user.role === 'DOCTOR')!)
   await page.getByLabel('Correo electrónico').fill('medico@medireservas.cl')
   await page.getByLabel('Contraseña').fill('Medico123')
   await page.getByRole('button', { name: 'Iniciar sesión' }).click()

@@ -98,6 +98,15 @@ public class PatientProfileController {
 						response));
 	}
 
+	/** Internal service-to-service lookup. The Gateway explicitly denies this path externally. */
+	@GetMapping("/internal/user/{userId}/exists")
+	public ResponseEntity<ApiResponse<Boolean>> existsByUserIdForInternalService(
+			@PathVariable Long userId) {
+		boolean response = patientProfileService.existsByUserId(userId);
+		return ResponseEntity.ok(
+				new ApiResponse<>(200, "Validación interna realizada correctamente", response));
+	}
+
 	@PutMapping("/{patientProfileId}")
 	@Operation(summary = "Actualizar perfil de paciente", description = "Actualiza los datos médicos y de contacto asociados a un perfil de paciente.")
 	public ResponseEntity<ApiResponse<PatientProfileResponseDTO>> updatePatientProfile(
@@ -112,6 +121,14 @@ public class PatientProfileController {
 						200,
 						"Perfil de paciente actualizado correctamente",
 						response));
+	}
+
+	@PutMapping("/me")
+	public ResponseEntity<ApiResponse<PatientProfileResponseDTO>> updateOwnPatientProfile(
+			@RequestHeader("X-Authenticated-Email") String authenticatedEmail,
+			@Valid @RequestBody UpdatePatientProfileRequestDTO request) {
+		PatientProfileResponseDTO response = patientProfileService.updateOwnPatientProfile(authenticatedEmail, request);
+		return ResponseEntity.ok(new ApiResponse<>(200, "Datos opcionales del paciente actualizados", response));
 	}
 
 	@DeleteMapping("/{patientProfileId}")

@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest'
 
 import { AuthContext } from '../../contexts/auth-context'
 import { mockDoctors } from '../../data/mockDoctors'
@@ -25,10 +25,13 @@ function renderAs(user: User, page: React.ReactNode, logout = vi.fn()) {
     session: {
       token: 'test-token',
       userId: user.userId,
+      authUserId: user.authUserId,
+      run: user.run,
       firstName: user.firstName,
       lastName: user.lastName,
       email: user.email,
       role: user.role,
+      active: user.active,
     },
     user,
     isAuthenticated: true,
@@ -59,6 +62,7 @@ function seedClinicalObservation() {
 }
 
 describe('Requisitos de páginas compartidas', () => {
+  afterEach(() => vi.unstubAllGlobals())
   beforeEach(() => {
     localStorage.clear()
     appointmentsStorage.reset()
@@ -69,14 +73,25 @@ describe('Requisitos de páginas compartidas', () => {
     saveSpecialties(mockSpecialties)
   })
 
-  it('CP-089 · RF-05 · dashboard muestra accesos según el rol administrador', () => {
+  it('CP-089 · RF-05 · dashboard muestra accesos según el rol administrador', async () => {
     const admin = mockUsers.find((user) => user.role === 'ADMIN')!
+    vi.stubGlobal('fetch', vi.fn((input: RequestInfo | URL) => {
+      const path = String(input)
+      const data = path.endsWith('/auth/users')
+          ? { code: 200, message: 'ok', data: mockUsers.map(({ authUserId, email, active, role }) => ({ authUserId, email, enabled: active, roles: [role] })) }
+          : path.endsWith('/users')
+            ? { code: 200, message: 'ok', data: mockUsers.map(({ userId, authUserId, run, email, active }) => ({ userId, authUserId, run, email, active })) }
+          : path.endsWith('/user-profiles')
+            ? { code: 200, message: 'ok', data: mockUsers.map(({ userId, firstName, lastName }) => ({ userProfileId: userId, userId, firstName, lastName })) }
+            : { code: 200, message: 'ok', data: mockSpecialties }
+      return Promise.resolve(new Response(JSON.stringify(data), { status: 200, headers: { 'Content-Type': 'application/json' } }))
+    }))
     renderAs(admin, <Dashboard />)
 
     expect(screen.getByRole('heading', { name: `Hola, ${admin.firstName}` })).toBeInTheDocument()
     expect(screen.getAllByRole('link', { name: /Gestionar usuarios/ }).some((link) => link.getAttribute('href') === '/usuarios')).toBe(true)
     expect(screen.getAllByRole('link', { name: /Roles y permisos/ }).some((link) => link.getAttribute('href') === '/roles')).toBe(true)
-    expect(screen.getByText('Usuarios activos')).toBeInTheDocument()
+    expect(await screen.findByText('Usuarios activos')).toBeInTheDocument()
   })
 
   it('CP-090 · RF-06 · perfil presenta los datos principales de la sesión actual', () => {

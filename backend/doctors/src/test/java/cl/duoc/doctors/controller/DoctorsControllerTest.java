@@ -125,7 +125,7 @@ class DoctorsControllerTest {
                 .thenReturn(output);
 
         // Act & Assert
-        mockMvc.perform(post("/api/v3/doctors")
+        mockMvc.perform(post("/api/v3/doctors").header("X-Authenticated-Roles", "ADMIN")
         .contentType("application/json")
         .content("""
                 {
@@ -139,6 +139,22 @@ class DoctorsControllerTest {
                 .andExpect(jsonPath("$.doctorId").value(1L))
                 .andExpect(jsonPath("$.medicalLicenseNumber").value("LIC-12345"))
                 .andExpect(jsonPath("$.active").value(true));
+    }
+
+    @Test
+    void createDoctor_ShouldRejectNonAdministrator() throws Exception {
+        mockMvc.perform(post("/api/v3/doctors")
+                .header("X-Authenticated-Roles", "DOCTOR")
+                .contentType("application/json")
+                .content("""
+                        {
+                            "userId": 100,
+                            "medicalLicenseNumber": "LIC-12345",
+                            "specialtyIds": [1],
+                            "active": true
+                        }
+                        """))
+                .andExpect(status().isForbidden());
     }
 
     @Test

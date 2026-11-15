@@ -2,13 +2,13 @@ import { type FormEvent, useEffect, useMemo, useState } from 'react'
 import DashboardLayout from '../../components/layout/DashboardLayout.tsx'
 import Breadcrumbs from '../../components/layout/Breadcrumbs.tsx'
 import { ROUTES } from '../../constants/routes.ts'
-import {createDoctor, editDoctor, getDoctors, initializeDoctors, isDoctorDataTaken, setDoctorStatus} from '../../services/doctors.service.ts'
-import {getSpecialties, initializeSpecialties} from '../../services/specialties.service.ts'
-import {getUsers, initializeUsers} from '../../services/users.service.ts'
+import { getAdminDoctors, getAdminSpecialties, getAdminUsers, saveAdminDoctor } from '../../services/admin-api.service.ts'
+import { ApiError } from '../../services/api-client.ts'
+import { useAuth } from '../../hooks/useAuth.ts'
 import type {Doctor, DoctorErrors, DoctorValues} from '../../types/doctor.ts'
 import type {Specialty} from '../../types/specialty.ts'
 import type {User} from '../../types/user.ts'
-import {getLocalDateString, normalizeRun, validateDoctor} from '../../utils/validations.ts'
+import { normalizeRun } from '../../utils/validations.ts'
 
 const emptyForm: DoctorValues = {
   doctorId: 0,
@@ -25,14 +25,14 @@ const emptyForm: DoctorValues = {
   active: true,
 }
 
-initializeUsers()
-initializeSpecialties()
-initializeDoctors()
-
 function Medicos() {
-  const [doctors, setDoctors] = useState<Doctor[]>(getDoctors())
-  const [users, setUsers] = useState<User[]>(getUsers())
-  const [specialties, setSpecialties] = useState<Specialty[]>(getSpecialties())
+  const { session } = useAuth()
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [users, setUsers] = useState<User[]>([])
+  const [specialties, setSpecialties] = useState<Specialty[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
+  const [saving, setSaving] = useState(false)
   const [query, setQuery] = useState('')
   const [status, setStatus] = useState('all')
   const [formOpen, setFormOpen] = useState(false)
@@ -45,6 +45,21 @@ function Medicos() {
   useEffect(() => {
     document.title = 'Gestión de médicos | MediReservas'
   }, [])
+  useEffect(() => {
+    if (!session?.token) return
+    let active = true
+    void Promise.all([getAdminDoctors(session.token), getAdminUsers(session.token), getAdminSpecialties(session.token)])
+      .then(([loadedDoctors, loadedUsers, loadedSpecialties]) => {
+        if (!active) return
+        setDoctors(loadedDoctors)
+        setUsers(loadedUsers)
+        setSpecialties(loadedSpecialties)
+        setLoadError('')
+      })
+      .catch(() => { if (active) setLoadError('No se pudieron cargar los médicos desde el servidor. Intenta actualizar la página.') })
+      .finally(() => { if (active) setLoading(false) })
+    return () => { active = false }
+  }, [session?.token])
   useEffect(() => {
     const locked = formOpen || Boolean(statusDoctor)
     document.body.classList.toggle('overflow-hidden', locked)
@@ -59,16 +74,33 @@ function Medicos() {
     })
   }, [query, status, doctors])
 
-  const doctorUsers = users.filter((user) => user.role === 'DOCTOR' && user.active)
-  const activeSpecialties = specialties.filter((specialty) => specialty.active)
-
-  function refreshSelects() {
-    setUsers(getUsers())
-    setSpecialties(getSpecialties())
+  const doctorUsers = users.filter((user) =>
+    (user.roles?.includes('DOCTOR') || user.role === 'DOCTOR')
+      && user.active
+      && !doctors.some((doctor) => doctor.userId === user.userId),
+  )
+  async function refreshData() {
+    if (!session?.token) return false
+    setLoading(true)
+    try {
+      const [loadedDoctors, loadedUsers, loadedSpecialties] = await Promise.all([
+        getAdminDoctors(session.token), getAdminUsers(session.token), getAdminSpecialties(session.token),
+      ])
+      setDoctors(loadedDoctors)
+      setUsers(loadedUsers)
+      setSpecialties(loadedSpecialties)
+      setLoadError('')
+      return true
+    } catch {
+      setLoadError('No se pudieron actualizar los datos desde el servidor.')
+      return false
+    } finally {
+      setLoading(false)
+    }
   }
 
-  function openCreate() {
-    refreshSelects()
+  async function openCreate() {
+    await refreshData()
     setValues(emptyForm)
     setErrors({})
     setFormMessage('')
@@ -76,12 +108,10 @@ function Medicos() {
   }
 
   function openEdit(doctor: Doctor) {
-    refreshSelects()
-    const availableUsers = getUsers().filter((user) => user.role === 'DOCTOR' && user.active)
-    const availableSpecialties = getSpecialties().filter((specialty) => specialty.active)
+    const availableSpecialties = specialties.filter((specialty) => specialty.active)
     setValues({
       doctorId: doctor.doctorId,
-      userId: availableUsers.some((user) => user.userId === doctor.userId) ? doctor.userId ?? 0 : 0,
+      userId: doctor.userId ?? 0,
       firstName: doctor.firstName ?? '',
       lastName: doctor.lastName ?? '',
       run: doctor.run ?? '',
@@ -116,23 +146,40 @@ function Medicos() {
     const next = {...values, [field]: value}
     setValues(next)
     if (field in errors) {
-      const nextErrors = validateDoctor(getDoctorData(next))
+      const nextErrors = validateAdminDoctor(next)
       setErrors({...errors, [field]: nextErrors[field as keyof DoctorErrors]})
     }
     setFormMessage('')
   }
 
+  function selectPrimarySpecialty(specialtyId: number) {
+    setValues((current) => ({
+      ...current,
+      specialtyId,
+      extraSpecialtyIds: current.extraSpecialtyIds.filter((id) => id !== specialtyId),
+    }))
+    setErrors((current) => ({ ...current, specialtyId: undefined }))
+    setFormMessage('')
+  }
+
+  function toggleExtraSpecialty(specialtyId: number, checked: boolean) {
+    const nextIds = checked
+      ? [...new Set([...values.extraSpecialtyIds, specialtyId])]
+      : values.extraSpecialtyIds.filter((id) => id !== specialtyId)
+    updateField('extraSpecialtyIds', nextIds)
+  }
+
   function validateField(field: keyof DoctorErrors) {
     const next = field === 'run' ? {...values, run: normalizeRun(values.run)} : values
     if (field === 'run') setValues(next)
-    const nextErrors = validateDoctor(getDoctorData(next))
+    const nextErrors = validateAdminDoctor(next)
     setErrors({...errors, [field]: nextErrors[field]})
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const normalized = getDoctorData(values)
-    const nextErrors = validateDoctor(normalized)
+    const nextErrors = validateAdminDoctor(values)
     setValues({
       ...values,
       firstName: normalized.firstName,
@@ -149,31 +196,43 @@ function Medicos() {
       if (input instanceof HTMLElement) input.focus()
       return
     }
-    if (isDoctorDataTaken(normalized.run, normalized.medicalLicenseNumber, normalized.doctorId || undefined)) {
-      setFormMessage('El RUN o N° de registro ya está asociado a otro médico.')
+    if (doctors.some((doctor) => doctor.doctorId !== normalized.doctorId
+      && doctor.medicalLicenseNumber.trim().toLowerCase() === normalized.medicalLicenseNumber.toLowerCase())) {
+      setFormMessage('El N° de registro ya está asociado a otro médico.')
       return
     }
-    if (normalized.doctorId) {
-      const {doctorId, ...changes} = normalized
-      if (!editDoctor(doctorId, changes)) {
-        setFormMessage('No fue posible encontrar al médico seleccionado.')
-        return
-      }
-    } else {
-      createDoctor(normalized)
+    if (!session?.token) {
+      setFormMessage('Tu sesión expiró. Inicia sesión nuevamente.')
+      return
     }
-    setFormOpen(false)
-    setDoctors(getDoctors())
+    setSaving(true)
+    try {
+      await saveAdminDoctor(session.token, normalized, !normalized.doctorId)
+      if (!await refreshData()) throw new Error('No se pudieron actualizar los datos.')
+      setFormOpen(false)
+    } catch (requestError) {
+      setFormMessage(requestError instanceof ApiError ? requestError.message : 'No se pudo guardar el médico. Intenta nuevamente.')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  function confirmStatusChange() {
+  async function confirmStatusChange() {
     if (!statusDoctor) return
-    if (!setDoctorStatus(statusDoctor.doctorId, !statusDoctor.active)) {
-      setStatusMessage('No fue posible encontrar al médico seleccionado.')
+    if (!session?.token) {
+      setStatusMessage('Tu sesión expiró. Inicia sesión nuevamente.')
       return
     }
-    setStatusDoctor(null)
-    setDoctors(getDoctors())
+    setSaving(true)
+    try {
+      await saveAdminDoctor(session.token, { ...statusDoctor, active: !statusDoctor.active }, false)
+      if (!await refreshData()) throw new Error('No se pudieron actualizar los datos.')
+      setStatusDoctor(null)
+    } catch (requestError) {
+      setStatusMessage(requestError instanceof ApiError ? requestError.message : 'No se pudo cambiar el estado del médico.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function getSpecialtyNames(doctor: Doctor) {
@@ -193,9 +252,11 @@ function Medicos() {
                 MediReservas.</p></div>
               <button
                 className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 font-semibold text-white shadow-sm transition hover:bg-primary-dark"
-                type="button" onClick={openCreate}>+ Crear médico
+                type="button" onClick={() => void openCreate()}>+ Crear médico
               </button>
             </header>
+            {loadError && <p className="mt-5 rounded-xl bg-red-50 p-4 text-sm text-red-800" role="alert">{loadError}</p>}
+            {loading && <p className="mt-5 text-sm text-muted" role="status">Cargando médicos…</p>}
             <form
               className="mt-8 grid gap-4 rounded-2xl border border-line bg-white p-5 shadow-sm sm:grid-cols-[1fr_14rem]"
               role="search" onSubmit={(event) => event.preventDefault()}>
@@ -221,7 +282,7 @@ function Medicos() {
               <table className="w-full min-w-4xl border-collapse text-left">
                 <caption className="sr-only">Médicos registrados en MediReservas</caption>
                 <thead className="border-b border-line bg-page text-xs uppercase tracking-wider text-muted">
-                <tr>{['Médico', 'RUN', 'Correo', 'N° registro', 'Especialidad', 'Fecha ingreso', 'Estado', 'Acciones'].map((heading) =>
+                <tr>{['Médico', 'RUN', 'Correo', 'N° registro', 'Especialidad', 'Estado', 'Acciones'].map((heading) =>
                   <th className={`px-5 py-4 font-semibold ${heading === 'Acciones' ? 'text-right' : ''}`} scope="col"
                       key={heading}>{heading}</th>)}</tr>
                 </thead>
@@ -234,8 +295,7 @@ function Medicos() {
                   <td className="px-5 py-4">{doctor.email}</td>
                   <td className="px-5 py-4">{doctor.medicalLicenseNumber}</td>
                   <td className="px-5 py-4">{getSpecialtyNames(doctor)}</td>
-                  <td className="px-5 py-4">{doctor.admissionDate || 'Sin información'}</td>
-                  <td className="px-5 py-4"><span
+                   <td className="px-5 py-4"><span
                     className={`rounded-full px-3 py-1 text-sm font-semibold ${doctor.active ? 'bg-primary-light text-primary-dark' : 'bg-red-50 text-red-600'}`}>{doctor.active ? 'Activo' : 'Inactivo'}</span>
                   </td>
                   <td className="px-5 py-4 text-right">
@@ -256,7 +316,7 @@ function Medicos() {
                 </tbody>
               </table>
             </div>
-            {!filteredDoctors.length &&
+            {!loading && !loadError && !filteredDoctors.length &&
               <p className="mt-6 rounded-2xl border border-line bg-white p-8 text-center text-muted">No se encontraron
                 médicos con los filtros seleccionados.</p>}
       </section>
@@ -283,22 +343,24 @@ function Medicos() {
                   className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
                   id="doctor-user-id" name="userId" value={values.userId || ''} aria-invalid={Boolean(errors.userId)}
                   aria-describedby="doctor-user-error"
+                  disabled={Boolean(values.doctorId)}
                   onChange={(event) => updateField('userId', Number(event.target.value))}
                   onBlur={() => validateField('userId')}>
-                  <option value="">Selecciona un usuario con rol médico</option>
-                  {doctorUsers.map((user) => <option value={user.userId}
-                                                     key={user.userId}>{user.firstName} {user.lastName} — {user.email}</option>)}
+                  {values.doctorId ? (() => {
+                    const associatedUser = users.find((user) => user.userId === values.userId)
+                    const name = `${associatedUser?.firstName ?? values.firstName} ${associatedUser?.lastName ?? values.lastName}`.trim()
+                    return <option value={values.userId}>{name || 'Médico'} — {associatedUser?.email ?? values.email}</option>
+                  })() : <>
+                    <option value="">Selecciona un usuario con rol médico</option>
+                    {doctorUsers.map((user) => <option value={user.userId}
+                                                       key={user.userId}>{user.firstName} {user.lastName} — {user.email}</option>)}
+                  </>}
                 </select>
                 <p className="mt-1.5 min-h-5 text-sm text-red-600" id="doctor-user-error"
                    role="alert">{errors.userId}</p>
               </div>
               {([
-                ['firstName', 'Nombre', 'text', 50, 'given-name', '', 'doctor-first-name'],
-                ['lastName', 'Apellido', 'text', 50, 'family-name', '', 'doctor-last-name'],
-                ['run', 'RUN', 'text', 12, 'off', '12345678-5', 'doctor-run'],
-                ['email', 'Correo electrónico', 'email', 100, 'email', '', 'doctor-email'],
-                ['phone', 'Teléfono', 'tel', 20, 'tel', '+56 9 1234 5678', 'doctor-phone'],
-                ['medicalLicenseNumber', 'N° registro médico', 'text', 20, 'off', 'RUM-12345', 'doctor-license'],
+                ['medicalLicenseNumber', 'N° registro médico', 'text', 50, 'off', 'RUM-12345', 'doctor-license'],
               ] as const).map(([field, label, type, maxLength, autoComplete, placeholder, id]) => <div key={field}>
                 <label className="mb-2 block text-sm font-semibold" htmlFor={id}>{label}</label>
                 <input
@@ -316,41 +378,33 @@ function Medicos() {
                   className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
                   id="doctor-specialty-id" name="specialtyId" value={values.specialtyId || ''}
                   aria-invalid={Boolean(errors.specialtyId)} aria-describedby="doctor-specialty-error"
-                  onChange={(event) => updateField('specialtyId', Number(event.target.value))}
+                  onChange={(event) => selectPrimarySpecialty(Number(event.target.value))}
                   onBlur={() => validateField('specialtyId')}>
                   <option value="">Selecciona una especialidad</option>
-                  {activeSpecialties.map((specialty) => <option value={specialty.specialtyId}
-                                                                key={specialty.specialtyId}>{specialty.specialtyName}</option>)}
+                  {specialties.filter((specialty) => specialty.active || specialty.specialtyId === values.specialtyId)
+                    .map((specialty) => <option value={specialty.specialtyId}
+                                                key={specialty.specialtyId}>{specialty.specialtyName}{specialty.active ? '' : ' (inactiva)'}</option>)}
                 </select>
                 <p className="mt-1.5 min-h-5 text-sm text-red-600" id="doctor-specialty-error"
                    role="alert">{errors.specialtyId}</p>
               </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold" htmlFor="doctor-admission-date">Fecha de
-                  ingreso</label>
-                <input
-                  className="w-full rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
-                  id="doctor-admission-date" name="admissionDate" type="date" max={getLocalDateString()}
-                  value={values.admissionDate} aria-invalid={Boolean(errors.admissionDate)}
-                  aria-describedby="doctor-admission-error"
-                  onChange={(event) => updateField('admissionDate', event.target.value)}
-                  onBlur={() => validateField('admissionDate')}/>
-                <p className="mt-1.5 min-h-5 text-sm text-red-600" id="doctor-admission-error"
-                   role="alert">{errors.admissionDate}</p>
-              </div>
               <div className="sm:col-span-2">
                 <label className="mb-2 block text-sm font-semibold" htmlFor="doctor-extra-specialties">Especialidades
                   adicionales</label>
-                <select
-                  className="w-full rounded-xl border border-line bg-white px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
-                  id="doctor-extra-specialties" name="extraSpecialtyIds" multiple size={4}
-                  aria-describedby="doctor-extra-specialties-help" value={values.extraSpecialtyIds.map(String)}
-                  onChange={(event) => updateField('extraSpecialtyIds', Array.from(event.target.selectedOptions, (option) => Number(option.value)))}>
-                  {activeSpecialties.map((specialty) => <option value={specialty.specialtyId}
-                                                                key={specialty.specialtyId}>{specialty.specialtyName}</option>)}
-                </select>
-                <p className="mt-1.5 text-xs text-muted" id="doctor-extra-specialties-help">Opcional. Usa Ctrl para
-                  seleccionar varias.</p>
+                <fieldset className="max-h-52 space-y-1 overflow-y-auto rounded-xl border border-line bg-white p-2"
+                          aria-describedby="doctor-extra-specialties-help">
+                  <legend className="sr-only">Especialidades adicionales</legend>
+                  {specialties.filter((specialty) => specialty.specialtyId !== values.specialtyId
+                    && (specialty.active || values.extraSpecialtyIds.includes(specialty.specialtyId)))
+                    .map((specialty) => <label key={specialty.specialtyId}
+                      className="flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-sm hover:bg-primary-light">
+                      <input className="size-4 accent-emerald-600" type="checkbox"
+                        checked={values.extraSpecialtyIds.includes(specialty.specialtyId)}
+                        onChange={(event) => toggleExtraSpecialty(specialty.specialtyId, event.target.checked)} />
+                      <span>{specialty.specialtyName}{specialty.active ? '' : ' (inactiva)'}</span>
+                    </label>)}
+                </fieldset>
+                <p className="mt-1.5 text-xs text-muted" id="doctor-extra-specialties-help">Opcional. Marca todas las especialidades que correspondan; la principal no se repite aquí.</p>
               </div>
               <div className="sm:col-span-2"><label
                 className="flex items-center gap-3 rounded-xl border border-line bg-page px-4 py-3 text-sm font-semibold"><input
@@ -364,7 +418,7 @@ function Medicos() {
               </button>
               <button
                 className="rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark"
-                type="submit">Guardar médico
+                type="submit" disabled={saving}>{saving ? 'Guardando…' : 'Guardar médico'}
               </button>
             </footer>
             <p className="mt-4 text-center text-sm font-medium text-red-600" role="status">{formMessage}</p>
@@ -401,6 +455,15 @@ function Medicos() {
 
     </DashboardLayout>
   )
+}
+
+function validateAdminDoctor(values: DoctorValues): DoctorErrors {
+  const errors: DoctorErrors = {}
+  if (!values.userId) errors.userId = 'Selecciona un usuario médico.'
+  if (!values.medicalLicenseNumber.trim()) errors.medicalLicenseNumber = 'El registro médico es obligatorio.'
+  else if (values.medicalLicenseNumber.trim().length > 50) errors.medicalLicenseNumber = 'El registro médico no puede superar 50 caracteres.'
+  if (!values.specialtyId && values.extraSpecialtyIds.length === 0) errors.specialtyId = 'Selecciona al menos una especialidad.'
+  return errors
 }
 
 export default Medicos

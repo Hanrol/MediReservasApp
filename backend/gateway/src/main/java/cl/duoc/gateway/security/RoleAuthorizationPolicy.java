@@ -22,12 +22,33 @@ public class RoleAuthorizationPolicy {
             return false;
         }
 
+        if (paths.match("/api/v3/patient-profiles/internal/**", path)) {
+            return false;
+        }
+
+        if (HttpMethod.PATCH.equals(method) && paths.match("/api/v3/auth/users/*/roles", path)) {
+            return false;
+        }
+
+        if (HttpMethod.POST.equals(method)
+                && matches(path,
+                        "/api/v3/patient-profiles",
+                        "/api/v3/receptionist-profiles",
+                        "/api/v3/administrator-profiles")) {
+            return false;
+        }
+
         List<String> normalizedRoles = roles.stream()
                 .map(role -> role.toUpperCase(Locale.ROOT))
                 .toList();
 
         if (normalizedRoles.contains(ADMIN)) {
             return true;
+        }
+
+        if ("/api/v3/doctors/me".equals(path)) {
+            return normalizedRoles.contains(DOCTOR)
+                    && (HttpMethod.GET.equals(method) || HttpMethod.POST.equals(method));
         }
 
         if (isRead(method) && matches(path, "/api/v3/doctors/**", "/api/v3/specialties/**")) {
@@ -60,6 +81,20 @@ public class RoleAuthorizationPolicy {
                 "/api/v3/patient-profiles/**",
                 "/api/v3/receptionist-profiles/**",
                 "/api/v3/administrator-profiles/**")) {
+            if (HttpMethod.GET.equals(method) && "/api/v3/users/me".equals(path)) {
+                return hasAny(normalizedRoles, PATIENT, DOCTOR, RECEPTIONIST);
+            }
+            if ("/api/v3/users/me/profile-completion".equals(path)) {
+                return HttpMethod.GET.equals(method)
+                        && hasAny(normalizedRoles, PATIENT, DOCTOR, RECEPTIONIST);
+            }
+            if ("/api/v3/users/me/profile".equals(path)) {
+                return HttpMethod.PUT.equals(method)
+                        && hasAny(normalizedRoles, PATIENT, DOCTOR, RECEPTIONIST);
+            }
+            if ("/api/v3/patient-profiles/me".equals(path)) {
+                return HttpMethod.PUT.equals(method) && normalizedRoles.contains(PATIENT);
+            }
             if (normalizedRoles.contains(RECEPTIONIST)) {
                 return true;
             }

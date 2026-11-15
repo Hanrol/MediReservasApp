@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -21,14 +22,21 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import cl.duoc.users.client.AuthClient;
+import cl.duoc.users.client.DoctorsClient;
 import cl.duoc.users.dto.AuthUserResponseDTO;
 import cl.duoc.users.dto.CreateUserRequestDTO;
+import cl.duoc.users.dto.CurrentUserResponseDTO;
 import cl.duoc.users.dto.UpdateUserRequestDTO;
 import cl.duoc.users.dto.UserResponseDTO;
 import cl.duoc.users.model.User;
+import cl.duoc.users.model.UserProfile;
 import cl.duoc.users.repository.UserRepository;
+import cl.duoc.users.repository.UserProfileRepository;
+import cl.duoc.users.repository.PatientProfileRepository;
+import cl.duoc.users.repository.ReceptionistProfileRepository;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -37,7 +45,19 @@ class UserServiceTest {
     private UserRepository userRepository;
 
     @Mock
+    private UserProfileRepository userProfileRepository;
+
+    @Mock
     private AuthClient authClient;
+
+    @Mock
+    private DoctorsClient doctorsClient;
+
+    @Mock
+    private PatientProfileRepository patientProfileRepository;
+
+    @Mock
+    private ReceptionistProfileRepository receptionistProfileRepository;
 
     @InjectMocks
     private UserService userService;
@@ -61,6 +81,19 @@ class UserServiceTest {
                 true,
                 null,
                 List.of());
+    }
+
+    @Test
+    void masterAdminCannotBeDeactivatedOrHaveItsEmailChanged() {
+        user.setEmail("master@test.cl");
+        ReflectionTestUtils.setField(userService, "masterAdminEmail", "master@test.cl");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> userService.deactivateUser(1L));
+        assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> userService.updateUser(1L, new UpdateUserRequestDTO("12345678-9", "changed@test.cl")));
+        verify(userRepository, never()).save(any());
     }
 
     // =========================================================
@@ -245,6 +278,63 @@ class UserServiceTest {
         assertEquals(
                 "Usuario no encontrado",
                 exception.getMessage());
+    }
+
+    @Test
+    void getProfileCompletion_deberiaConsiderarCompletoAlPacienteSinDatosOpcionales() {
+        UserProfile profile = new UserProfile();
+        profile.setUser(user);
+        profile.setFirstName("Ana");
+        profile.setLastName("Pérez");
+        when(userRepository.findByEmail("paciente@test.cl")).thenReturn(Optional.of(user));
+        when(userProfileRepository.findByUserUserId(1L)).thenReturn(Optional.of(profile));
+        when(patientProfileRepository.existsByUserUserId(1L)).thenReturn(true);
+
+        var result = userService.getProfileCompletion("paciente@test.cl", "PATIENT");
+
+        assertEquals("PATIENT", result.role());
+        assertTrue(result.complete());
+        assertTrue(result.missingFields().isEmpty());
+    }
+
+    @Test
+    void getProfileCompletion_deberiaExigirPerfilProfesionalParaDoctor() {
+        UserProfile profile = new UserProfile();
+        profile.setUser(user);
+        profile.setFirstName("Diego");
+        profile.setLastName("Médico");
+        profile.setPhone("912345678");
+        profile.setBirthDate(LocalDate.of(1985, 2, 1));
+        profile.setAddress("Santiago");
+        when(userRepository.findByEmail("paciente@test.cl")).thenReturn(Optional.of(user));
+        when(userProfileRepository.findByUserUserId(1L)).thenReturn(Optional.of(profile));
+        when(doctorsClient.hasDoctorProfile(1L)).thenReturn(false);
+
+        var result = userService.getProfileCompletion("paciente@test.cl", "DOCTOR");
+
+        assertEquals(List.of("doctorProfile"), result.missingFields());
+    }
+
+    @Test
+    void getCurrentUser_deberiaRetornarSoloElUsuarioAutenticadoConSuPerfil() {
+        UserProfile profile = new UserProfile();
+        profile.setFirstName("Ana");
+        profile.setLastName("Pérez");
+        profile.setPhone("912345678");
+        profile.setBirthDate(LocalDate.of(1990, 5, 10));
+        profile.setAddress("Santiago");
+
+        when(userRepository.findByEmail("paciente@test.cl")).thenReturn(Optional.of(user));
+        when(userProfileRepository.findByUserUserId(1L)).thenReturn(Optional.of(profile));
+
+        CurrentUserResponseDTO response = userService.getCurrentUser("paciente@test.cl");
+
+        assertEquals(1L, response.userId());
+        assertEquals(10L, response.authUserId());
+        assertEquals("paciente@test.cl", response.email());
+        assertEquals("Ana", response.firstName());
+        assertEquals("Pérez", response.lastName());
+        assertEquals(LocalDate.of(1990, 5, 10), response.birthDate());
     }
 
     @Test

@@ -44,6 +44,16 @@ springdoc:
     swagger-ui:
         path: /swagger-ui/index.html
 
+app:
+    master-admin:
+        email: ${MASTER_ADMIN_EMAIL:}
+        password: ${MASTER_ADMIN_PASSWORD:}
+        run: ${MASTER_ADMIN_RUN:}
+        first-name: ${MASTER_ADMIN_FIRST_NAME:Administrador}
+        last-name: ${MASTER_ADMIN_LAST_NAME:Maestro}
+        department: ${MASTER_ADMIN_DEPARTMENT:Administración}
+        position: ${MASTER_ADMIN_POSITION:Administrador maestro}
+
 management:
     endpoints:
         web:
