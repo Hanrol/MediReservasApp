@@ -100,6 +100,106 @@ export async function mockAdminApi(page: Page) {
   })
 }
 
+export async function mockDoctorApi(page: Page) {
+  const visits: Array<{
+    medicalVisitId: number
+    appointmentId: number
+    doctorId: number
+    visitDate: string
+    visitReason: string
+    observations: string
+    treatment: string
+    createdAt: string
+    diagnoses: Array<{ diagnosisId: number; diagnosisDescription: string; diagnosisNotes: string }>
+  }> = []
+  let diagnosisId = 1
+
+  await page.route('**/api/v3/**', async (route) => {
+    const { pathname } = new URL(route.request().url())
+    const method = route.request().method()
+    let data: unknown
+    let message = 'OK'
+
+    if (method === 'GET' && pathname === '/api/v3/doctors/me') {
+      await route.fulfill({
+        status: 200,
+        json: { doctorId: 1, userId: 3, medicalLicenseNumber: 'RUM-E2E', active: true, specialtyIds: [1] },
+      })
+      return
+    } else if (method === 'GET' && pathname === '/api/v3/appointments/doctor/1') {
+      data = mockAppointments.map((appointment) => ({
+        appointmentId: appointment.appointmentId,
+        patientUserId: appointment.patientUserId,
+        doctorId: appointment.doctorId,
+        specialtyId: appointment.specialtyId,
+        scheduleSlotId: appointment.scheduleSlotId,
+        appointmentStatus: appointment.appointmentStatus,
+        reason: appointment.reason,
+      })).filter((appointment) => appointment.doctorId === 1)
+    } else if (method === 'GET' && pathname === '/api/v3/schedule-slots') {
+      data = mockSchedules.map((schedule) => ({
+        scheduleSlotId: schedule.id,
+        doctorId: schedule.doctorId,
+        slotDate: schedule.date,
+        startTime: `${schedule.time}:00`,
+        endTime: `${schedule.time}:30`,
+        slotStatus: schedule.available ? 'DISPONIBLE' : 'RESERVADO',
+        appointmentId: null,
+      }))
+    } else if (method === 'GET' && pathname === '/api/v3/specialties') {
+      data = mockSpecialties.map(({ specialtyId, specialtyName, description, active }) => ({
+        specialtyId, specialtyName, description, active,
+      }))
+    } else if (method === 'POST' && pathname === '/api/v3/medical-records/for-appointment/1') {
+      data = { medicalRecordId: 1, patientId: 4, active: true }
+    } else if (method === 'GET' && /^\/api\/v3\/medical-visit\/\d+$/.test(pathname)) {
+      data = visits
+    } else if (method === 'POST' && pathname === '/api/v3/medical-visit') {
+      const body = route.request().postDataJSON() as {
+        appointmentId: number
+        doctorId: number
+        visitDate: string
+        visitReason: string
+        observations: string
+        treatment: string
+      }
+      const visit = {
+        medicalVisitId: visits.length + 1,
+        ...body,
+        createdAt: '2026-10-11 12:00:00',
+        diagnoses: [],
+      }
+      visits.push(visit)
+      data = visit
+      message = 'Visita médica creada'
+    } else if (method === 'POST' && pathname === '/api/v3/diagnoses') {
+      const body = route.request().postDataJSON() as {
+        medicalVisitId: number
+        diagnosisDescription: string
+        diagnosisNotes: string
+      }
+      const visit = visits.find((item) => item.medicalVisitId === body.medicalVisitId)
+      if (visit) visit.diagnoses.push({ diagnosisId: diagnosisId++, ...body })
+      data = null
+      message = 'Diagnóstico creado'
+    } else if (method === 'PATCH' && pathname === '/api/v3/appointments/1/complete') {
+      const appointment = mockAppointments.find((item) => item.appointmentId === 1)
+      if (appointment) appointment.appointmentStatus = 'COMPLETED'
+      data = null
+      message = 'Cita completada'
+    } else if (method === 'GET' && pathname === '/api/v3/medical-records') {
+      data = visits.length
+        ? [{ medicalRecordId: 1, patientUserId: 4, active: true, visits }]
+        : []
+    } else {
+      await route.fulfill({ status: 404, json: { code: 404, message: `Ruta doctor no simulada: ${method} ${pathname}`, data: null } })
+      return
+    }
+
+    await route.fulfill({ status: 200, json: { code: 200, message, data } })
+  })
+}
+
 export async function freezeMockDate(page: Page) {
   await page.clock.install({ time: new Date('2026-10-11T12:00:00') })
 }

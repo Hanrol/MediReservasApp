@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
-import { freezeMockDate, loginAs } from './helpers'
+import { freezeMockDate, loginAs, mockDoctorApi } from './helpers'
 
 test('CP-130 · RF-23/RF-24/RF-25 · médico registra una observación y consulta el historial', async ({ page }) => {
   await freezeMockDate(page)
+  await mockDoctorApi(page)
   await loginAs(page, 'medico@medireservas.cl', 'Medico123')
   await page.goto('/#/agenda-medica')
 
@@ -18,5 +19,5 @@ test('CP-130 · RF-23/RF-24/RF-25 · médico registra una observación y consult
   await expect(page.getByRole('status')).toContainText('La observación clínica se guardó correctamente')
   await page.goto('/#/historial-clinico')
   await expect(page.getByText('Migraña E2E')).toBeVisible()
-  await expect(page.getByText('Paula Contreras (44444444-4)')).toBeVisible()
+  await expect(page.getByText('Paciente #4 (No disponible)')).toBeVisible()
 })

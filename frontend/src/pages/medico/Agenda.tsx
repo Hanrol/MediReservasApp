@@ -3,9 +3,7 @@ import { Link } from "react-router-dom";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import Breadcrumbs from "../../components/layout/Breadcrumbs";
-import { useAppointments } from "../../hooks/useAppointments";
-import { useAuth } from "../../hooks/useAuth";
-import { getDoctorForUser } from "../../services/doctors.service";
+import { useDoctorAppointments } from "../../hooks/useDoctorAppointments";
 import { APPOINTMENT_STATUS_OPTIONS } from "../../constants/appointmentStatuses";
 import { AppointmentCard } from "../../components/appointments/AppointmentCard";
 import type { AppointmentStatus } from "../../types/appointment";
@@ -13,16 +11,12 @@ import { ROUTES } from "../../constants/routes";
 import { getLocalDateString } from "../../utils/validations";
 
 function Agenda() {
-  const { user } = useAuth();
-  const doctor = getDoctorForUser(user);
   const {
     appointments,
     loading,
     error,
     refresh,
-  } = useAppointments({
-    filters: { doctorId: doctor?.doctorId },
-  });
+  } = useDoctorAppointments();
 
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedStatus, setSelectedStatus] =

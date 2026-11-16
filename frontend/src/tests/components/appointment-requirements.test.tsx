@@ -16,10 +16,10 @@ import MisCitas from '../../pages/paciente/MisCitas'
 import ObservacionClinica from '../../pages/medico/ObservacionClinica'
 import Registro from '../../pages/public/Registro'
 import SolicitarCita from '../../pages/paciente/SolicitarCita'
-import { clinicalService } from '../../services/clinical.service'
 import { ApiError } from '../../services/api-client'
 import { registerPatient } from '../../services/registration.service'
 import * as receptionApi from '../../services/reception-api.service'
+import * as doctorWorkflow from '../../services/doctor-workflow.service'
 import { appointmentsStorage } from '../../storage/appointments.storage'
 import { clinicalStorage } from '../../storage/clinical.storage'
 import { schedulesStorage } from '../../storage/schedules.storage'
@@ -82,6 +82,15 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     vi.spyOn(receptionApi, 'confirmReceptionAppointment').mockResolvedValue()
     vi.spyOn(receptionApi, 'cancelReceptionAppointment').mockResolvedValue()
     vi.spyOn(receptionApi, 'rescheduleReceptionAppointment').mockResolvedValue()
+    vi.spyOn(doctorWorkflow, 'getDoctorAppointments').mockImplementation(async (_token, doctorName) => {
+      const doctor = mockDoctors.find((item) => `${item.firstName} ${item.lastName}` === doctorName) ?? mockDoctors[0]!
+      return {
+        doctor,
+        appointments: mockAppointments.filter((appointment) => appointment.doctorId === doctor.doctorId),
+      }
+    })
+    vi.spyOn(doctorWorkflow, 'getDoctorObservation').mockResolvedValue(null)
+    vi.spyOn(doctorWorkflow, 'saveDoctorObservation').mockResolvedValue()
   })
 
   afterEach(() => {
@@ -139,23 +148,25 @@ describe('Requisitos de citas en las pantallas por rol', () => {
 
     renderAs(doctor, <ObservacionClinica />, '/observacion-clinica?cita=1')
 
-    await user.type(screen.getByLabelText(/Diagnóstico/), 'Migraña')
+    await user.type(await screen.findByLabelText(/Diagnóstico/), 'Migraña')
     await user.type(screen.getByLabelText(/Observaciones clínicas/), 'Paciente refiere cefalea recurrente.')
     await user.type(screen.getByLabelText(/Tratamiento e indicaciones/), 'Control en cuatro semanas.')
     await user.click(screen.getByRole('button', { name: 'Guardar observación' }))
 
-    expect(clinicalStorage.getAll()).toHaveLength(1)
-    expect(appointmentsStorage.getAll().find((item) => item.appointmentId === 1)?.appointmentStatus).toBe('COMPLETED')
-    expect(screen.getByText('La observación clínica se guardó correctamente.')).toBeInTheDocument()
+    expect(await screen.findByText('La observación clínica se guardó correctamente.')).toBeInTheDocument()
+    expect(doctorWorkflow.saveDoctorObservation).toHaveBeenCalled()
+    expect(clinicalStorage.getAll()).toHaveLength(0)
+    expect(appointmentsStorage.getAll().find((item) => item.appointmentId === 1)?.appointmentStatus).toBe('CONFIRMED')
   })
 
-  it('CP-075 · RF-23/RF-24 · agenda limita la acción médica al registro de observaciones', () => {
+  it('CP-075 · RF-23/RF-24 · agenda limita la acción médica al registro de observaciones', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-10-11T12:00:00'))
     const doctor = mockUsers.find((item) => item.role === 'DOCTOR')!
 
     renderAs(doctor, <Agenda />)
 
+    await act(async () => { vi.runAllTimers() })
     expect(screen.getAllByRole('link', { name: 'Registrar observación' })).toHaveLength(2)
     expect(screen.queryByRole('button', { name: 'Confirmar cita' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Cancelar cita' })).not.toBeInTheDocument()
@@ -264,11 +275,11 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     expect(schedulesStorage.getAll().find((item) => item.id === 3)?.available).toBe(false)
   })
 
-  it('CP-103 · RF-24/RNF-07 · observación clínica señala los campos obligatorios', () => {
+  it('CP-103 · RF-24/RNF-07 · observación clínica señala los campos obligatorios', async () => {
     const doctor = mockUsers.find((item) => item.role === 'DOCTOR')!
     renderAs(doctor, <ObservacionClinica />, '/observacion-clinica?cita=1')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar observación' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Guardar observación' }))
 
     expect(screen.getByRole('alert')).toHaveTextContent('Revisa los campos indicados antes de guardar la observación.')
     expect(screen.getByText('Ingrese el diagnóstico clínico.')).toBeInTheDocument()
@@ -351,20 +362,18 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     expect(screen.getByText('No se encontraron médicos.')).toBeInTheDocument()
   })
 
-  it('CP-109 · RF-24 · observación existente queda visible y bloqueada para edición', () => {
-    clinicalService.create({
-      appointmentId: 1,
-      patientId: 4,
-      doctorId: 1,
+  it('CP-109 · RF-24 · observación existente queda visible y bloqueada para edición', async () => {
+    vi.mocked(doctorWorkflow.getDoctorObservation).mockResolvedValue({
       diagnosis: 'Migraña',
       notes: 'Cefalea recurrente informada por la paciente.',
       treatment: 'Control en cuatro semanas.',
+      createdAt: new Date().toISOString(),
     })
     const doctor = mockUsers.find((item) => item.role === 'DOCTOR')!
 
     renderAs(doctor, <ObservacionClinica />, '/observacion-clinica?cita=1')
 
-    expect(screen.getByText(/Esta cita ya tiene una observación registrada/)).toBeInTheDocument()
+    expect(await screen.findByText(/Esta cita ya tiene una observación registrada/)).toBeInTheDocument()
     expect(screen.getByLabelText(/Diagnóstico/)).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Observación ya registrada' })).toBeDisabled()
   })
@@ -374,7 +383,7 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     const doctor = mockUsers.find((item) => item.role === 'DOCTOR')!
     renderAs(doctor, <Agenda />)
 
-    expect(screen.getByText('Control general')).toBeInTheDocument()
+    expect(await screen.findByText('Control general')).toBeInTheDocument()
     expect(screen.queryByText('Control preventivo')).not.toBeInTheDocument()
     await user.type(screen.getByLabelText('Nombre del paciente'), 'Paula')
     fireEvent.change(screen.getByLabelText('Fecha'), { target: { value: '2026-10-09' } })
@@ -385,32 +394,32 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     expect(screen.getByRole('heading', { name: 'Mi agenda médica' })).toBeInTheDocument()
   })
 
-  it('CP-112 · RF-24 · bloquea el registro de observaciones para citas no confirmadas', () => {
+  it('CP-112 · RF-24 · bloquea el registro de observaciones para citas no confirmadas', async () => {
     const doctor = mockUsers.find((item) => item.userId === 5)!
     renderAs(doctor, <ObservacionClinica />, '/observacion-clinica?cita=2')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar observación' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Guardar observación' }))
 
     expect(screen.getByRole('alert')).toHaveTextContent('Solo se pueden registrar observaciones de citas confirmadas.')
     expect(clinicalStorage.getAll()).toHaveLength(0)
   })
 
-  it('CP-113 · RF-24/RNF-02 · formulario clínico muestra y permite limpiar errores', () => {
+  it('CP-113 · RF-24/RNF-02 · formulario clínico muestra y permite limpiar errores', async () => {
     const doctor = mockUsers.find((item) => item.role === 'DOCTOR')!
     renderAs(doctor, <ObservacionClinica />, '/observacion-clinica?cita=1')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar observación' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Guardar observación' }))
     expect(screen.getByText('Ingrese el diagnóstico clínico.')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Limpiar formulario' }))
     expect(screen.queryByText('Ingrese el diagnóstico clínico.')).not.toBeInTheDocument()
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
-  it('CP-114 · RF-24 · informa cuando la cita de la observación no existe', () => {
+  it('CP-114 · RF-24 · informa cuando la cita de la observación no existe', async () => {
     const doctor = mockUsers.find((item) => item.role === 'DOCTOR')!
     renderAs(doctor, <ObservacionClinica />, '/observacion-clinica?cita=999')
 
-    expect(screen.getByRole('alert')).toHaveTextContent('No se encontró la cita seleccionada.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se encontró la cita seleccionada.')
   })
 
   it('CP-115 · RF-21/RNF-07 · recepción exige fecha y hora para reagendar', async () => {
@@ -425,29 +434,22 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Selecciona la nueva fecha y hora.')
   })
 
-  it('CP-116 · RF-24/RNF-07 · revierte el estado si no se guarda la observación', async () => {
+  it('CP-116 · RF-24/RNF-07 · conserva la cita confirmada si falla el registro clínico', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
+    vi.mocked(doctorWorkflow.saveDoctorObservation).mockRejectedValueOnce(new Error('No fue posible guardar la observación.'))
     const user = userEvent.setup()
     const doctor = mockUsers.find((item) => item.role === 'DOCTOR')!
     renderAs(doctor, <ObservacionClinica />, '/observacion-clinica?cita=1')
 
-    await user.type(screen.getByLabelText(/Diagnóstico/), 'Migraña')
+    await user.type(await screen.findByLabelText(/Diagnóstico/), 'Migraña')
     await user.type(screen.getByLabelText(/Observaciones clínicas/), 'Paciente refiere cefalea recurrente.')
     await user.type(screen.getByLabelText(/Tratamiento e indicaciones/), 'Control en cuatro semanas.')
-    clinicalService.create({
-      appointmentId: 1,
-      patientId: 4,
-      doctorId: 1,
-      diagnosis: 'Registro concurrente',
-      notes: 'Ya se creó una observación para esta cita.',
-      treatment: 'Control posterior.',
-    })
-
     await user.click(screen.getByRole('button', { name: 'Guardar observación' }))
 
-    expect(screen.getByRole('alert')).toHaveTextContent('No fue posible guardar la observación.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('No fue posible guardar la observación.')
+    expect(doctorWorkflow.saveDoctorObservation).toHaveBeenCalled()
     expect(appointmentsStorage.getAll().find((item) => item.appointmentId === 1)?.appointmentStatus).toBe('CONFIRMED')
-    expect(clinicalStorage.getAll()).toHaveLength(1)
+    expect(clinicalStorage.getAll()).toHaveLength(0)
   })
 
   it('CP-120 · RF-02/RNF-07 · registro informa correo o RUN ya asociados', async () => {
@@ -502,17 +504,15 @@ describe('Requisitos de citas en las pantallas por rol', () => {
 
   it('CP-122 · RF-24 · avisa si la cita desaparece antes de completar la atención', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
-    const user = userEvent.setup()
+    vi.mocked(doctorWorkflow.getDoctorAppointments).mockResolvedValueOnce({
+      doctor: mockDoctors[0]!,
+      appointments: [],
+    })
     const doctor = mockUsers.find((item) => item.role === 'DOCTOR')!
     renderAs(doctor, <ObservacionClinica />, '/observacion-clinica?cita=1')
 
-    await user.type(screen.getByLabelText(/Diagnóstico/), 'Migraña')
-    await user.type(screen.getByLabelText(/Observaciones clínicas/), 'Paciente refiere cefalea recurrente.')
-    await user.type(screen.getByLabelText(/Tratamiento e indicaciones/), 'Control en cuatro semanas.')
-    appointmentsStorage.saveAll([])
-    await user.click(screen.getByRole('button', { name: 'Guardar observación' }))
-
-    expect(screen.getByRole('alert')).toHaveTextContent('No se encontró la cita seleccionada.')
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se encontró la cita seleccionada.')
+    expect(doctorWorkflow.saveDoctorObservation).not.toHaveBeenCalled()
     expect(clinicalStorage.getAll()).toHaveLength(0)
   })
 })

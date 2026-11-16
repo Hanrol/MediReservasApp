@@ -1,11 +1,12 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Breadcrumbs from '../../components/layout/Breadcrumbs'
 import DashboardLayout from '../../components/layout/DashboardLayout'
 import EmptyState from '../../components/ui/EmptyState'
 import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
+import { getDoctorClinicalHistory } from '../../services/doctor-workflow.service'
+import type { ClinicalConsultation } from '../../types/clinical'
 import { clinicalService } from '../../services/clinical.service'
-import { getDoctors } from '../../services/doctors.service'
 
 const dateFormatter = new Intl.DateTimeFormat('es-CL', {
   day: '2-digit',
@@ -20,12 +21,39 @@ function formatDate(value: string) {
 }
 
 function HistorialClinico() {
-  const { user } = useAuth()
+  const { user, session } = useAuth()
   const isDoctor = user?.role === 'DOCTOR'
-  const doctor = isDoctor ? getDoctors().find((item) => item.userId === user.userId) : undefined
+  const [doctorConsultations, setDoctorConsultations] = useState<ClinicalConsultation[]>([])
+  const [doctorLoading, setDoctorLoading] = useState(false)
+  const [doctorError, setDoctorError] = useState('')
+  const doctorName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim()
+
+  useEffect(() => {
+    if (!isDoctor || !session?.token) return
+    let active = true
+    const timer = window.setTimeout(() => {
+      setDoctorLoading(true)
+      setDoctorError('')
+      void getDoctorClinicalHistory(session.token, doctorName)
+        .then((consultations) => {
+          if (active) setDoctorConsultations(consultations)
+        })
+        .catch((cause: unknown) => {
+          if (active) setDoctorError(cause instanceof Error ? cause.message : 'No se pudo cargar el historial clínico.')
+        })
+        .finally(() => {
+          if (active) setDoctorLoading(false)
+        })
+    }, 0)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [doctorName, isDoctor, session?.token])
+
   const consultations = user
     ? isDoctor
-      ? doctor ? clinicalService.getConsultations({ doctorId: doctor.doctorId }) : []
+      ? doctorConsultations
       : clinicalService.getConsultations({ patientId: user.userId })
     : []
 
@@ -58,7 +86,9 @@ function HistorialClinico() {
 
         <section className="mt-8 rounded-2xl border border-line bg-white p-6 shadow-sm" aria-labelledby="consultations-title">
           <h2 className="text-2xl font-bold" id="consultations-title">Consultas médicas anteriores</h2>
-          {consultations.length ? (
+          {doctorLoading && <p role="status" className="mt-5 text-muted">Cargando historial clínico...</p>}
+          {doctorError && <p role="alert" className="mt-5 text-red-700">{doctorError}</p>}
+          {!doctorLoading && !doctorError && consultations.length ? (
             <div className="mt-5 space-y-4">
               {consultations.map((consultation) => (
                 <article className="rounded-xl border border-line p-5" key={consultation.id}>
@@ -75,7 +105,7 @@ function HistorialClinico() {
                 </article>
               ))}
             </div>
-          ) : <EmptyState className="text-center">No se encontraron consultas médicas registradas.</EmptyState>}
+          ) : !doctorLoading && !doctorError ? <EmptyState className="text-center">No se encontraron consultas médicas registradas.</EmptyState> : null}
         </section>
       </div>
     </DashboardLayout>

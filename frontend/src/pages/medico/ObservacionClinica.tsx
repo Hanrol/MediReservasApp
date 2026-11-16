@@ -1,13 +1,11 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import Breadcrumbs from "../../components/layout/Breadcrumbs";
 import { ROUTES } from "../../constants/routes";
-import { useAppointments } from "../../hooks/useAppointments";
-import { useClinical } from "../../hooks/useClinical";
-import { useAuth } from "../../hooks/useAuth";
-import { getDoctorForUser } from "../../services/doctors.service";
+import { useDoctorAppointments } from "../../hooks/useDoctorAppointments";
+import { getDoctorObservation, saveDoctorObservation } from "../../services/doctor-workflow.service";
 import { validateClinicalForm, type ClinicalFormErrors, type ClinicalFormValues } from "../../utils/clinicalForm";
 
 const INITIAL_VALUES: ClinicalFormValues = {
@@ -17,31 +15,9 @@ const INITIAL_VALUES: ClinicalFormValues = {
 };
 
 function ObservacionClinica() {
-  const { user } = useAuth();
-  const doctor = getDoctorForUser(user);
+  const { appointments, doctorId, loading: loadingAppointment, error: appointmentError, refresh, token } = useDoctorAppointments();
   const [searchParams] = useSearchParams();
   const appointmentId = Number(searchParams.get("cita"));
-
-  const {
-    appointments,
-    loading: loadingAppointment,
-    error: appointmentError,
-    refresh: refreshAppointments,
-    updateAppointment,
-  } = useAppointments({
-    filters: { doctorId: doctor?.doctorId },
-  });
-
-  const {
-    observations,
-    loading: loadingObservations,
-    error: observationError,
-    refresh: refreshObservations,
-    createObservation,
-  } = useClinical({
-    filters: { appointmentId },
-    autoLoad: Number.isInteger(appointmentId) && appointmentId > 0,
-  });
 
   const appointment = useMemo(
     () =>
@@ -49,10 +25,14 @@ function ObservacionClinica() {
     [appointments, appointmentId],
   );
 
-  const existingObservation = useMemo(
-    () => observations[0] ?? null,
-    [observations],
-  );
+  const [existingObservation, setExistingObservation] = useState<{
+    diagnosis: string;
+    notes: string;
+    treatment: string;
+    createdAt: string;
+  } | null>(null);
+  const [loadingObservation, setLoadingObservation] = useState(false);
+  const [observationError, setObservationError] = useState<string | null>(null);
 
   const [values, setValues] = useState<ClinicalFormValues>(() =>
     existingObservation
@@ -67,6 +47,37 @@ function ObservacionClinica() {
   const [formError, setFormError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!token || !appointment || loadingAppointment) return;
+    let active = true;
+    const timer = window.setTimeout(() => {
+      setLoadingObservation(true);
+      setObservationError(null);
+      void getDoctorObservation(token, appointment)
+        .then((observation) => {
+          if (!active) return;
+          setExistingObservation(observation);
+          if (observation) {
+            setValues({
+              diagnosis: observation.diagnosis,
+              notes: observation.notes,
+              treatment: observation.treatment,
+            });
+          }
+        })
+        .catch((cause: unknown) => {
+          if (active) setObservationError(cause instanceof Error ? cause.message : "No se pudo consultar la observación clínica.");
+        })
+        .finally(() => {
+          if (active) setLoadingObservation(false);
+        });
+    }, 0);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+    };
+  }, [appointment, loadingAppointment, token]);
 
   const updateField = (
     field: keyof ClinicalFormValues,
@@ -131,42 +142,27 @@ function ObservacionClinica() {
 
     setSaving(true);
 
-    const completedAppointment = updateAppointment(appointment.appointmentId, {
-      appointmentStatus: "COMPLETED",
-    });
-
-    if (!completedAppointment) {
-      setSaving(false);
-      setFormError("No fue posible completar la cita. Inténtalo nuevamente.");
+    if (!token || !doctorId) {
+      setFormError("No se pudo validar tu perfil médico. Vuelve a cargar la página.");
       return;
     }
-
-    const created = createObservation({
-      appointmentId: appointment.appointmentId,
-      patientId: appointment.patientUserId,
-      doctorId: appointment.doctorId,
-      diagnosis: values.diagnosis.trim(),
-      notes: values.notes.trim(),
-      treatment: values.treatment.trim(),
-    });
-
-    setSaving(false);
-
-    if (!created) {
-      updateAppointment(appointment.appointmentId, {
-        appointmentStatus: "CONFIRMED",
-      });
-      setFormError(
-        "No fue posible guardar la observación. Inténtalo nuevamente.",
-      );
-      return;
-    }
-
-    setSuccessMessage(
-      "La observación clínica se guardó correctamente.",
-    );
-
-    refreshObservations();
+    setSaving(true);
+    void saveDoctorObservation(token, appointment, doctorId, values)
+      .then(async () => {
+        setSuccessMessage("La observación clínica se guardó correctamente.");
+        setExistingObservation({
+          ...values,
+          diagnosis: values.diagnosis.trim(),
+          notes: values.notes.trim(),
+          treatment: values.treatment.trim(),
+          createdAt: new Date().toISOString(),
+        });
+        await refresh();
+      })
+      .catch((cause: unknown) => {
+        setFormError(cause instanceof Error ? cause.message : "No fue posible guardar la observación. Inténtalo nuevamente.");
+      })
+      .finally(() => setSaving(false));
   };
 
   const handleReset = () => {
@@ -185,7 +181,7 @@ function ObservacionClinica() {
     setSuccessMessage("");
   };
 
-  const loading = loadingAppointment || loadingObservations;
+  const loading = loadingAppointment || loadingObservation;
   const loadError = formError ? null : appointmentError ?? observationError;
 
   if (!Number.isInteger(appointmentId) || appointmentId <= 0) {
@@ -262,8 +258,7 @@ function ObservacionClinica() {
             <button
               type="button"
               onClick={() => {
-                refreshAppointments();
-                refreshObservations();
+                void refresh();
               }}
               className="mt-3 rounded-lg border border-red-300 px-4 py-2 text-sm font-semibold text-red-800 hover:bg-red-100"
             >
