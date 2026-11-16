@@ -83,7 +83,37 @@ class RoleAuthorizationPolicyTest {
         assertFalse(policy.isAllowed("/api/v3/medical-records/for-appointment/10", HttpMethod.POST, List.of("RECEPTIONIST")));
         assertFalse(policy.isAllowed("/api/v3/medical-records/10/deactivate", HttpMethod.PUT, List.of("DOCTOR")));
         assertFalse(policy.isAllowed("/api/v3/medical-records/10", HttpMethod.DELETE, List.of("DOCTOR")));
-        assertTrue(policy.isAllowed("/api/v3/medical-visit/10", HttpMethod.POST, List.of("RECEPTIONIST")));
+    }
+
+    @Test
+    void receptionistCannotAccessClinicalRoutesButCanStillManageAppointments() {
+        List<String> clinicalPaths = List.of(
+                "/api/v3/medical-records",
+                "/api/v3/medical-records/me",
+                "/api/v3/medical-records/for-appointment/10",
+                "/api/v3/medical-visit/10",
+                "/api/v3/diagnoses/10",
+                "/api/v3/vital-signs/10");
+        List<HttpMethod> methods = List.of(
+                HttpMethod.GET, HttpMethod.HEAD, HttpMethod.POST, HttpMethod.PUT,
+                HttpMethod.DELETE, HttpMethod.PATCH);
+
+        for (String path : clinicalPaths) {
+            for (HttpMethod method : methods) {
+                assertFalse(policy.isAllowed(path, method, List.of("RECEPTIONIST")),
+                        path + " " + method + " must be denied to Reception");
+            }
+        }
+        assertFalse(policy.isAllowed(
+                "/api/v3/medical-visit/10", HttpMethod.GET, List.of("DOCTOR", "RECEPTIONIST")));
+        assertTrue(policy.isAllowed("/api/v3/medical-visit/10", HttpMethod.GET, List.of("ADMIN")));
+        assertTrue(policy.isAllowed("/api/v3/appointments", HttpMethod.GET, List.of("RECEPTIONIST")));
+        assertTrue(policy.isAllowed(
+                "/api/v3/appointments/10/confirm", HttpMethod.PATCH, List.of("RECEPTIONIST")));
+        assertTrue(policy.isAllowed(
+                "/api/v3/appointments/10/cancel", HttpMethod.PATCH, List.of("RECEPTIONIST")));
+        assertTrue(policy.isAllowed(
+                "/api/v3/appointments/10", HttpMethod.PUT, List.of("RECEPTIONIST")));
     }
 
     @Test

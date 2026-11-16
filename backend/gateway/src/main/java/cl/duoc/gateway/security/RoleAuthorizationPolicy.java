@@ -139,14 +139,14 @@ public class RoleAuthorizationPolicy {
                 "/api/v3/medical-visit/**",
                 "/api/v3/diagnoses/**",
                 "/api/v3/vital-signs/**")) {
+            if (normalizedRoles.contains(RECEPTIONIST)) {
+                return false;
+            }
             if (HttpMethod.POST.equals(method)
                     && paths.match("/api/v3/medical-records/for-appointment/*", path)) {
                 return normalizedRoles.contains(DOCTOR)
                         && !normalizedRoles.contains(ADMIN)
                         && !normalizedRoles.contains(RECEPTIONIST);
-            }
-            if (normalizedRoles.contains(RECEPTIONIST)) {
-                return true;
             }
             if (normalizedRoles.contains(DOCTOR)) {
                 // Clinical controllers enforce ownership for reads and visit/diagnosis/vital-sign writes.
