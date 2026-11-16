@@ -56,6 +56,12 @@ public class RoleAuthorizationPolicy {
                 .map(role -> role.toUpperCase(Locale.ROOT))
                 .toList();
 
+        if ("/api/v3/medical-records/me".equals(path)) {
+            return HttpMethod.GET.equals(method)
+                    && normalizedRoles.contains(PATIENT)
+                    && !hasAny(normalizedRoles, ADMIN, RECEPTIONIST, DOCTOR);
+        }
+
         if (normalizedRoles.contains(ADMIN)) {
             return true;
         }

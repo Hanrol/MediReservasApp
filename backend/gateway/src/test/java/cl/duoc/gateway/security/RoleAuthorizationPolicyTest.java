@@ -34,6 +34,11 @@ class RoleAuthorizationPolicyTest {
         assertFalse(policy.isAllowed("/api/v3/doctors", HttpMethod.POST, List.of("PATIENT")));
         assertFalse(policy.isAllowed("/api/v3/users/email/other@example.test", HttpMethod.GET, List.of("PATIENT")));
         assertFalse(policy.isAllowed("/api/v3/users/me", HttpMethod.GET, List.of()));
+        assertTrue(policy.isAllowed("/api/v3/medical-records/me", HttpMethod.GET, List.of("PATIENT")));
+        assertFalse(policy.isAllowed("/api/v3/medical-records/me", HttpMethod.POST, List.of("PATIENT")));
+        assertFalse(policy.isAllowed("/api/v3/medical-records/me", HttpMethod.GET, List.of("DOCTOR")));
+        assertFalse(policy.isAllowed("/api/v3/medical-records/me", HttpMethod.GET, List.of("RECEPTIONIST")));
+        assertFalse(policy.isAllowed("/api/v3/medical-records/4", HttpMethod.GET, List.of("PATIENT")));
         assertTrue(policy.isAllowed("/api/v3/admin/invitations", HttpMethod.POST, List.of("ADMIN")));
         assertFalse(policy.isAllowed("/api/v3/admin/invitations", HttpMethod.POST, List.of("RECEPTIONIST")));
     }

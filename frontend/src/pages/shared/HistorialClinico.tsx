@@ -6,7 +6,7 @@ import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
 import { getDoctorClinicalHistory } from '../../services/doctor-workflow.service'
 import type { ClinicalConsultation } from '../../types/clinical'
-import { clinicalService } from '../../services/clinical.service'
+import { getPatientClinicalHistory } from '../../services/patient-clinical-history.service'
 
 const dateFormatter = new Intl.DateTimeFormat('es-CL', {
   day: '2-digit',
@@ -16,45 +16,59 @@ const dateFormatter = new Intl.DateTimeFormat('es-CL', {
 
 function formatDate(value: string) {
   if (!value) return 'Sin información'
-  const date = new Date(value.includes('T') ? value : `${value}T00:00:00`)
+  const dateValue = value.includes('T')
+    ? value
+    : value.includes(' ')
+      ? value.replace(' ', 'T')
+      : `${value}T00:00:00`
+  const date = new Date(dateValue)
   return Number.isNaN(date.getTime()) ? value : dateFormatter.format(date)
 }
 
 function HistorialClinico() {
   const { user, session } = useAuth()
   const isDoctor = user?.role === 'DOCTOR'
-  const [doctorConsultations, setDoctorConsultations] = useState<ClinicalConsultation[]>([])
-  const [doctorLoading, setDoctorLoading] = useState(false)
-  const [doctorError, setDoctorError] = useState('')
+  const isPatient = user?.role === 'PATIENT'
+  const [apiConsultations, setApiConsultations] = useState<ClinicalConsultation[]>([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState('')
   const doctorName = `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim()
 
   useEffect(() => {
-    if (!isDoctor || !session?.token) return
+    if ((!isDoctor && !isPatient) || !session?.token || !user) return
     let active = true
     const timer = window.setTimeout(() => {
-      setDoctorLoading(true)
-      setDoctorError('')
-      void getDoctorClinicalHistory(session.token, doctorName)
+      setHistoryLoading(true)
+      setHistoryError('')
+      const loadHistory = isDoctor
+        ? getDoctorClinicalHistory(session.token, doctorName)
+        : getPatientClinicalHistory(
+          session.token,
+          user.userId,
+          `${user.firstName} ${user.lastName}`.trim(),
+          user.run,
+        )
+      void loadHistory
         .then((consultations) => {
-          if (active) setDoctorConsultations(consultations)
+          if (active) setApiConsultations(consultations)
         })
         .catch((cause: unknown) => {
-          if (active) setDoctorError(cause instanceof Error ? cause.message : 'No se pudo cargar el historial clínico.')
+          if (active) setHistoryError(cause instanceof Error ? cause.message : 'No se pudo cargar el historial clínico.')
         })
         .finally(() => {
-          if (active) setDoctorLoading(false)
+          if (active) setHistoryLoading(false)
         })
     }, 0)
     return () => {
       active = false
       window.clearTimeout(timer)
     }
-  }, [doctorName, isDoctor, session?.token])
+  }, [doctorName, isDoctor, isPatient, session?.token, user])
 
   const consultations = user
-    ? isDoctor
-      ? doctorConsultations
-      : clinicalService.getConsultations({ patientId: user.userId })
+    ? isDoctor || isPatient
+      ? apiConsultations
+      : []
     : []
 
   useEffect(() => {
@@ -86,9 +100,9 @@ function HistorialClinico() {
 
         <section className="mt-8 rounded-2xl border border-line bg-white p-6 shadow-sm" aria-labelledby="consultations-title">
           <h2 className="text-2xl font-bold" id="consultations-title">Consultas médicas anteriores</h2>
-          {doctorLoading && <p role="status" className="mt-5 text-muted">Cargando historial clínico...</p>}
-          {doctorError && <p role="alert" className="mt-5 text-red-700">{doctorError}</p>}
-          {!doctorLoading && !doctorError && consultations.length ? (
+          {historyLoading && <p role="status" className="mt-5 text-muted">Cargando historial clínico...</p>}
+          {historyError && <p role="alert" className="mt-5 text-red-700">{historyError}</p>}
+          {!historyLoading && !historyError && consultations.length ? (
             <div className="mt-5 space-y-4">
               {consultations.map((consultation) => (
                 <article className="rounded-xl border border-line p-5" key={consultation.id}>
@@ -106,7 +120,7 @@ function HistorialClinico() {
                 </article>
               ))}
             </div>
-          ) : !doctorLoading && !doctorError ? <EmptyState className="text-center">No se encontraron consultas médicas registradas.</EmptyState> : null}
+          ) : !historyLoading && !historyError ? <EmptyState className="text-center">No se encontraron consultas médicas registradas.</EmptyState> : null}
         </section>
       </div>
     </DashboardLayout>

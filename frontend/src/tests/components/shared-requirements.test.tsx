@@ -11,10 +11,9 @@ import AccesoDenegado from '../../pages/shared/AccesoDenegado'
 import Dashboard from '../../pages/shared/Dashboard'
 import HistorialClinico from '../../pages/shared/HistorialClinico'
 import Perfil from '../../pages/shared/Perfil'
-import { clinicalService } from '../../services/clinical.service'
 import * as doctorWorkflow from '../../services/doctor-workflow.service'
+import * as patientClinicalHistory from '../../services/patient-clinical-history.service'
 import { appointmentsStorage } from '../../storage/appointments.storage'
-import { clinicalStorage } from '../../storage/clinical.storage'
 import { schedulesStorage } from '../../storage/schedules.storage'
 import { saveDoctors } from '../../storage/doctors.storage'
 import { saveSpecialties } from '../../storage/specialties.storage'
@@ -51,24 +50,12 @@ function renderAs(user: User, page: React.ReactNode, logout = vi.fn()) {
   }
 }
 
-function seedClinicalObservation() {
-  clinicalService.create({
-    appointmentId: 1,
-    patientId: 4,
-    doctorId: 1,
-    diagnosis: 'Migraña',
-    notes: 'Cefalea recurrente informada por la paciente.',
-    treatment: 'Control en cuatro semanas.',
-  })
-}
-
 describe('Requisitos de páginas compartidas', () => {
   afterEach(() => vi.unstubAllGlobals())
   beforeEach(() => {
     localStorage.clear()
     appointmentsStorage.reset()
     schedulesStorage.reset()
-    clinicalStorage.reset()
     saveUsers(mockUsers)
     saveDoctors(mockDoctors)
     saveSpecialties(mockSpecialties)
@@ -105,15 +92,29 @@ describe('Requisitos de páginas compartidas', () => {
     expect(screen.getByText('Estado de la cuenta')).toBeInTheDocument()
   })
 
-  it('CP-091 · RF-25 · paciente consulta sus datos y observaciones clínicas', () => {
-    seedClinicalObservation()
+  it('CP-091 · RF-25 · paciente consulta sus datos y observaciones clínicas desde la API', async () => {
     const patient = mockUsers.find((user) => user.role === 'PATIENT')!
+    vi.spyOn(patientClinicalHistory, 'getPatientClinicalHistory').mockResolvedValue([{
+      id: '15',
+      patientName: 'Paula Contreras',
+      patientRun: patient.run,
+      doctorName: 'Daniela Rojas',
+      specialtyName: 'Cardiología',
+      date: '2026-10-11',
+      reason: 'Control preventivo',
+      diagnosis: 'Migraña',
+      observations: 'Cefalea recurrente informada por la paciente.',
+      treatment: 'Control en cuatro semanas.',
+    }])
     renderAs(patient, <HistorialClinico />)
 
     expect(screen.getByText('Datos del paciente')).toBeInTheDocument()
     expect(screen.getAllByText('Paula Contreras')).toHaveLength(2)
-    expect(screen.getByText('Migraña')).toBeInTheDocument()
+    expect(await screen.findByText('Migraña')).toBeInTheDocument()
     expect(screen.getByText('Cefalea recurrente informada por la paciente.')).toBeInTheDocument()
+    expect(patientClinicalHistory.getPatientClinicalHistory).toHaveBeenCalledWith(
+      'test-token', patient.userId, 'Paula Contreras', patient.run,
+    )
   })
 
   it('CP-092 · RF-25 · médico consulta las atenciones relacionadas con su agenda', async () => {

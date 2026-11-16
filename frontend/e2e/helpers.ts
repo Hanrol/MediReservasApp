@@ -449,6 +449,53 @@ export async function mockDoctorApi(page: Page) {
   })
 }
 
+export async function mockPatientClinicalHistoryApi(page: Page) {
+  await mockPublicDirectoryApi(page)
+  await page.route('**/api/v3/appointments/patient/4', (route) => {
+    const data = mockAppointments
+      .filter((appointment) => appointment.patientUserId === 4)
+      .map((appointment) => ({
+        appointmentId: appointment.appointmentId,
+        patientUserId: appointment.patientUserId,
+        doctorId: appointment.doctorId,
+        specialtyId: appointment.specialtyId,
+        scheduleSlotId: appointment.scheduleSlotId,
+        slotDate: appointment.date,
+        startTime: `${appointment.time}:00`,
+        endTime: `${appointment.time}:30`,
+        appointmentStatus: appointment.appointmentStatus,
+        reason: appointment.reason,
+      }))
+    return route.fulfill({
+      status: 200,
+      json: { code: 200, message: 'Citas del paciente', data },
+    })
+  })
+  await page.route('**/api/v3/medical-records/me', (route) => route.fulfill({
+    status: 200,
+    json: {
+      code: 200,
+      message: 'Historial clínico obtenido correctamente',
+      data: [{
+        medicalVisitId: 15,
+        appointmentId: 1,
+        doctorId: 1,
+        visitDate: '2026-10-09 09:00:00',
+        visitReason: 'Control general',
+        observations: 'Seguimiento clínico de prueba.',
+        treatment: 'Control en cuatro semanas.',
+        diagnoses: [{
+          diagnosisId: 4,
+          medicalVisitId: 15,
+          diagnosisDescription: 'Migraña persistente',
+          diagnosisNotes: 'E2E simulado',
+        }],
+        vitalSigns: [],
+      }],
+    },
+  }))
+}
+
 export async function freezeMockDate(page: Page) {
   await page.clock.install({ time: new Date('2026-10-11T12:00:00') })
 }
