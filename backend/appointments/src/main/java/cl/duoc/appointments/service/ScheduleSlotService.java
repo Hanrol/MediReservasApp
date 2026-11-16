@@ -3,6 +3,7 @@ package cl.duoc.appointments.service;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 @Service
 @RequiredArgsConstructor
 public class ScheduleSlotService {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("America/Santiago");
 
     @Autowired
     private DoctorOwnershipVerifier ownershipVerifier;
@@ -80,15 +82,15 @@ public class ScheduleSlotService {
     }
 
     public List<PublicScheduleSlotDTO> findPublicAvailability(Long doctorId) {
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(CLINIC_ZONE);
         LocalDate through = today.plusDays(29);
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime minimumStart = LocalDateTime.now(CLINIC_ZONE).plusMinutes(1);
         return scheduleSlotRepository
                 .findByDoctorIdAndSlotStatusInAndAppointmentIdIsNullAndSlotDateGreaterThanEqualOrderBySlotDateAscStartTimeAsc(
                         doctorId, List.of(SlotStatus.DISPONIBLE, SlotStatus.LIBERADO_POR_CANCELACION), today)
                 .stream()
                 .filter(slot -> !slot.getSlotDate().isAfter(through))
-                .filter(slot -> LocalDateTime.of(slot.getSlotDate(), slot.getStartTime()).isAfter(now))
+                .filter(slot -> LocalDateTime.of(slot.getSlotDate(), slot.getStartTime()).isAfter(minimumStart))
                 .map(slot -> new PublicScheduleSlotDTO(
                         slot.getScheduleSlotId(),
                         slot.getDoctorId(),

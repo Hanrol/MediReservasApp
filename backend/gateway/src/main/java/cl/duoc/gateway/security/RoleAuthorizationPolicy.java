@@ -81,17 +81,28 @@ public class RoleAuthorizationPolicy {
 
         if (matches(path, "/api/v3/appointments/**")) {
             if (normalizedRoles.contains(RECEPTIONIST)) {
-                return true;
+                if (HttpMethod.GET.equals(method)) {
+                    return true;
+                }
+                if (HttpMethod.PUT.equals(method) && paths.match("/api/v3/appointments/*", path)) {
+                    return true;
+                }
+                return HttpMethod.PATCH.equals(method)
+                        && (paths.match("/api/v3/appointments/*/confirm", path)
+                                || paths.match("/api/v3/appointments/*/cancel", path));
             }
             if (normalizedRoles.contains(DOCTOR)) {
                 return (isRead(method) && paths.match("/api/v3/appointments/doctor/**", path))
-                        || path.endsWith("/confirm")
-                        || path.endsWith("/complete") || path.endsWith("/no-show");
+                        || (HttpMethod.PATCH.equals(method)
+                                && (paths.match("/api/v3/appointments/*/complete", path)
+                                        || paths.match("/api/v3/appointments/*/no-show", path)));
             }
             if (normalizedRoles.contains(PATIENT)) {
                 return (isRead(method) && paths.match("/api/v3/appointments/patient/**", path))
-                        || (method == HttpMethod.POST && "/api/v3/appointments".equals(path))
-                        || (method == HttpMethod.PATCH && path.endsWith("/cancel"));
+                        || (method == HttpMethod.POST && "/api/v3/appointments".equals(path)
+                                && !hasAny(normalizedRoles, ADMIN, RECEPTIONIST, DOCTOR))
+                        || (method == HttpMethod.PATCH
+                                && paths.match("/api/v3/appointments/*/cancel", path));
             }
         }
 

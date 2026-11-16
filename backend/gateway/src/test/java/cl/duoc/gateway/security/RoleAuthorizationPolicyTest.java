@@ -101,4 +101,24 @@ class RoleAuthorizationPolicyTest {
         assertFalse(policy.isAllowed("/api/v3/contact-messages", HttpMethod.GET, List.of("DOCTOR")));
         assertFalse(policy.isAllowed("/api/v3/contact-messages", HttpMethod.DELETE, List.of("RECEPTIONIST")));
     }
+
+    @Test
+    void receptionistCanManageButCannotCreateOrCompleteAppointments() {
+        assertTrue(policy.isAllowed("/api/v3/appointments", HttpMethod.GET, List.of("RECEPTIONIST")));
+        assertTrue(policy.isAllowed("/api/v3/appointments/12/confirm", HttpMethod.PATCH, List.of("RECEPTIONIST")));
+        assertTrue(policy.isAllowed("/api/v3/appointments/12/cancel", HttpMethod.PATCH, List.of("RECEPTIONIST")));
+        assertTrue(policy.isAllowed("/api/v3/appointments/12", HttpMethod.PUT, List.of("RECEPTIONIST")));
+        assertFalse(policy.isAllowed("/api/v3/appointments", HttpMethod.POST, List.of("RECEPTIONIST")));
+        assertFalse(policy.isAllowed("/api/v3/appointments/12/complete", HttpMethod.PATCH, List.of("RECEPTIONIST")));
+        assertFalse(policy.isAllowed("/api/v3/appointments/12/no-show", HttpMethod.PATCH, List.of("RECEPTIONIST")));
+    }
+
+    @Test
+    void patientCreatesAndReadsOwnAppointmentsButCannotConfirmOrComplete() {
+        assertTrue(policy.isAllowed("/api/v3/appointments", HttpMethod.POST, List.of("PATIENT")));
+        assertTrue(policy.isAllowed("/api/v3/appointments/patient/12", HttpMethod.GET, List.of("PATIENT")));
+        assertFalse(policy.isAllowed("/api/v3/appointments", HttpMethod.POST, List.of("PATIENT", "RECEPTIONIST")));
+        assertFalse(policy.isAllowed("/api/v3/appointments/12/confirm", HttpMethod.PATCH, List.of("PATIENT")));
+        assertFalse(policy.isAllowed("/api/v3/appointments/12/complete", HttpMethod.PATCH, List.of("PATIENT")));
+    }
 }

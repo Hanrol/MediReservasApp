@@ -25,9 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.scheduling.annotation.Scheduled;
 
 
 @Slf4j
@@ -35,6 +38,9 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 @Transactional
 public class AppointmentService {
+    private static final ZoneId CLINIC_ZONE = ZoneId.of("America/Santiago");
+    private static final String AUTO_CANCELLATION_REASON =
+            "Cancelación automática: cita pendiente al llegar al minuto previo al inicio";
 
     private final AppointmentRepository appointmentRepository;
     private final AppointmentStatusHistoryRepository statusHistoryRepository;
@@ -72,9 +78,10 @@ public class AppointmentService {
     }
 
     public AppointmentResponseDTO createAppointment(AppointmentCreateRequestDTO dto, String email, Set<String> roles) {
-        if (roles.contains("PATIENT") && !hasStaffOverride(roles)) {
-            assertPatientOwnsUser(email, dto.getPatientUserId());
+        if (!roles.contains("PATIENT") || hasStaffOverride(roles)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo el paciente puede crear su propia cita");
         }
+        assertPatientOwnsUser(email, dto.getPatientUserId());
         return createAppointment(dto);
     }
 
@@ -140,7 +147,7 @@ public class AppointmentService {
     }
 
     public AppointmentResponseDTO updateAppointment(Long id, AppointmentUpdateRequestDTO dto) {
-        Appointment appointment = findOrThrow(id);
+        Appointment appointment = findOrThrowForUpdate(id);
 
         // Regla: solo se puede editar si está PENDING (confirmadas o cerradas no se tocan)
         if (appointment.getAppointmentStatus() != AppointmentStatus.PENDING) {
@@ -149,6 +156,7 @@ public class AppointmentService {
                 "Solo se pueden editar citas en estado PENDING. Estado actual: "
                 + appointment.getAppointmentStatus());
         }
+        requireBeforeConfirmationDeadline(appointment);
 
         ScheduleSlot oldSlot = scheduleSlotRepository.findById(appointment.getScheduleSlotId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
@@ -184,10 +192,11 @@ public class AppointmentService {
     }
 
     public AppointmentResponseDTO confirmAppointment(Long id, AppointmentStatusChangeRequestDTO dto) {
-        Appointment appointment = findOrThrow(id);
+        Appointment appointment = findOrThrowForUpdate(id);
 
         // Regla: solo desde PENDING
         validateTransition(appointment, AppointmentStatus.PENDING, "confirmar");
+        requireBeforeConfirmationDeadline(appointment);
 
         AppointmentStatus oldStatus = appointment.getAppointmentStatus();
         appointment.setAppointmentStatus(AppointmentStatus.CONFIRMED);
@@ -201,6 +210,7 @@ public class AppointmentService {
 
     public AppointmentResponseDTO updateAppointment(
             Long id, AppointmentUpdateRequestDTO dto, String email, Set<String> roles) {
+        requireAnyRole(roles, "RECEPTIONIST", "ADMIN");
         assertDoctorOwnsAppointment(findOrThrow(id), email, roles);
         if (email != null && !email.isBlank()) {
             dto.setChangedByUserId(usersClient.getUserIdByEmail(email));
@@ -209,7 +219,7 @@ public class AppointmentService {
     }
 
     public AppointmentResponseDTO confirmAppointment(Long id, AppointmentStatusChangeRequestDTO dto, String email, Set<String> roles) {
-        assertDoctorOwnsAppointment(findOrThrow(id), email, roles);
+        requireAnyRole(roles, "RECEPTIONIST", "ADMIN");
         if (email != null && !email.isBlank()) {
             dto.setChangedByUserId(usersClient.getUserIdByEmail(email));
         }
@@ -217,7 +227,7 @@ public class AppointmentService {
     }
 
     public AppointmentResponseDTO cancelAppointment(Long id, AppointmentCancelRequestDTO dto) {
-        Appointment appointment = findOrThrow(id);
+        Appointment appointment = findOrThrowForUpdate(id);
 
         // Regla: solo desde PENDING o CONFIRMED (completadas o ya canceladas no se pueden cancelar)
         if (appointment.getAppointmentStatus() != AppointmentStatus.PENDING
@@ -249,6 +259,7 @@ public class AppointmentService {
     }
 
     public AppointmentResponseDTO cancelAppointment(Long id, AppointmentCancelRequestDTO dto, String email, Set<String> roles) {
+        requireAnyRole(roles, "PATIENT", "RECEPTIONIST", "ADMIN");
         Appointment appointment = findOrThrow(id);
         if (roles.contains("PATIENT") && !hasStaffOverride(roles)) {
             assertPatientOwnsUser(email, appointment.getPatientUserId());
@@ -270,8 +281,14 @@ public class AppointmentService {
         return roles.contains("ADMIN") || roles.contains("RECEPTIONIST");
     }
 
+    private void requireAnyRole(Set<String> roles, String... allowedRoles) {
+        if (roles == null || java.util.Arrays.stream(allowedRoles).noneMatch(roles::contains)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "El rol no tiene permiso para esta operación");
+        }
+    }
+
     public AppointmentResponseDTO completeAppointment(Long id, AppointmentStatusChangeRequestDTO dto) {
-        Appointment appointment = findOrThrow(id);
+        Appointment appointment = findOrThrowForUpdate(id);
 
         // Regla: solo desde CONFIRMED (no se puede completar una cita que aún no fue confirmada)
         validateTransition(appointment, AppointmentStatus.CONFIRMED, "completar");
@@ -289,6 +306,7 @@ public class AppointmentService {
     }
 
     public AppointmentResponseDTO completeAppointment(Long id, AppointmentStatusChangeRequestDTO dto, String email, Set<String> roles) {
+        requireAnyRole(roles, "DOCTOR", "ADMIN");
         assertDoctorOwnsAppointment(findOrThrow(id), email, roles);
         if (email != null && !email.isBlank()) {
             dto.setChangedByUserId(usersClient.getUserIdByEmail(email));
@@ -297,7 +315,7 @@ public class AppointmentService {
     }
 
     public AppointmentResponseDTO markNoShow(Long id, AppointmentStatusChangeRequestDTO dto) {
-        Appointment appointment = findOrThrow(id);
+        Appointment appointment = findOrThrowForUpdate(id);
 
         // Regla: solo desde CONFIRMED (igual que completar, el médico ya esperó al paciente)
         validateTransition(appointment, AppointmentStatus.CONFIRMED, "marcar como inasistencia");
@@ -314,6 +332,7 @@ public class AppointmentService {
     }
 
     public AppointmentResponseDTO markNoShow(Long id, AppointmentStatusChangeRequestDTO dto, String email, Set<String> roles) {
+        requireAnyRole(roles, "DOCTOR", "ADMIN");
         assertDoctorOwnsAppointment(findOrThrow(id), email, roles);
         if (email != null && !email.isBlank()) {
             dto.setChangedByUserId(usersClient.getUserIdByEmail(email));
@@ -341,6 +360,11 @@ public class AppointmentService {
         if (!availableStatus || slot.getAppointmentId() != null || !slot.getDoctorId().equals(doctorId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "El horario seleccionado ya no está disponible para este médico");
+        }
+        LocalDateTime start = LocalDateTime.of(slot.getSlotDate(), slot.getStartTime());
+        if (!start.isAfter(LocalDateTime.now(CLINIC_ZONE).plusMinutes(1))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No se puede reservar un horario que comienza dentro del minuto de corte");
         }
         return slot;
     }
@@ -415,5 +439,54 @@ public class AppointmentService {
                 .startTime(slot.getStartTime())
                 .endTime(slot.getEndTime()));
         return response.build();
+    }
+
+    private Appointment findOrThrowForUpdate(Long id) {
+        return appointmentRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Cita no encontrada con ID: " + id));
+    }
+
+    private void requireBeforeConfirmationDeadline(Appointment appointment) {
+        ScheduleSlot slot = scheduleSlotRepository.findById(appointment.getScheduleSlotId())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.CONFLICT, "El horario asociado a la cita no existe"));
+        LocalDateTime confirmationDeadline = LocalDateTime.of(slot.getSlotDate(), slot.getStartTime())
+                .minusMinutes(1);
+        if (!LocalDateTime.now(CLINIC_ZONE).isBefore(confirmationDeadline)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "La cita ya superó el plazo para confirmar o reagendar");
+        }
+    }
+
+    @Scheduled(cron = "0 * * * * *", zone = "America/Santiago")
+    public void cancelPendingAppointmentsBeforeStart() {
+        cancelPendingAppointmentsBeforeStart(LocalDateTime.now(CLINIC_ZONE));
+    }
+
+    void cancelPendingAppointmentsBeforeStart(LocalDateTime now) {
+        LocalDateTime deadline = now.plusMinutes(1);
+        for (Appointment candidate : appointmentRepository.findByAppointmentStatus(AppointmentStatus.PENDING)) {
+            Appointment appointment = appointmentRepository.findByIdForUpdate(candidate.getAppointmentId())
+                    .orElse(null);
+            if (appointment == null || appointment.getAppointmentStatus() != AppointmentStatus.PENDING) {
+                continue;
+            }
+            ScheduleSlot slot = scheduleSlotRepository.findById(appointment.getScheduleSlotId()).orElse(null);
+            if (slot == null) {
+                log.warn("No se pudo evaluar la cita pendiente {}: no existe su horario", appointment.getAppointmentId());
+                continue;
+            }
+            LocalDateTime appointmentStart = LocalDateTime.of(slot.getSlotDate(), slot.getStartTime());
+            if (appointmentStart.isAfter(deadline)) {
+                continue;
+            }
+            appointment.setAppointmentStatus(AppointmentStatus.CANCELLED);
+            appointmentRepository.save(appointment);
+            releaseSlot(appointment.getScheduleSlotId());
+            saveHistory(appointment, AppointmentStatus.PENDING, AppointmentStatus.CANCELLED,
+                    null, AUTO_CANCELLATION_REASON);
+            log.info("Cita {} cancelada automáticamente por falta de confirmación", appointment.getAppointmentId());
+        }
     }
 }
