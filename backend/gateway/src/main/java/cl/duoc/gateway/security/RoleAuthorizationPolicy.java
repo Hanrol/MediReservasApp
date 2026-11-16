@@ -18,6 +18,12 @@ public class RoleAuthorizationPolicy {
     private final AntPathMatcher paths = new AntPathMatcher();
 
     public boolean isAllowed(String path, HttpMethod method, List<String> roles) {
+        if (("/api/v3/doctors/directory".equals(path)
+                || "/api/v3/schedule-slots/public".equals(path))
+                && !HttpMethod.GET.equals(method)) {
+            return false;
+        }
+
         if (paths.match("/api/v3/appointments/internal/**", path)) {
             return false;
         }

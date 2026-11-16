@@ -93,6 +93,33 @@ class JwtAuthenticationFilterTest {
         assertNull(exchange.getResponse().getStatusCode());
     }
 
+    @Test
+    void publicDoctorDirectoryGetContinuesWithoutJwtValidation() {
+        var exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.get("/api/v3/doctors/directory").build());
+        var filter = filterReturning(HttpStatus.INTERNAL_SERVER_ERROR);
+        boolean[] continued = { false };
+
+        filter.filter(exchange, ignored -> {
+            continued[0] = true;
+            return Mono.empty();
+        }).block();
+
+        assertEquals(true, continued[0]);
+        assertNull(exchange.getResponse().getStatusCode());
+    }
+
+    @Test
+    void publicScheduleRouteDoesNotAllowUnauthenticatedWrites() {
+        var exchange = MockServerWebExchange.from(
+                MockServerHttpRequest.delete("/api/v3/schedule-slots/public").build());
+        var filter = filterReturning(HttpStatus.INTERNAL_SERVER_ERROR);
+
+        filter.filter(exchange, ignored -> Mono.empty()).block();
+
+        assertEquals(HttpStatus.UNAUTHORIZED, exchange.getResponse().getStatusCode());
+    }
+
     private JwtAuthenticationFilter filterReturning(HttpStatus authStatus) {
         String responseBody = authStatus == HttpStatus.OK ? AUTHORIZATION_RESPONSE : "auth error";
         ExchangeFunction exchangeFunction = request -> Mono.just(ClientResponse.create(authStatus)

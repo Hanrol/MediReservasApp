@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import cl.duoc.doctors.dto.DoctorsDTO;
 import cl.duoc.doctors.dto.ApiResponse;
 import cl.duoc.doctors.dto.DoctorOnboardingRequestDTO;
+import cl.duoc.doctors.dto.PublicDoctorDirectoryDTO;
 import cl.duoc.doctors.service.DoctorsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,6 +37,16 @@ public class DoctorsController {
     public ResponseEntity<DoctorsDTO> getDoctorById(@PathVariable Long id) {
         DoctorsDTO doctor = doctorsService.findById(id);
         return ResponseEntity.ok(doctor);
+    }
+
+    @GetMapping("/directory")
+    @Operation(summary = "Directorio público de médicos",
+            description = "Retorna solo nombre, licencia y especialidades activas de médicos activos.")
+    public ResponseEntity<ApiResponse<List<PublicDoctorDirectoryDTO>>> getPublicDirectory() {
+        return ResponseEntity.ok(new ApiResponse<>(
+                200,
+                "Directorio médico obtenido correctamente",
+                doctorsService.findPublicDirectory()));
     }
 
     @GetMapping("/user/{userId}")

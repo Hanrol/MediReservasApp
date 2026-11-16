@@ -16,10 +16,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import cl.duoc.appointments.dto.ApiResponse;
 import cl.duoc.appointments.dto.ScheduleSlotRequest;
 import cl.duoc.appointments.dto.ScheduleSlotResponse;
+import cl.duoc.appointments.dto.PublicScheduleSlotDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -56,6 +58,16 @@ public class ScheduleSlotController {
             @RequestHeader("X-Authenticated-Email") String email, @RequestHeader("X-Authenticated-Roles") String roles) {
         List<ScheduleSlotResponse> data = scheduleSlotService.findAll(email, parseRoles(roles));
         return ResponseEntity.ok(new ApiResponse<>(200, "Lista de slots", data));
+    }
+
+    @Operation(summary = "Consultar próximos horarios disponibles de un médico")
+    @GetMapping("/public")
+    public ResponseEntity<ApiResponse<List<PublicScheduleSlotDTO>>> findPublicAvailability(
+            @RequestParam Long doctorId) {
+        return ResponseEntity.ok(new ApiResponse<>(
+                200,
+                "Horarios disponibles obtenidos correctamente",
+                scheduleSlotService.findPublicAvailability(doctorId)));
     }
 
     @Operation(summary = "Actualizar slot de agenda")

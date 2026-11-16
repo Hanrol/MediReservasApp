@@ -84,4 +84,10 @@ class RoleAuthorizationPolicyTest {
         assertFalse(policy.isAllowed("/api/v3/appointments", HttpMethod.GET, List.of()));
         assertFalse(policy.isAllowed("/api/v3/unmapped", HttpMethod.GET, List.of("RECEPTIONIST")));
     }
+
+    @Test
+    void publicDirectoryRoutesAreReadOnly() {
+        assertFalse(policy.isAllowed("/api/v3/doctors/directory", HttpMethod.POST, List.of("ADMIN")));
+        assertFalse(policy.isAllowed("/api/v3/schedule-slots/public", HttpMethod.DELETE, List.of("ADMIN")));
+    }
 }

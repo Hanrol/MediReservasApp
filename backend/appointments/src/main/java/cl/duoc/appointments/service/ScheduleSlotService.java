@@ -1,6 +1,7 @@
 package cl.duoc.appointments.service;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +12,9 @@ import org.springframework.stereotype.Service;
 
 import cl.duoc.appointments.dto.ScheduleSlotRequest;
 import cl.duoc.appointments.dto.ScheduleSlotResponse;
+import cl.duoc.appointments.dto.PublicScheduleSlotDTO;
 import cl.duoc.appointments.model.ScheduleSlot;
+import cl.duoc.appointments.model.SlotStatus;
 import cl.duoc.appointments.repository.ScheduleSlotRepository;
 import cl.duoc.appointments.repository.AppointmentRepository;
 import lombok.RequiredArgsConstructor;
@@ -71,6 +74,24 @@ public class ScheduleSlotService {
         return scheduleSlotRepository.findAll()
                 .stream()
                 .map(this::mapToResponse)
+                .toList();
+    }
+
+    public List<PublicScheduleSlotDTO> findPublicAvailability(Long doctorId) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime now = LocalDateTime.now();
+        return scheduleSlotRepository
+                .findByDoctorIdAndSlotStatusAndAppointmentIdIsNullAndSlotDateGreaterThanEqualOrderBySlotDateAscStartTimeAsc(
+                        doctorId, SlotStatus.DISPONIBLE, today)
+                .stream()
+                .filter(slot -> LocalDateTime.of(slot.getSlotDate(), slot.getStartTime()).isAfter(now))
+                .limit(3)
+                .map(slot -> new PublicScheduleSlotDTO(
+                        slot.getScheduleSlotId(),
+                        slot.getDoctorId(),
+                        slot.getSlotDate(),
+                        slot.getStartTime(),
+                        slot.getEndTime()))
                 .toList();
     }
 

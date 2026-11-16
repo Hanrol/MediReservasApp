@@ -100,6 +100,44 @@ export async function mockAdminApi(page: Page) {
   })
 }
 
+export async function mockPublicDirectoryApi(page: Page) {
+  await page.route('**/api/v3/doctors/directory', (route) => route.fulfill({
+    status: 200,
+    json: {
+      code: 200,
+      message: 'Directorio médico obtenido correctamente',
+      data: mockDoctors.filter((doctor) => doctor.active).map((doctor) => ({
+        doctorId: doctor.doctorId,
+        firstName: doctor.firstName,
+        lastName: doctor.lastName,
+        medicalLicenseNumber: doctor.medicalLicenseNumber,
+        specialties: doctor.specialtyIds
+          .map((specialtyId) => mockSpecialties.find((specialty) => specialty.specialtyId === specialtyId))
+          .filter((specialty) => specialty?.active)
+          .map((specialty) => ({
+            specialtyId: specialty!.specialtyId,
+            specialtyName: specialty!.specialtyName,
+            description: specialty!.description,
+          })),
+      })),
+    },
+  }))
+
+  await page.route('**/api/v3/schedule-slots/public**', async (route) => {
+    const doctorId = Number(new URL(route.request().url()).searchParams.get('doctorId'))
+    const data = mockSchedules
+      .filter((schedule) => schedule.doctorId === doctorId && schedule.available)
+      .map((schedule) => ({
+        scheduleSlotId: schedule.id,
+        doctorId: schedule.doctorId,
+        slotDate: schedule.date,
+        startTime: `${schedule.time}:00`,
+        endTime: `${schedule.time}:30`,
+      }))
+    await route.fulfill({ status: 200, json: { code: 200, message: 'Horarios disponibles', data } })
+  })
+}
+
 export async function mockDoctorApi(page: Page) {
   const visits: Array<{
     medicalVisitId: number

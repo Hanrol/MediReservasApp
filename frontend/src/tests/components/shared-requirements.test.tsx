@@ -12,6 +12,7 @@ import Dashboard from '../../pages/shared/Dashboard'
 import HistorialClinico from '../../pages/shared/HistorialClinico'
 import Perfil from '../../pages/shared/Perfil'
 import { clinicalService } from '../../services/clinical.service'
+import * as doctorWorkflow from '../../services/doctor-workflow.service'
 import { appointmentsStorage } from '../../storage/appointments.storage'
 import { clinicalStorage } from '../../storage/clinical.storage'
 import { schedulesStorage } from '../../storage/schedules.storage'
@@ -115,13 +116,24 @@ describe('Requisitos de páginas compartidas', () => {
     expect(screen.getByText('Cefalea recurrente informada por la paciente.')).toBeInTheDocument()
   })
 
-  it('CP-092 · RF-25 · médico consulta las atenciones relacionadas con su agenda', () => {
-    seedClinicalObservation()
+  it('CP-092 · RF-25 · médico consulta las atenciones relacionadas con su agenda', async () => {
+    vi.spyOn(doctorWorkflow, 'getDoctorClinicalHistory').mockResolvedValue([{
+      id: '10',
+      patientName: 'Paciente #4',
+      patientRun: 'No disponible',
+      doctorName: 'Daniela Rojas',
+      specialtyName: 'Atención médica',
+      date: '2026-10-11',
+      reason: 'Control preventivo',
+      diagnosis: 'Migraña',
+      observations: 'Cefalea recurrente informada por la paciente.',
+      treatment: 'Control en cuatro semanas.',
+    }])
     const doctor = mockUsers.find((user) => user.role === 'DOCTOR')!
     renderAs(doctor, <HistorialClinico />)
 
     expect(screen.getByRole('heading', { name: 'Historial clínico' })).toBeInTheDocument()
-    expect(screen.getByText('Paula Contreras (44444444-4)')).toBeInTheDocument()
+    expect(await screen.findByText('Paciente #4 (No disponible)')).toBeInTheDocument()
     expect(screen.getByText('Migraña')).toBeInTheDocument()
     expect(screen.queryByText('Datos del paciente')).not.toBeInTheDocument()
   })

@@ -20,6 +20,7 @@ import { ApiError } from '../../services/api-client'
 import { registerPatient } from '../../services/registration.service'
 import * as receptionApi from '../../services/reception-api.service'
 import * as doctorWorkflow from '../../services/doctor-workflow.service'
+import * as publicDirectory from '../../services/public-doctor-directory.service'
 import { appointmentsStorage } from '../../storage/appointments.storage'
 import { clinicalStorage } from '../../storage/clinical.storage'
 import { schedulesStorage } from '../../storage/schedules.storage'
@@ -91,6 +92,21 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     })
     vi.spyOn(doctorWorkflow, 'getDoctorObservation').mockResolvedValue(null)
     vi.spyOn(doctorWorkflow, 'saveDoctorObservation').mockResolvedValue()
+    vi.spyOn(publicDirectory, 'getPublicDoctorDirectory').mockResolvedValue({
+      doctors: mockDoctors,
+      specialties: mockSpecialties,
+    })
+    vi.spyOn(publicDirectory, 'getPublicDoctorSchedules').mockImplementation(async (doctorId) =>
+      mockSchedules
+        .filter((schedule) => schedule.doctorId === doctorId && schedule.available)
+        .map((schedule) => ({
+          id: schedule.id,
+          doctorId: schedule.doctorId,
+          date: schedule.date,
+          time: schedule.time,
+          available: true,
+        })),
+    )
   })
 
   afterEach(() => {
@@ -143,15 +159,18 @@ describe('Requisitos de citas en las pantallas por rol', () => {
 
   it('CP-074 · RF-24 · guardar una observación completa la cita atendida', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true)
-    const user = userEvent.setup()
     const doctor = mockUsers.find((item) => item.role === 'DOCTOR')!
 
     renderAs(doctor, <ObservacionClinica />, '/observacion-clinica?cita=1')
 
-    await user.type(await screen.findByLabelText(/Diagnóstico/), 'Migraña')
-    await user.type(screen.getByLabelText(/Observaciones clínicas/), 'Paciente refiere cefalea recurrente.')
-    await user.type(screen.getByLabelText(/Tratamiento e indicaciones/), 'Control en cuatro semanas.')
-    await user.click(screen.getByRole('button', { name: 'Guardar observación' }))
+    fireEvent.change(await screen.findByLabelText(/Diagnóstico/), { target: { value: 'Migraña' } })
+    fireEvent.change(screen.getByLabelText(/Observaciones clínicas/), {
+      target: { value: 'Paciente refiere cefalea recurrente.' },
+    })
+    fireEvent.change(screen.getByLabelText(/Tratamiento e indicaciones/), {
+      target: { value: 'Control en cuatro semanas.' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar observación' }))
 
     expect(await screen.findByText('La observación clínica se guardó correctamente.')).toBeInTheDocument()
     expect(doctorWorkflow.saveDoctorObservation).toHaveBeenCalled()
@@ -180,8 +199,10 @@ describe('Requisitos de citas en las pantallas por rol', () => {
 
     renderAs(patient, <MedicosEspecialidades />)
 
+    await act(async () => { await vi.runAllTimersAsync() })
     const doctorCard = screen.getByRole('heading', { name: 'Daniela Rojas' }).closest('article')!
     fireEvent.click(within(doctorCard).getByRole('button', { name: 'Ver detalle' }))
+    await act(async () => { await vi.runAllTimersAsync() })
 
     expect(screen.getByText('Próximos horarios disponibles')).toBeInTheDocument()
     expect(screen.getByText(/11:30 hrs/)).toBeInTheDocument()
@@ -330,6 +351,7 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     const patient = mockUsers.find((item) => item.role === 'PATIENT')!
     renderAs(patient, <MedicosEspecialidades />)
 
+    await screen.findByRole('heading', { name: 'Daniela Rojas' })
     const specialtySearch = screen.getByRole('searchbox', { name: 'Buscar especialidad' })
     await user.type(specialtySearch, 'especialidad inexistente')
     expect(screen.getByText('No se encontraron especialidades.')).toBeInTheDocument()
@@ -351,14 +373,13 @@ describe('Requisitos de citas en las pantallas por rol', () => {
     expect(scrollIntoView).toHaveBeenCalledOnce()
   })
 
-  it('CP-108 · RF-10/RF-12/RNF-07 · directorio informa cuando no hay datos disponibles', () => {
-    saveDoctors([])
-    saveSpecialties([])
+  it('CP-108 · RF-10/RF-12/RNF-07 · directorio informa cuando no hay datos disponibles', async () => {
+    vi.mocked(publicDirectory.getPublicDoctorDirectory).mockResolvedValueOnce({ doctors: [], specialties: [] })
     const patient = mockUsers.find((item) => item.role === 'PATIENT')!
 
     renderAs(patient, <MedicosEspecialidades />)
 
-    expect(screen.getByText('No se encontraron especialidades.')).toBeInTheDocument()
+    expect(await screen.findByText('No se encontraron especialidades.')).toBeInTheDocument()
     expect(screen.getByText('No se encontraron médicos.')).toBeInTheDocument()
   })
 
