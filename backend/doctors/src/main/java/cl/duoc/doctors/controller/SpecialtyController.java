@@ -156,6 +156,15 @@ public class SpecialtyController {
 						response));
 	}
 
+	@GetMapping("/public/active")
+	@Operation(summary = "Listar especialidades activas para el catálogo público")
+	public ResponseEntity<ApiResponse<List<SpecialtyResponseDTO>>> getActiveSpecialties() {
+		return ResponseEntity.ok(new ApiResponse<>(
+				200,
+				"Especialidades activas obtenidas correctamente",
+				specialtyService.getActiveSpecialties()));
+	}
+
 	private void requireAdminRole(String roles) {
 		boolean isAdmin = java.util.Arrays.stream(roles.split(","))
 				.map(String::trim)

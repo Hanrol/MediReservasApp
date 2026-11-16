@@ -85,7 +85,9 @@ function MedicosEspecialidades() {
       setScheduleError('')
       void getPublicDoctorSchedules(selectedDoctor.doctorId)
         .then((schedules) => {
-          if (active) setSelectedDoctorSchedules(schedules.filter((schedule) => schedule.date >= getLocalDateString()))
+          if (active) setSelectedDoctorSchedules(
+            schedules.filter((schedule) => schedule.date >= getLocalDateString()).slice(0, 3),
+          )
         })
         .catch((cause: unknown) => {
           if (active) {

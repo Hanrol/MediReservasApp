@@ -19,7 +19,8 @@ public class RoleAuthorizationPolicy {
 
     public boolean isAllowed(String path, HttpMethod method, List<String> roles) {
         if (("/api/v3/doctors/directory".equals(path)
-                || "/api/v3/schedule-slots/public".equals(path))
+                || "/api/v3/schedule-slots/public".equals(path)
+                || "/api/v3/specialties/public/active".equals(path))
                 && !HttpMethod.GET.equals(method)) {
             return false;
         }

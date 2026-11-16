@@ -44,6 +44,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/v3/invitations/accept",
             "/api/v3/doctors/directory",
             "/api/v3/schedule-slots/public",
+            "/api/v3/specialties/public/active",
             "/actuator/health",
             "/swagger-ui/**",
             "/swagger-ui.html",
@@ -168,7 +169,8 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     private boolean isPublicReadOnlyPath(String path, HttpMethod method) {
         if ("/api/v3/doctors/directory".equals(path)
-                || "/api/v3/schedule-slots/public".equals(path)) {
+                || "/api/v3/schedule-slots/public".equals(path)
+                || "/api/v3/specialties/public/active".equals(path)) {
             return HttpMethod.GET.equals(method);
         }
         return true;

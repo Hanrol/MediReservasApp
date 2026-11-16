@@ -37,7 +37,10 @@ export interface PublicDoctorDirectory {
 }
 
 export async function getPublicDoctorDirectory(): Promise<PublicDoctorDirectory> {
-  const response = await apiRequest<ApiResponse<ApiPublicDoctor[]>>('/doctors/directory')
+  const [response, specialtyResponse] = await Promise.all([
+    apiRequest<ApiResponse<ApiPublicDoctor[]>>('/doctors/directory'),
+    apiRequest<ApiResponse<Specialty[]>>('/specialties/public/active'),
+  ])
   const specialtiesById = new Map<number, Specialty>()
   const doctors = response.data.map((doctor): Doctor => {
     for (const specialty of doctor.specialties) {
@@ -64,7 +67,12 @@ export async function getPublicDoctorDirectory(): Promise<PublicDoctorDirectory>
     }
   })
 
-  return { doctors, specialties: [...specialtiesById.values()] }
+  const doctorSpecialties = [...specialtiesById.values()]
+  const allActiveSpecialties = specialtyResponse.data.map((specialty) => ({
+    ...specialty,
+    active: true,
+  }))
+  return { doctors, specialties: allActiveSpecialties.length ? allActiveSpecialties : doctorSpecialties }
 }
 
 export async function getPublicDoctorSchedules(doctorId: number): Promise<Schedule[]> {
