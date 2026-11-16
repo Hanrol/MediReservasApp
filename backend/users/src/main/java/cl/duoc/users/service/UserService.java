@@ -18,6 +18,7 @@ import cl.duoc.users.dto.ProfileCompletionResponseDTO;
 import cl.duoc.users.dto.UpdateUserRequestDTO;
 import cl.duoc.users.dto.UpdateUserProfileRequestDTO;
 import cl.duoc.users.dto.UserResponseDTO;
+import cl.duoc.users.dto.UserSummaryInternalResponseDTO;
 import cl.duoc.users.model.User;
 import cl.duoc.users.model.UserProfile;
 import cl.duoc.users.repository.UserRepository;
@@ -107,6 +108,24 @@ public class UserService {
                 });
 
         return toResponseDTO(user);
+    }
+
+    public List<UserSummaryInternalResponseDTO> getUserSummaries(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) return List.of();
+        var usersById = userRepository.findAllById(userIds).stream()
+                .collect(java.util.stream.Collectors.toMap(User::getUserId, user -> user));
+        return userProfileRepository.findAllByUserUserIdIn(userIds).stream()
+                .map(profile -> {
+                    User user = usersById.get(profile.getUser().getUserId());
+                    if (user == null) return null;
+                    return new UserSummaryInternalResponseDTO(
+                            user.getUserId(),
+                            user.getRun(),
+                            profile.getFirstName(),
+                            profile.getLastName());
+                })
+                .filter(java.util.Objects::nonNull)
+                .toList();
     }
 
     public CurrentUserResponseDTO getCurrentUser(String authenticatedEmail) {

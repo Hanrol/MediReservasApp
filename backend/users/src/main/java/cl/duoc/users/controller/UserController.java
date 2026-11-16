@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import cl.duoc.users.dto.ApiResponse;
@@ -21,6 +22,7 @@ import cl.duoc.users.dto.ProfileCompletionResponseDTO;
 import cl.duoc.users.dto.UpdateUserRequestDTO;
 import cl.duoc.users.dto.UpdateUserProfileRequestDTO;
 import cl.duoc.users.dto.UserResponseDTO;
+import cl.duoc.users.dto.UserSummaryInternalResponseDTO;
 import cl.duoc.users.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -78,6 +80,13 @@ public class UserController {
 
 		return ResponseEntity.ok(
 				new ApiResponse<>(200, "Usuarios obtenidos correctamente", response));
+	}
+
+	@PostMapping("/internal/summaries")
+	public ResponseEntity<ApiResponse<List<UserSummaryInternalResponseDTO>>> getInternalUserSummaries(
+			@RequestBody List<Long> userIds) {
+		return ResponseEntity.ok(new ApiResponse<>(200, "Datos de usuarios obtenidos correctamente",
+				userService.getUserSummaries(userIds)));
 	}
 
 	@GetMapping("/{userId}")

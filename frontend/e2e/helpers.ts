@@ -309,6 +309,51 @@ export async function mockDoctorAvailabilityApi(page: Page) {
   })
 }
 
+export async function mockContactMessagesApi(
+  page: Page,
+  initialMessages: Array<{
+    contactMessageId: number
+    name: string
+    email: string
+    subject: string
+    message: string
+    createdAt: string
+  }> = [],
+) {
+  const messages = [...initialMessages]
+  await page.route('**/api/v3/contact-messages', async (route) => {
+    const request = route.request()
+    if (request.method() === 'POST') {
+      const input = request.postDataJSON() as {
+        name: string
+        email: string
+        subject: string
+        message: string
+      }
+      const created = {
+        ...input,
+        contactMessageId: messages.length + 1,
+        createdAt: new Date().toISOString(),
+      }
+      messages.splice(0, 0, created)
+      await route.fulfill({
+        status: 201,
+        json: { code: 201, message: 'Mensaje recibido', data: created },
+      })
+      return
+    }
+    if (request.method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        json: { code: 200, message: 'Mensajes', data: messages },
+      })
+      return
+    }
+    await route.fulfill({ status: 405, json: { code: 405, message: 'Método no permitido', data: null } })
+  })
+  return { messages }
+}
+
 export async function mockDoctorApi(page: Page) {
   const visits: Array<{
     medicalVisitId: number
@@ -339,22 +384,17 @@ export async function mockDoctorApi(page: Page) {
       data = mockAppointments.map((appointment) => ({
         appointmentId: appointment.appointmentId,
         patientUserId: appointment.patientUserId,
+        patientName: appointment.patientName,
+        patientRun: mockUsers.find((user) => user.userId === appointment.patientUserId)?.run ?? '',
         doctorId: appointment.doctorId,
         specialtyId: appointment.specialtyId,
         scheduleSlotId: appointment.scheduleSlotId,
+        slotDate: appointment.date,
+        startTime: `${appointment.time}:00`,
+        endTime: `${appointment.time}:30`,
         appointmentStatus: appointment.appointmentStatus,
         reason: appointment.reason,
       })).filter((appointment) => appointment.doctorId === 1)
-    } else if (method === 'GET' && pathname === '/api/v3/schedule-slots') {
-      data = mockSchedules.map((schedule) => ({
-        scheduleSlotId: schedule.id,
-        doctorId: schedule.doctorId,
-        slotDate: schedule.date,
-        startTime: `${schedule.time}:00`,
-        endTime: `${schedule.time}:30`,
-        slotStatus: schedule.available ? 'DISPONIBLE' : 'RESERVADO',
-        appointmentId: null,
-      }))
     } else if (method === 'GET' && pathname === '/api/v3/specialties') {
       data = mockSpecialties.map(({ specialtyId, specialtyName, description, active }) => ({
         specialtyId, specialtyName, description, active,

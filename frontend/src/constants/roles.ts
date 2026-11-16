@@ -31,6 +31,7 @@ export const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
     description: 'Revisa y gestiona las solicitudes de atención de los pacientes.',
     actions: [
       { icon: 'CI', title: 'Gestionar citas', description: 'Consulta, confirma, reagenda o cancela las solicitudes de atención.', href: ROUTES.appointmentManagement, reactRoute: true },
+      { icon: 'MC', title: 'Mensajes de contacto', description: 'Revisa los mensajes enviados desde el formulario de contacto.', href: ROUTES.contactMessages, reactRoute: true },
     ],
   },
   DOCTOR: {

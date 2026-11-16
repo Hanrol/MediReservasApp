@@ -119,10 +119,10 @@ describe('Requisitos de páginas compartidas', () => {
   it('CP-092 · RF-25 · médico consulta las atenciones relacionadas con su agenda', async () => {
     vi.spyOn(doctorWorkflow, 'getDoctorClinicalHistory').mockResolvedValue([{
       id: '10',
-      patientName: 'Paciente #4',
-      patientRun: 'No disponible',
+      patientName: 'Paula Contreras',
+      patientRun: '12345678-5',
       doctorName: 'Daniela Rojas',
-      specialtyName: 'Atención médica',
+      specialtyName: 'Cardiología',
       date: '2026-10-11',
       reason: 'Control preventivo',
       diagnosis: 'Migraña',
@@ -133,7 +133,9 @@ describe('Requisitos de páginas compartidas', () => {
     renderAs(doctor, <HistorialClinico />)
 
     expect(screen.getByRole('heading', { name: 'Historial clínico' })).toBeInTheDocument()
-    expect(await screen.findByText('Paciente #4 (No disponible)')).toBeInTheDocument()
+    expect(await screen.findByText('Paula Contreras')).toBeInTheDocument()
+    expect(screen.getByText('12345678-5')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Consulta de Cardiología' })).toBeInTheDocument()
     expect(screen.getByText('Migraña')).toBeInTheDocument()
     expect(screen.queryByText('Datos del paciente')).not.toBeInTheDocument()
   })

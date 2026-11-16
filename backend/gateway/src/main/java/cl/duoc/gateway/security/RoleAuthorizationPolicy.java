@@ -32,6 +32,13 @@ public class RoleAuthorizationPolicy {
         if (paths.match("/api/v3/patient-profiles/internal/**", path)) {
             return false;
         }
+        if (paths.match("/api/v3/users/internal/**", path)) {
+            return false;
+        }
+
+        if ("/api/v3/contact-messages".equals(path)) {
+            return HttpMethod.GET.equals(method) && hasAny(roles, ADMIN, RECEPTIONIST);
+        }
 
         if (HttpMethod.PATCH.equals(method) && paths.match("/api/v3/auth/users/*/roles", path)) {
             return false;

@@ -19,5 +19,7 @@ test('CP-130 · RF-23/RF-24/RF-25 · médico registra una observación y consult
   await expect(page.getByRole('status')).toContainText('La observación clínica se guardó correctamente')
   await page.goto('/#/historial-clinico')
   await expect(page.getByText('Migraña E2E')).toBeVisible()
-  await expect(page.getByText('Paciente #4 (No disponible)')).toBeVisible()
+  await expect(page.getByText('Paula Contreras')).toBeVisible()
+  await expect(page.getByText('44444444-4')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Consulta de Cardiología' })).toBeVisible()
 })

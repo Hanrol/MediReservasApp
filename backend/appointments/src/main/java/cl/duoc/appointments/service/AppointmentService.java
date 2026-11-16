@@ -7,6 +7,7 @@ import cl.duoc.appointments.dto.AppointmentCreateRequestDTO;
 import cl.duoc.appointments.dto.AppointmentResponseDTO;
 import cl.duoc.appointments.dto.AppointmentStatusChangeRequestDTO;
 import cl.duoc.appointments.dto.AppointmentUpdateRequestDTO;
+import cl.duoc.appointments.dto.PatientSummaryDTO;
 import cl.duoc.appointments.enums.AppointmentStatus;
 import cl.duoc.appointments.model.Appointment;
 import cl.duoc.appointments.model.AppointmentCancellation;
@@ -123,7 +124,19 @@ public class AppointmentService {
 
     public List<AppointmentResponseDTO> getByDoctorId(Long doctorId, String email, Set<String> roles) {
         assertDoctorOwnsResourceIfDoctor(email, doctorId, roles);
-        return getByDoctorId(doctorId);
+        List<Appointment> appointments = appointmentRepository.findByDoctorId(doctorId);
+        List<Long> patientIds = appointments.stream().map(Appointment::getPatientUserId).distinct().toList();
+        var patientsById = usersClient.getUserSummaries(patientIds).stream()
+                .collect(java.util.stream.Collectors.toMap(PatientSummaryDTO::userId, patient -> patient));
+        return appointments.stream().map(appointment -> {
+            AppointmentResponseDTO response = toResponseDTO(appointment);
+            PatientSummaryDTO patient = patientsById.get(appointment.getPatientUserId());
+            if (patient != null) {
+                response.setPatientName(patient.fullName());
+                response.setPatientRun(patient.run());
+            }
+            return response;
+        }).toList();
     }
 
     public AppointmentResponseDTO updateAppointment(Long id, AppointmentUpdateRequestDTO dto) {
@@ -388,7 +401,7 @@ public class AppointmentService {
     }
 
     private AppointmentResponseDTO toResponseDTO(Appointment entity) {
-        return AppointmentResponseDTO.builder()
+        AppointmentResponseDTO.AppointmentResponseDTOBuilder response = AppointmentResponseDTO.builder()
                 .appointmentId(entity.getAppointmentId())
                 .patientUserId(entity.getPatientUserId())
                 .doctorId(entity.getDoctorId())
@@ -396,7 +409,11 @@ public class AppointmentService {
                 .scheduleSlotId(entity.getScheduleSlotId())
                 .appointmentStatus(entity.getAppointmentStatus())
                 .reason(entity.getReason())
-                .createdAt(entity.getCreatedAt())
-                .build();
+                .createdAt(entity.getCreatedAt());
+        scheduleSlotRepository.findById(entity.getScheduleSlotId()).ifPresent(slot -> response
+                .slotDate(slot.getSlotDate())
+                .startTime(slot.getStartTime())
+                .endTime(slot.getEndTime()));
+        return response.build();
     }
 }

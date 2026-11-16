@@ -55,6 +55,8 @@ class RoleAuthorizationPolicyTest {
         assertFalse(policy.isAllowed("/api/v3/appointments/internal/10", HttpMethod.GET, List.of("RECEPTIONIST")));
         assertFalse(policy.isAllowed("/api/v3/patient-profiles/internal/user/10/exists", HttpMethod.GET, List.of("ADMIN")));
         assertFalse(policy.isAllowed("/api/v3/patient-profiles/internal/user/10/exists", HttpMethod.GET, List.of("PATIENT")));
+        assertFalse(policy.isAllowed("/api/v3/users/internal/summaries", HttpMethod.POST, List.of("ADMIN")));
+        assertFalse(policy.isAllowed("/api/v3/users/internal/summaries", HttpMethod.POST, List.of("DOCTOR")));
     }
 
     @Test
@@ -89,5 +91,9 @@ class RoleAuthorizationPolicyTest {
     void publicDirectoryRoutesAreReadOnly() {
         assertFalse(policy.isAllowed("/api/v3/doctors/directory", HttpMethod.POST, List.of("ADMIN")));
         assertFalse(policy.isAllowed("/api/v3/schedule-slots/public", HttpMethod.DELETE, List.of("ADMIN")));
+        assertTrue(policy.isAllowed("/api/v3/contact-messages", HttpMethod.GET, List.of("RECEPTIONIST")));
+        assertTrue(policy.isAllowed("/api/v3/contact-messages", HttpMethod.GET, List.of("ADMIN")));
+        assertFalse(policy.isAllowed("/api/v3/contact-messages", HttpMethod.GET, List.of("DOCTOR")));
+        assertFalse(policy.isAllowed("/api/v3/contact-messages", HttpMethod.DELETE, List.of("RECEPTIONIST")));
     }
 }

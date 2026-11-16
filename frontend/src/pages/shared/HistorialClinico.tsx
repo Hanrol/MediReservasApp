@@ -92,9 +92,10 @@ function HistorialClinico() {
             <div className="mt-5 space-y-4">
               {consultations.map((consultation) => (
                 <article className="rounded-xl border border-line p-5" key={consultation.id}>
-                  <h3 className="text-lg font-semibold">Consulta de {consultation.specialtyName}</h3>
+                  <h3 className="text-lg font-semibold">{consultation.specialtyName ? `Consulta de ${consultation.specialtyName}` : 'Consulta'}</h3>
                   <dl className="mt-4 grid gap-x-8 gap-y-3 md:grid-cols-2">
-                    {isDoctor && <div><dt className="text-sm font-semibold text-muted">Paciente</dt><dd>{consultation.patientName} ({consultation.patientRun})</dd></div>}
+                    {isDoctor && consultation.patientName && <div><dt className="text-sm font-semibold text-muted">Paciente</dt><dd>{consultation.patientName}</dd></div>}
+                    {isDoctor && consultation.patientRun && <div><dt className="text-sm font-semibold text-muted">RUN del paciente</dt><dd>{consultation.patientRun}</dd></div>}
                     <div><dt className="text-sm font-semibold text-muted">Fecha</dt><dd>{formatDate(consultation.date)}</dd></div>
                     <div><dt className="text-sm font-semibold text-muted">Médico</dt><dd>{consultation.doctorName}</dd></div>
                     <div><dt className="text-sm font-semibold text-muted">Motivo</dt><dd>{consultation.reason}</dd></div>

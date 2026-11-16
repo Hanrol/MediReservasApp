@@ -21,14 +21,13 @@ interface ApiAppointment {
   doctorId: number
   specialtyId: number
   scheduleSlotId: number
-  appointmentStatus: Appointment['appointmentStatus']
-  reason: string | null
-}
-
-interface ApiScheduleSlot {
-  scheduleSlotId: number
   slotDate: string
   startTime: string
+  endTime: string
+  appointmentStatus: Appointment['appointmentStatus']
+  reason: string | null
+  patientName: string | null
+  patientRun: string | null
 }
 
 interface ApiSpecialty {
@@ -72,30 +71,28 @@ export async function getDoctorAppointments(
   doctorName: string,
 ): Promise<{ doctor: DoctorProfile; appointments: Appointment[] }> {
   const doctor = await apiRequest<DoctorProfile>('/doctors/me', { token })
-  const [appointmentResponse, slotResponse, specialtyResponse] = await Promise.all([
+  const [appointmentResponse, specialtyResponse] = await Promise.all([
     apiRequest<ApiResponse<ApiAppointment[]>>(`/appointments/doctor/${doctor.doctorId}`, { token }),
-    apiRequest<ApiResponse<ApiScheduleSlot[]>>('/schedule-slots', { token }),
     apiRequest<ApiResponse<ApiSpecialty[]>>('/specialties', { token }),
   ])
 
-  const slots = new Map(slotResponse.data.map((slot) => [slot.scheduleSlotId, slot]))
   const specialties = new Map(specialtyResponse.data.map((specialty) => [
     specialty.specialtyId,
     specialty.specialtyName,
   ]))
   const appointments = appointmentResponse.data.map((item): Appointment => {
-    const slot = slots.get(item.scheduleSlotId)
     return {
       appointmentId: item.appointmentId,
       patientUserId: item.patientUserId,
-      patientName: `Paciente #${item.patientUserId}`,
+      patientName: item.patientName ?? '',
+      patientRun: item.patientRun ?? undefined,
       doctorId: item.doctorId,
       doctorName,
       specialtyId: item.specialtyId,
-      specialtyName: specialties.get(item.specialtyId) ?? `Especialidad #${item.specialtyId}`,
+      specialtyName: specialties.get(item.specialtyId) ?? 'Especialidad no disponible',
       scheduleSlotId: item.scheduleSlotId,
-      date: slot?.slotDate ?? '',
-      time: slot?.startTime?.slice(0, 5) ?? '',
+      date: item.slotDate ?? '',
+      time: item.startTime?.slice(0, 5) ?? '',
       reason: item.reason ?? '',
       appointmentStatus: item.appointmentStatus,
     }
@@ -205,13 +202,20 @@ export async function getDoctorClinicalHistory(
   observations: string
   treatment: string
 }>> {
-  const response = await apiRequest<ApiResponse<MedicalRecordDetail[]>>('/medical-records', { token })
+  const [response, doctorAppointments] = await Promise.all([
+    apiRequest<ApiResponse<MedicalRecordDetail[]>>('/medical-records', { token }),
+    getDoctorAppointments(token, doctorName),
+  ])
+  const appointmentsById = new Map(doctorAppointments.appointments.map((appointment) => [
+    appointment.appointmentId,
+    appointment,
+  ]))
   return response.data.flatMap((record) => record.visits.map((visit) => ({
     id: String(visit.medicalVisitId),
-    patientName: `Paciente #${record.patientUserId}`,
-    patientRun: 'No disponible',
+    patientName: appointmentsById.get(visit.appointmentId)?.patientName ?? '',
+    patientRun: appointmentsById.get(visit.appointmentId)?.patientRun ?? '',
     doctorName,
-    specialtyName: 'Atención médica',
+    specialtyName: appointmentsById.get(visit.appointmentId)?.specialtyName ?? '',
     date: visit.visitDate,
     reason: visit.visitReason,
     diagnosis: visit.diagnoses?.map((diagnosis) => diagnosis.diagnosisDescription).join(', ') || 'Sin diagnóstico',

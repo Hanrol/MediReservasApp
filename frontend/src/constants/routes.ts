@@ -13,6 +13,7 @@ export const ROUTES = {
   adminDoctors: '/admin-medicos',
   adminSpecialties: '/admin-especialidades',
   appointmentManagement: '/gestion-citas',
+  contactMessages: '/mensajes-contacto',
   medicalSchedule: '/agenda-medica',
   doctorAvailability: '/disponibilidad-medica',
   clinicalObservation: '/observacion-clinica',

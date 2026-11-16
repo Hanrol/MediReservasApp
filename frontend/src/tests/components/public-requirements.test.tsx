@@ -13,6 +13,7 @@ import Home from '../../pages/public/Home'
 import Login from '../../pages/public/Login'
 import Registro from '../../pages/public/Registro'
 import { getUsers } from '../../services/users.service'
+import { sendContactMessage } from '../../services/contact-messages.service'
 import { saveUsers } from '../../storage/users.storage'
 
 vi.mock('../../services/auth.service', async (importOriginal) => {
@@ -21,9 +22,11 @@ vi.mock('../../services/auth.service', async (importOriginal) => {
 })
 
 vi.mock('../../services/registration.service', () => ({ registerPatient: vi.fn() }))
+vi.mock('../../services/contact-messages.service', () => ({ sendContactMessage: vi.fn() }))
 
 const mockedAuthenticate = vi.mocked(authenticate)
 const mockedRegisterPatient = vi.mocked(registerPatient)
+const mockedSendContactMessage = vi.mocked(sendContactMessage)
 
 function anonymousAuth() {
   return {
@@ -55,6 +58,14 @@ describe('Requisitos de las páginas públicas', () => {
       firstName: 'Camila',
       lastName: 'Torres',
     })
+    mockedSendContactMessage.mockReset().mockResolvedValue({
+      contactMessageId: 1,
+      name: 'Camila Torres',
+      email: 'camila@example.cl',
+      subject: 'Consulta médica',
+      message: 'Quisiera conocer los horarios de atención.',
+      createdAt: '2026-11-16T11:30:00',
+    })
   })
 
   afterEach(() => {
@@ -71,7 +82,7 @@ describe('Requisitos de las páginas públicas', () => {
     expect(screen.getByRole('link', { name: 'Registrarme' })).toHaveAttribute('href', '/registro')
   })
 
-  it('CP-079 · RF-26/RF-27 · contacto muestra el mapa, valida el formulario y confirma el envío', () => {
+  it('CP-079 · RF-26/RF-27 · contacto muestra el mapa, valida el formulario y confirma el envío', async () => {
     renderPublic(<Contacto />)
 
     expect(screen.getByTitle('Mapa de MediReservas en San Joaquín')).toBeInTheDocument()
@@ -91,7 +102,13 @@ describe('Requisitos de las páginas públicas', () => {
     fireEvent.change(screen.getByLabelText('Mensaje'), { target: { value: 'Quisiera conocer los horarios de atención.' } })
     fireEvent.click(screen.getByRole('button', { name: 'Enviar mensaje' }))
 
-    expect(screen.getByRole('status')).toHaveTextContent('El mensaje fue enviado correctamente.')
+    expect(await screen.findByRole('status')).toHaveTextContent('Tu mensaje fue recibido y enviado al equipo de recepción.')
+    expect(mockedSendContactMessage).toHaveBeenCalledWith({
+      name: 'Camila Torres',
+      email: 'camila@example.cl',
+      subject: 'Consulta médica',
+      message: 'Quisiera conocer los horarios de atención.',
+    })
   })
 
   it('CP-080 · RF-03 · login indica los campos obligatorios', () => {
