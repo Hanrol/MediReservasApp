@@ -12,6 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import cl.duoc.medical_records.security.ClinicalOwnershipVerifier;
+import cl.duoc.medical_records.client.AppointmentsClient;
+import cl.duoc.medical_records.client.AppointmentsClient.AppointmentData;
+import java.util.Arrays;
+import java.util.Set;
 
 @RestController
 @RequiredArgsConstructor
@@ -20,9 +24,33 @@ public class MedicalRecordController {
 
     @Autowired
     private ClinicalOwnershipVerifier ownershipVerifier;
+
+    @Autowired
+    private AppointmentsClient appointmentsClient;
     
     private final MedicalRecordService medicalRecordService;
     private static final Logger logger = LoggerFactory.getLogger(MedicalRecordController.class);
+
+    @PostMapping("/for-appointment/{appointmentId}")
+    public ResponseEntity<ApiResponse<MedicalRecordResponseDTO>> getOrCreateForAppointment(
+            @PathVariable Long appointmentId,
+            @RequestHeader(value = "X-Authenticated-Email", required = false) String email,
+            @RequestHeader(value = "X-Authenticated-Roles", required = false) String roles) {
+        Set<String> parsedRoles = parseRoles(roles);
+        if (!ownershipVerifier.isDoctorOnly(parsedRoles)) {
+            return ResponseEntity.status(403)
+                    .body(new ApiResponse<>(403, "Solo el médico asignado puede registrar la atención", null));
+        }
+
+        AppointmentData appointment = appointmentsClient.getAppointment(appointmentId);
+        ownershipVerifier.requireDoctor(appointment.doctorId(), email, parsedRoles);
+        if (!"CONFIRMED".equals(appointment.appointmentStatus())) {
+            return ResponseEntity.status(409)
+                    .body(new ApiResponse<>(409, "Solo se puede registrar una atención para citas confirmadas", null));
+        }
+        MedicalRecordResponseDTO record = medicalRecordService.getOrCreateForPatient(appointment.patientUserId());
+        return ResponseEntity.ok(new ApiResponse<>(200, "Ficha médica disponible", record));
+    }
 
     @GetMapping()
     @Operation(summary = "Lista los registros médicos", description = "Permite listar TODOS los registros médicos almacenados")
@@ -141,5 +169,11 @@ public class MedicalRecordController {
         java.util.Set<String> roleSet = java.util.Arrays.stream(roles.split(","))
                 .map(String::trim).map(String::toUpperCase).collect(java.util.stream.Collectors.toSet());
         return roleSet.contains("DOCTOR") && !roleSet.contains("ADMIN") && !roleSet.contains("RECEPTIONIST");
+    }
+
+    private Set<String> parseRoles(String roles) {
+        return roles == null ? Set.of() : Arrays.stream(roles.split(","))
+                .map(String::trim).map(String::toUpperCase).filter(role -> !role.isEmpty())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 }

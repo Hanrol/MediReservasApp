@@ -30,5 +30,5 @@ public class AppointmentsClient
         }
     }
 
-    public record AppointmentData(Long appointmentId, Long patientUserId, Long doctorId) {}
+    public record AppointmentData(Long appointmentId, Long patientUserId, Long doctorId, String appointmentStatus) {}
 }

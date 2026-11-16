@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -33,7 +34,9 @@ public class SpecialtyController {
 	@PostMapping
 	@Operation(summary = "Crear especialidad", description = "Registra una nueva especialidad médica en el catálogo del sistema.")
 	public ResponseEntity<ApiResponse<SpecialtyResponseDTO>> createSpecialty(
+			@RequestHeader("X-Authenticated-Roles") String authenticatedRoles,
 			@Valid @RequestBody CreateSpecialtyRequestDTO request) {
+		requireAdminRole(authenticatedRoles);
 		SpecialtyResponseDTO response = specialtyService.createSpecialty(request);
 
 		return ResponseEntity.status(HttpStatus.CREATED)
@@ -111,7 +114,9 @@ public class SpecialtyController {
 	@Operation(summary = "Actualizar especialidad", description = "Actualiza el nombre y la descripción de una especialidad médica.")
 	public ResponseEntity<ApiResponse<SpecialtyResponseDTO>> updateSpecialty(
 			@PathVariable Long specialtyId,
+			@RequestHeader("X-Authenticated-Roles") String authenticatedRoles,
 			@Valid @RequestBody CreateSpecialtyRequestDTO request) {
+		requireAdminRole(authenticatedRoles);
 		SpecialtyResponseDTO response = specialtyService.updateSpecialty(specialtyId, request);
 
 		return ResponseEntity.ok(
@@ -124,7 +129,9 @@ public class SpecialtyController {
 	@PatchMapping("/{specialtyId}/deactivate")
 	@Operation(summary = "Desactivar especialidad", description = "Desactiva lógicamente una especialidad médica.")
 	public ResponseEntity<ApiResponse<SpecialtyResponseDTO>> deactivateSpecialty(
-			@PathVariable Long specialtyId) {
+			@PathVariable Long specialtyId,
+			@RequestHeader("X-Authenticated-Roles") String authenticatedRoles) {
+		requireAdminRole(authenticatedRoles);
 		SpecialtyResponseDTO response = specialtyService.deactivateSpecialty(specialtyId);
 
 		return ResponseEntity.ok(
@@ -137,7 +144,9 @@ public class SpecialtyController {
 	@PatchMapping("/{specialtyId}/activate")
 	@Operation(summary = "Activar especialidad", description = "Activa una especialidad médica previamente desactivada.")
 	public ResponseEntity<ApiResponse<SpecialtyResponseDTO>> activateSpecialty(
-			@PathVariable Long specialtyId) {
+			@PathVariable Long specialtyId,
+			@RequestHeader("X-Authenticated-Roles") String authenticatedRoles) {
+		requireAdminRole(authenticatedRoles);
 		SpecialtyResponseDTO response = specialtyService.activateSpecialty(specialtyId);
 
 		return ResponseEntity.ok(
@@ -145,5 +154,15 @@ public class SpecialtyController {
 						200,
 						"Especialidad activada correctamente",
 						response));
+	}
+
+	private void requireAdminRole(String roles) {
+		boolean isAdmin = java.util.Arrays.stream(roles.split(","))
+				.map(String::trim)
+				.anyMatch("ADMIN"::equalsIgnoreCase);
+		if (!isAdmin) {
+			throw new org.springframework.web.server.ResponseStatusException(
+					HttpStatus.FORBIDDEN, "Solo un administrador puede gestionar especialidades");
+		}
 	}
 }

@@ -174,6 +174,7 @@ class DoctorsControllerTest {
 
         // Act & Assert
         mockMvc.perform(put("/api/v3/doctors/{id}", doctorId)
+                .header("X-Authenticated-Roles", "ADMIN")
                 .contentType("application/json")
                 .content("""
                         {
@@ -196,7 +197,8 @@ class DoctorsControllerTest {
         org.mockito.Mockito.doNothing().when(doctorsService).delete(doctorId);
 
         // Act & Assert
-        mockMvc.perform(delete("/api/v3/doctors/{id}", doctorId))
+        mockMvc.perform(delete("/api/v3/doctors/{id}", doctorId)
+                .header("X-Authenticated-Roles", "ADMIN"))
                 .andExpect(status().isNoContent());
     }
 
@@ -208,8 +210,32 @@ class DoctorsControllerTest {
                 .when(doctorsService).delete(doctorId);
 
         // Act & Assert
-        mockMvc.perform(delete("/api/v3/doctors/{id}", doctorId))
+        mockMvc.perform(delete("/api/v3/doctors/{id}", doctorId)
+                .header("X-Authenticated-Roles", "ADMIN"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Doctor no encontrado"));
+    }
+
+    @Test
+    void updateDoctor_ShouldRejectNonAdministrator() throws Exception {
+        mockMvc.perform(put("/api/v3/doctors/{id}", 1L)
+                .header("X-Authenticated-Roles", "DOCTOR")
+                .contentType("application/json")
+                .content("""
+                        {
+                            "userId": 200,
+                            "medicalLicenseNumber": "LIC-UPDATED",
+                            "active": true,
+                            "specialtyIds": [1]
+                        }
+                        """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deleteDoctor_ShouldRejectNonAdministrator() throws Exception {
+        mockMvc.perform(delete("/api/v3/doctors/{id}", 1L)
+                .header("X-Authenticated-Roles", "DOCTOR"))
+                .andExpect(status().isForbidden());
     }
 }

@@ -61,6 +61,12 @@ public class MedicalRecordService {
         return toDTO.toMedicalRecordResponseDTO(saved);
     }
 
+    public MedicalRecordResponseDTO getOrCreateForPatient(Long patientId) {
+        return medicalRecordRepository.findByPatientId(patientId)
+                .map(toDTO::toMedicalRecordResponseDTO)
+                .orElseGet(() -> create(new CreateMedicalRecordRequestDTO(patientId)));
+    }
+
     public List<MedicalRecordDetailResponseDTO> listAll() {
         return medicalRecordRepository.findAll()
                 .stream()

@@ -108,6 +108,12 @@ public class RoleAuthorizationPolicy {
                 "/api/v3/medical-visit/**",
                 "/api/v3/diagnoses/**",
                 "/api/v3/vital-signs/**")) {
+            if (HttpMethod.POST.equals(method)
+                    && paths.match("/api/v3/medical-records/for-appointment/*", path)) {
+                return normalizedRoles.contains(DOCTOR)
+                        && !normalizedRoles.contains(ADMIN)
+                        && !normalizedRoles.contains(RECEPTIONIST);
+            }
             if (normalizedRoles.contains(RECEPTIONIST)) {
                 return true;
             }
