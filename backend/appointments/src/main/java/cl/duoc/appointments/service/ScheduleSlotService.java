@@ -2,6 +2,7 @@ package cl.duoc.appointments.service;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +36,7 @@ public class ScheduleSlotService {
 
     public ScheduleSlotResponse create(ScheduleSlotRequest request) {
         validateAppointmentDoctor(request);
+        validateNewSlot(request);
         ScheduleSlot slot = new ScheduleSlot();
         slot.setDoctorId(request.getDoctorId());
         slot.setSlotDate(request.getSlotDate());
@@ -79,13 +81,14 @@ public class ScheduleSlotService {
 
     public List<PublicScheduleSlotDTO> findPublicAvailability(Long doctorId) {
         LocalDate today = LocalDate.now();
+        LocalDate through = today.plusDays(29);
         LocalDateTime now = LocalDateTime.now();
         return scheduleSlotRepository
-                .findByDoctorIdAndSlotStatusAndAppointmentIdIsNullAndSlotDateGreaterThanEqualOrderBySlotDateAscStartTimeAsc(
-                        doctorId, SlotStatus.DISPONIBLE, today)
+                .findByDoctorIdAndSlotStatusInAndAppointmentIdIsNullAndSlotDateGreaterThanEqualOrderBySlotDateAscStartTimeAsc(
+                        doctorId, List.of(SlotStatus.DISPONIBLE, SlotStatus.LIBERADO_POR_CANCELACION), today)
                 .stream()
+                .filter(slot -> !slot.getSlotDate().isAfter(through))
                 .filter(slot -> LocalDateTime.of(slot.getSlotDate(), slot.getStartTime()).isAfter(now))
-                .limit(3)
                 .map(slot -> new PublicScheduleSlotDTO(
                         slot.getScheduleSlotId(),
                         slot.getDoctorId(),
@@ -132,6 +135,29 @@ public class ScheduleSlotService {
         }
     }
 
+    private void validateNewSlot(ScheduleSlotRequest request) {
+        if (request.getAppointmentId() != null) return;
+        if (request.getSlotStatus() != SlotStatus.DISPONIBLE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Un nuevo horario debe estar disponible");
+        }
+        if (request.getSlotDate().isBefore(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se pueden crear horarios en fechas pasadas");
+        }
+        if (request.getSlotDate().equals(LocalDate.now())
+                && !LocalDateTime.of(request.getSlotDate(), request.getStartTime()).isAfter(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La hora seleccionada ya pasó");
+        }
+        if (!request.getStartTime().plusMinutes(30).equals(request.getEndTime())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Los horarios deben durar 30 minutos");
+        }
+        boolean overlaps = scheduleSlotRepository.existsByDoctorIdAndSlotDateAndStartTimeLessThanAndEndTimeGreaterThan(
+                request.getDoctorId(), request.getSlotDate(), request.getEndTime(), request.getStartTime());
+        if (overlaps) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Ya existe un horario que coincide con ese día y hora");
+        }
+    }
+
     public ScheduleSlotResponse update(Long id, ScheduleSlotRequest request, String email, Set<String> roles) {
         ownershipVerifier.requireOwnDoctor(email, findById(id).doctorId(), roles);
         ownershipVerifier.requireOwnDoctor(email, request.getDoctorId(), roles);
@@ -140,8 +166,11 @@ public class ScheduleSlotService {
 
     public void delete(Long id) {
         try {
-            if (!scheduleSlotRepository.existsById(id)) {
-                throw new RuntimeException("Schedule slot no encontrado con ID: " + id);
+            ScheduleSlot slot = scheduleSlotRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Schedule slot no encontrado con ID: " + id));
+            if (slot.getAppointmentId() != null || slot.getSlotStatus() != SlotStatus.DISPONIBLE) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "No se puede eliminar un horario reservado o ya utilizado");
             }
             scheduleSlotRepository.deleteById(id);
         } catch (RuntimeException ex) {

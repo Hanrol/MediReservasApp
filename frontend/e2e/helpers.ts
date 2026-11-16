@@ -123,6 +123,15 @@ export async function mockPublicDirectoryApi(page: Page) {
     },
   }))
 
+  await page.route('**/api/v3/specialties/public/active', (route) => route.fulfill({
+    status: 200,
+    json: {
+      code: 200,
+      message: 'Especialidades activas',
+      data: mockSpecialties.filter((specialty) => specialty.active),
+    },
+  }))
+
   await page.route('**/api/v3/schedule-slots/public**', async (route) => {
     const doctorId = Number(new URL(route.request().url()).searchParams.get('doctorId'))
     const data = mockSchedules
@@ -135,6 +144,168 @@ export async function mockPublicDirectoryApi(page: Page) {
         endTime: `${schedule.time}:30`,
       }))
     await route.fulfill({ status: 200, json: { code: 200, message: 'Horarios disponibles', data } })
+  })
+}
+
+export async function mockPatientBookingApi(page: Page) {
+  let appointments = [...mockAppointments]
+  const directory = mockDoctors.filter((doctor) => doctor.active).map((doctor) => ({
+    doctorId: doctor.doctorId,
+    firstName: doctor.firstName,
+    lastName: doctor.lastName,
+    medicalLicenseNumber: doctor.medicalLicenseNumber,
+    specialties: doctor.specialtyIds
+      .map((specialtyId) => mockSpecialties.find((specialty) => specialty.specialtyId === specialtyId))
+      .filter((specialty) => specialty?.active)
+      .map((specialty) => ({
+        specialtyId: specialty!.specialtyId,
+        specialtyName: specialty!.specialtyName,
+        description: specialty!.description,
+      })),
+  }))
+
+  await page.route('**/api/v3/doctors/directory', (route) => route.fulfill({
+    status: 200,
+    json: { code: 200, message: 'Directorio médico', data: directory },
+  }))
+  await page.route('**/api/v3/specialties/public/active', (route) => route.fulfill({
+    status: 200,
+    json: { code: 200, message: 'Especialidades activas', data: mockSpecialties.filter((item) => item.active) },
+  }))
+  await page.route('**/api/v3/schedule-slots/public**', async (route) => {
+    const doctorId = Number(new URL(route.request().url()).searchParams.get('doctorId'))
+    const data = mockSchedules.filter((item) => item.doctorId === doctorId && item.available).map((item) => ({
+      scheduleSlotId: item.id,
+      doctorId: item.doctorId,
+      slotDate: item.date,
+      startTime: `${item.time}:00`,
+      endTime: `${item.time}:30`,
+    }))
+    await route.fulfill({ status: 200, json: { code: 200, message: 'Disponibilidad', data } })
+  })
+  await page.route('**/api/v3/schedule-slots', (route) => route.fulfill({
+    status: 200,
+    json: {
+      code: 200,
+      message: 'Slots',
+      data: mockSchedules.map((item) => ({
+        scheduleSlotId: item.id,
+        slotDate: item.date,
+        startTime: `${item.time}:00`,
+      })),
+    },
+  }))
+  await page.route('**/api/v3/appointments**', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() === 'POST' && url.pathname.endsWith('/appointments')) {
+      const input = request.postDataJSON() as { patientUserId: number; doctorId: number; specialtyId: number; scheduleSlotId: number; reason: string }
+      const appointment = {
+        appointmentId: 100,
+        patientUserId: input.patientUserId,
+        doctorId: input.doctorId,
+        specialtyId: input.specialtyId,
+        scheduleSlotId: input.scheduleSlotId,
+        appointmentStatus: 'PENDING',
+        reason: input.reason,
+      }
+      appointments = [...appointments, appointment as typeof appointments[number]]
+      await route.fulfill({ status: 201, json: { code: 201, message: 'Cita creada', data: appointment } })
+      return
+    }
+    if (request.method() === 'GET' && url.pathname.includes('/appointments/patient/')) {
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Citas', data: appointments } })
+      return
+    }
+    if (request.method() === 'PATCH' && url.pathname.endsWith('/cancel')) {
+      const id = Number(url.pathname.split('/').at(-2))
+      appointments = appointments.map((appointment) => appointment.appointmentId === id
+        ? { ...appointment, appointmentStatus: 'CANCELLED' }
+        : appointment)
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Cancelada', data: null } })
+      return
+    }
+    await route.continue()
+  })
+}
+
+export async function mockDoctorAvailabilityApi(page: Page) {
+  const doctor = mockDoctors.find((item) => item.userId === 3)!
+  let schedules = [
+    {
+      doctorScheduleId: 41,
+      doctorId: doctor.doctorId,
+      dayOfWeek: 'LUNES',
+      startTime: '09:00:00',
+      endTime: '12:00:00',
+      active: true,
+    },
+  ]
+  await page.route('**/api/v3/doctors/me', (route) => route.fulfill({
+    status: 200,
+    json: { doctorId: doctor.doctorId, userId: doctor.userId, active: true, specialtyIds: doctor.specialtyIds },
+  }))
+  await page.route('**/api/v3/doctor-schedules**', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() === 'GET') {
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Horarios', data: schedules } })
+      return
+    }
+    if (request.method() === 'POST') {
+      const input = request.postDataJSON() as Omit<typeof schedules[number], 'doctorScheduleId'>
+      const created = { ...input, doctorScheduleId: 42 }
+      schedules = [...schedules, created]
+      await route.fulfill({ status: 201, json: { code: 201, message: 'Creado', data: created } })
+      return
+    }
+    if (request.method() === 'DELETE') {
+      if (url.pathname.endsWith('/me')) {
+        schedules = []
+        await route.fulfill({ status: 200, json: { code: 200, message: 'Recurrencias eliminadas', data: null } })
+        return
+      }
+      const id = Number(url.pathname.split('/').at(-1))
+      schedules = schedules.filter((schedule) => schedule.doctorScheduleId !== id)
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Eliminado', data: null } })
+      return
+    }
+    await route.continue()
+  })
+  let slots: Array<{
+    scheduleSlotId: number
+    doctorId: number
+    slotDate: string
+    startTime: string
+    endTime: string
+    slotStatus: string
+    appointmentId: number | null
+  }> = []
+  await page.route('**/api/v3/schedule-slots**', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (url.pathname.endsWith('/public')) {
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Disponibilidad', data: [] } })
+      return
+    }
+    if (request.method() === 'GET') {
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Slots', data: slots } })
+      return
+    }
+    if (request.method() === 'POST') {
+      const input = request.postDataJSON() as Omit<typeof slots[number], 'scheduleSlotId'>
+      const created = { ...input, scheduleSlotId: 99 }
+      slots = [...slots, created]
+      await route.fulfill({ status: 201, json: { code: 201, message: 'Slot creado', data: created } })
+      return
+    }
+    if (request.method() === 'DELETE') {
+      const id = Number(url.pathname.split('/').at(-1))
+      slots = slots.filter((slot) => slot.scheduleSlotId !== id)
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Slot eliminado', data: null } })
+      return
+    }
+    await route.continue()
   })
 }
 

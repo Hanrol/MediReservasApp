@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
-import { freezeMockDate, loginAs } from './helpers'
+import { freezeMockDate, loginAs, mockPatientBookingApi } from './helpers'
 
 test('CP-128 · RF-15/RF-16/RF-17 · paciente reserva una hora y la encuentra en Mis citas', async ({ page }) => {
   await freezeMockDate(page)
+  await mockPatientBookingApi(page)
   await loginAs(page, 'paciente@medireservas.cl', 'Paciente123')
   await page.goto('/#/solicitar-cita')
 

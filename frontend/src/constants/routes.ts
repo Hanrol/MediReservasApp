@@ -14,6 +14,7 @@ export const ROUTES = {
   adminSpecialties: '/admin-especialidades',
   appointmentManagement: '/gestion-citas',
   medicalSchedule: '/agenda-medica',
+  doctorAvailability: '/disponibilidad-medica',
   clinicalObservation: '/observacion-clinica',
   clinicalHistory: '/historial-clinico',
   requestAppointment: '/solicitar-cita',
