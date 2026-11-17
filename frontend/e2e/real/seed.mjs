@@ -1,4 +1,6 @@
 const gateway = (process.env.E2E_API_PROXY_TARGET ?? 'http://127.0.0.1:19013').replace(/\/+$/, '')
+const apiRequestTimeoutMs = 15_000
+const retryableReadinessStatuses = new Set([403, 503])
 const masterAdmin = {
   email: 'admin-e2e@medireservas.local',
   password: 'E2eAdmin123!',
@@ -12,8 +14,22 @@ const doctor = {
   password: 'E2eDoctor123!',
 }
 
+class ApiResponseError extends Error {
+  constructor(path, status, message) {
+    super(`E2E seed: ${path} respondió HTTP ${status}: ${message}`)
+    this.status = status
+  }
+}
+
+function fetchWithTimeout(url, options = {}) {
+  return fetch(url, {
+    ...options,
+    signal: AbortSignal.timeout(apiRequestTimeoutMs),
+  })
+}
+
 async function api(path, { token, body, expectedStatus } = {}) {
-  const response = await fetch(`${gateway}/api/v3${path}`, {
+  const response = await fetchWithTimeout(`${gateway}/api/v3${path}`, {
     method: body === undefined ? 'GET' : 'POST',
     headers: {
       Accept: 'application/json',
@@ -30,9 +46,7 @@ async function api(path, { token, body, expectedStatus } = {}) {
     payload = { message: text }
   }
   if (!response.ok || (expectedStatus && response.status !== expectedStatus)) {
-    throw new Error(
-      `E2E seed: ${path} respondió HTTP ${response.status}: ${payload?.message ?? text}`,
-    )
+    throw new ApiResponseError(path, response.status, payload?.message ?? text)
   }
   return payload?.data
 }
@@ -53,6 +67,7 @@ async function loginAdminWithRetry() {
     try {
       return await login(masterAdmin)
     } catch (error) {
+      if (error instanceof ApiResponseError && ![401, 503].includes(error.status)) throw error
       lastError = error
       await new Promise((resolve) => setTimeout(resolve, 2_000))
     }
@@ -70,7 +85,9 @@ async function waitForAdminInvitationsService(token) {
       return
     } catch (error) {
       lastError = error
-      if (!String(error).includes('respondió HTTP 503')) throw error
+      if (error instanceof ApiResponseError && !retryableReadinessStatuses.has(error.status)) {
+        throw error
+      }
       await new Promise((resolve) => setTimeout(resolve, 2_000))
     }
   }
@@ -122,7 +139,7 @@ await api('/doctors/me', {
   },
   expectedStatus: 201,
 })
-const doctorProfileResponse = await fetch(`${gateway}/api/v3/doctors/me`, {
+const doctorProfileResponse = await fetchWithTimeout(`${gateway}/api/v3/doctors/me`, {
   headers: { Authorization: `Bearer ${doctorToken}` },
 })
 const doctorProfilePayload = await doctorProfileResponse.json()
