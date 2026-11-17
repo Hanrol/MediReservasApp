@@ -12,7 +12,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import cl.duoc.users.client.AuthClient;
 import cl.duoc.users.dto.AuthUserResponseDTO;
@@ -44,7 +46,9 @@ class MasterAdminBootstrapTest {
         user.setAuthUserId(8L);
         user.setEmail("master@test.cl");
 
-        when(authClient.authUserExistsByEmail("master@test.cl")).thenReturn(true);
+        when(authClient.authUserExistsByEmail("master@test.cl"))
+                .thenThrow(new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Auth aún no está registrado"))
+                .thenReturn(true);
         when(authClient.getAuthUserByEmail("master@test.cl")).thenReturn(auth);
         when(userRepository.findByEmail("master@test.cl")).thenReturn(Optional.of(user));
         when(userProfileService.existsByUserId(3L)).thenReturn(true);
@@ -52,6 +56,7 @@ class MasterAdminBootstrapTest {
 
         bootstrap.run(null);
 
+        verify(authClient, org.mockito.Mockito.times(2)).authUserExistsByEmail("master@test.cl");
         verify(authClient, never()).registerUser(org.mockito.ArgumentMatchers.anyString(), org.mockito.ArgumentMatchers.anyString());
         verify(userRepository, never()).save(org.mockito.ArgumentMatchers.any(User.class));
         verify(userService).ensureMasterAdminActive(3L);

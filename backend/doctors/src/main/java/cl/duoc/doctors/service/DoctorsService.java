@@ -7,6 +7,8 @@ import cl.duoc.doctors.client.AuthClient;
 import cl.duoc.doctors.client.UsersClient;
 import cl.duoc.doctors.dto.DoctorsDTO;
 import cl.duoc.doctors.dto.DoctorOnboardingRequestDTO;
+import cl.duoc.doctors.dto.PublicDoctorDirectoryDTO;
+import cl.duoc.doctors.dto.PublicDoctorSpecialtyDTO;
 import cl.duoc.doctors.dto.UserInternalResponseDTO;
 import cl.duoc.doctors.model.DoctorSpecialties;
 import cl.duoc.doctors.model.Doctors;
@@ -44,6 +46,32 @@ public class DoctorsService {
                     return new RuntimeException("Doctor no encontrado");
                 });
         return convertToDTO(doctor);
+    }
+
+    @Transactional
+    public List<PublicDoctorDirectoryDTO> findPublicDirectory() {
+        return doctorsRepository.findAll().stream()
+                .filter(doctor -> Boolean.TRUE.equals(doctor.getActive()))
+                .map(doctor -> {
+                    var profile = usersClient.getUserProfileByUserId(doctor.getUserId());
+                    List<PublicDoctorSpecialtyDTO> specialties = doctor.getSpecialties() == null
+                            ? List.of()
+                            : doctor.getSpecialties().stream()
+                                    .map(DoctorSpecialties::getSpecialty)
+                                    .filter(Specialty::isActive)
+                                    .map(specialty -> new PublicDoctorSpecialtyDTO(
+                                            specialty.getSpecialtyId(),
+                                            specialty.getSpecialtyName(),
+                                            specialty.getDescription()))
+                                    .toList();
+                    return new PublicDoctorDirectoryDTO(
+                            doctor.getDoctorId(),
+                            profile.firstName(),
+                            profile.lastName(),
+                            doctor.getMedicalLicenseNumber(),
+                            specialties);
+                })
+                .toList();
     }
 
     public DoctorsDTO findByUserId(Long userId) {

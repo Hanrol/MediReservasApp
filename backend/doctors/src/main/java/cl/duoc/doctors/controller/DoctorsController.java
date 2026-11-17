@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import cl.duoc.doctors.dto.DoctorsDTO;
 import cl.duoc.doctors.dto.ApiResponse;
 import cl.duoc.doctors.dto.DoctorOnboardingRequestDTO;
+import cl.duoc.doctors.dto.PublicDoctorDirectoryDTO;
 import cl.duoc.doctors.service.DoctorsService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -36,6 +37,16 @@ public class DoctorsController {
     public ResponseEntity<DoctorsDTO> getDoctorById(@PathVariable Long id) {
         DoctorsDTO doctor = doctorsService.findById(id);
         return ResponseEntity.ok(doctor);
+    }
+
+    @GetMapping("/directory")
+    @Operation(summary = "Directorio público de médicos",
+            description = "Retorna solo nombre, licencia y especialidades activas de médicos activos.")
+    public ResponseEntity<ApiResponse<List<PublicDoctorDirectoryDTO>>> getPublicDirectory() {
+        return ResponseEntity.ok(new ApiResponse<>(
+                200,
+                "Directorio médico obtenido correctamente",
+                doctorsService.findPublicDirectory()));
     }
 
     @GetMapping("/user/{userId}")
@@ -100,14 +111,21 @@ public class DoctorsController {
 
     @PutMapping("/{id}")
     @Operation(summary = "Actualizar un doctor existente", description = "Modifica los datos de un médico y actualiza su lista de especialidades asociadas.")
-    public ResponseEntity<DoctorsDTO> updateDoctor(@PathVariable Long id, @RequestBody DoctorsDTO doctorsDTO) {
+    public ResponseEntity<DoctorsDTO> updateDoctor(
+            @PathVariable Long id,
+            @RequestHeader("X-Authenticated-Roles") String authenticatedRoles,
+            @RequestBody DoctorsDTO doctorsDTO) {
+        requireAdminRole(authenticatedRoles);
         DoctorsDTO updatedDoctor = doctorsService.update(id, doctorsDTO);
         return ResponseEntity.ok(updatedDoctor);
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar de forma lógica un doctor", description = "Cambia el estado del médico a 'inactivo' sin borrarlo físicamente de la base de datos.")
-    public ResponseEntity<Void> deleteDoctor(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteDoctor(
+            @PathVariable Long id,
+            @RequestHeader("X-Authenticated-Roles") String authenticatedRoles) {
+        requireAdminRole(authenticatedRoles);
         doctorsService.delete(id);
         return ResponseEntity.noContent().build();
     }

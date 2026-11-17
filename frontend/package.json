@@ -10,6 +10,8 @@
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
+    "test:e2e:real": "playwright test --config=playwright.real.config.ts",
+    "test:e2e:real:local": "node ./scripts/run-real-e2e.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -28,7 +30,7 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@types/babel__core": "^7.20.5",
-    "@types/node": "^24.13.3",
+    "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",

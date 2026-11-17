@@ -44,6 +44,12 @@ public class SpecialtyService {
                 .toList();
     }
 
+    public List<SpecialtyResponseDTO> getActiveSpecialties() {
+        return specialtyRepository.findByActiveTrueOrderBySpecialtyNameAsc().stream()
+                .map(this::toResponseDTO)
+                .toList();
+    }
+
     public SpecialtyResponseDTO getSpecialtyById(Long specialtyId) {
         Specialty specialty = findSpecialtyEntityById(specialtyId);
         return toResponseDTO(specialty);

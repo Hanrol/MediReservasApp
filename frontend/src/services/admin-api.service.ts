@@ -136,16 +136,11 @@ export async function saveAdminUser(token: string, user: User): Promise<void> {
 }
 
 export async function setAdminUserStatus(token: string, user: User, active: boolean): Promise<void> {
-  const userAction = active ? 'activate' : 'deactivate'
-  const authAction = active ? 'enable' : 'disable'
-  const requests: Promise<unknown>[] = []
-  if (user.serviceActive !== active) {
-    requests.push(apiRequest<ApiResponse<ApiUser>>(`/users/${user.userId}/${userAction}`, { method: 'PATCH', token }))
-  }
-  if (user.authEnabled !== active) {
-    requests.push(apiRequest<ApiResponse<AuthUser>>(`/auth/users/${user.authUserId}/${authAction}`, { method: 'PATCH', token }))
-  }
-  await Promise.all(requests)
+  await apiRequest<ApiResponse<ApiUser>>(`/users/${user.userId}/status`, {
+    method: 'PATCH',
+    token,
+    body: { active },
+  })
 }
 
 export async function saveAdminDoctor(token: string, doctor: Doctor, isNew: boolean): Promise<void> {

@@ -3,6 +3,7 @@ import PublicLayout from '../../components/layout/PublicLayout'
 import FormMessage from '../../components/forms/FormMessage'
 import type { ContactErrors, ContactValues } from '../../types/contact'
 import { validateContact } from '../../utils/validations'
+import { sendContactMessage } from '../../services/contact-messages.service'
 
 const emptyForm: ContactValues = { nombre: '', correo: '', asunto: '', mensaje: '' }
 
@@ -10,6 +11,8 @@ function Contacto() {
   const [form, setForm] = useState<ContactValues>(emptyForm)
   const [errors, setErrors] = useState<ContactErrors>({})
   const [success, setSuccess] = useState('')
+  const [submissionError, setSubmissionError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   useEffect(() => {
     document.title = 'Contacto | MediReservas'
@@ -27,12 +30,19 @@ function Contacto() {
 
     setErrors((prev) => ({ ...prev, [name]: undefined }))
     setSuccess('')
+    setSubmissionError('')
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    const newErrors = validateContact(form)
+    const normalized = {
+      nombre: form.nombre.trim(),
+      correo: form.correo.trim().toLowerCase(),
+      asunto: form.asunto.trim(),
+      mensaje: form.mensaje.trim(),
+    }
+    const newErrors = validateContact(normalized)
 
     setErrors(newErrors);
 
@@ -43,8 +53,24 @@ function Contacto() {
       return;
     }
 
-    setSuccess('El mensaje fue enviado correctamente.')
-    setForm(emptyForm)
+    setIsSubmitting(true)
+    setSubmissionError('')
+    try {
+      await sendContactMessage({
+        name: normalized.nombre,
+        email: normalized.correo,
+        subject: normalized.asunto,
+        message: normalized.mensaje,
+      })
+      setSuccess('Tu mensaje fue recibido y enviado al equipo de recepción.')
+      setForm(emptyForm)
+    } catch (cause) {
+      setSubmissionError(cause instanceof Error
+        ? cause.message
+        : 'No se pudo enviar el mensaje. Inténtalo nuevamente.')
+    } finally {
+      setIsSubmitting(false)
+    }
   };
 
   return (
@@ -206,6 +232,7 @@ function Contacto() {
                   onChange={handleChange}
                   className="mt-2 w-full rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
                   autoComplete="name"
+                  maxLength={100}
                 />
 
                 <FormMessage>{errors.nombre}</FormMessage>
@@ -227,6 +254,7 @@ function Contacto() {
                   onChange={handleChange}
                   className="mt-2 w-full rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
                   autoComplete="email"
+                  maxLength={100}
                 />
 
                 <FormMessage>{errors.correo}</FormMessage>
@@ -246,6 +274,7 @@ function Contacto() {
                 id="asunto"
                 name="asunto"
                 value={form.asunto}
+                maxLength={120}
                 onChange={handleChange}
                 className="mt-2 w-full rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
               />
@@ -266,6 +295,7 @@ function Contacto() {
                 name="mensaje"
                 rows={6}
                 value={form.mensaje}
+                maxLength={2000}
                 onChange={handleChange}
                 className="mt-2 w-full resize-y rounded-xl border border-line px-4 py-3 outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100"
               />
@@ -275,11 +305,13 @@ function Contacto() {
 
             <button
               type="submit"
+              disabled={isSubmitting}
               className="mt-6 w-full rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark sm:w-auto"
             >
-              Enviar mensaje
+              {isSubmitting ? 'Enviando…' : 'Enviar mensaje'}
             </button>
 
+            {submissionError && <p className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-red-800" role="alert">{submissionError}</p>}
             {success && (
               <div
                 className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4"

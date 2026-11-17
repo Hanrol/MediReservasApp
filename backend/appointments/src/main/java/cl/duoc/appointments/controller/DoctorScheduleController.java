@@ -58,6 +58,15 @@ public class DoctorScheduleController {
         return ResponseEntity.ok(new ApiResponse<>(200, "Lista de horarios", data));
     }
 
+    @Operation(summary = "Eliminar recurrencias semanales del médico autenticado")
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<Void>> clearOwnSchedules(
+            @RequestHeader("X-Authenticated-Email") String email,
+            @RequestHeader("X-Authenticated-Roles") String roles) {
+        doctorScheduleService.clearForCurrentDoctor(email, parseRoles(roles));
+        return ResponseEntity.ok(new ApiResponse<>(200, "Recurrencias semanales eliminadas", null));
+    }
+
     @Operation(summary = "Actualizar horario de doctor")
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<DoctorScheduleResponse>> update(@PathVariable Long id, @Valid @RequestBody DoctorScheduleRequest request,

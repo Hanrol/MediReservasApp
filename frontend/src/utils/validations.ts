@@ -12,10 +12,14 @@ import type {
 export function validateContact(values: ContactValues): ContactErrors {
   const errors: ContactErrors = {}
   if (!values.nombre.trim()) errors.nombre = 'El nombre es obligatorio.'
+  else if (values.nombre.trim().length > 100) errors.nombre = 'El nombre no puede superar 100 caracteres.'
   if (!values.correo.trim()) errors.correo = 'El correo electrónico es obligatorio.'
   else if (!isValidEmail(values.correo)) errors.correo = 'Ingresa un correo electrónico válido.'
+  else if (values.correo.trim().length > 100) errors.correo = 'El correo no puede superar 100 caracteres.'
   if (!values.asunto.trim()) errors.asunto = 'El asunto es obligatorio.'
+  else if (values.asunto.trim().length > 120) errors.asunto = 'El asunto no puede superar 120 caracteres.'
   if (!values.mensaje.trim()) errors.mensaje = 'El mensaje es obligatorio.'
+  else if (values.mensaje.trim().length > 2000) errors.mensaje = 'El mensaje no puede superar 2000 caracteres.'
   return errors
 }
 

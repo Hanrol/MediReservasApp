@@ -7,6 +7,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
 
 import cl.duoc.medical_records.client.UsersClient;
 import cl.duoc.medical_records.dto.DiagnosisResponseDTO;
@@ -20,6 +21,43 @@ import cl.duoc.medical_records.repository.MedicalRecordRepository;
 import cl.duoc.medical_records.repository.MedicalVisitRepository;
 
 public class MedicalRecordServiceTest {
+    @Test
+    void returnsOnlyVisitsFromTheAuthenticatedPatientsRecord() {
+        UsersClient usersClient = Mockito.mock(UsersClient.class);
+        MedicalRecordRepository medicalRecordRepository = Mockito.mock(MedicalRecordRepository.class);
+        MedicalVisitRepository medicalVisitRepository = Mockito.mock(MedicalVisitRepository.class);
+        ToDTO toDTO = Mockito.mock(ToDTO.class);
+        MedicalRecordService service = new MedicalRecordService(usersClient, medicalRecordRepository, medicalVisitRepository, toDTO);
+        MedicalRecord record = new MedicalRecord();
+        record.setId(8L);
+        record.setPatientId(42L);
+        record.setActive(true);
+        var visit = new MedicalVisitDetailReponseDTO(
+                15L, 100L, 9L, LocalDateTime.now(), "Control", "Observación", "Tratamiento",
+                LocalDateTime.now(), List.of(), List.of());
+        when(medicalRecordRepository.findByPatientId(42L)).thenReturn(java.util.Optional.of(record));
+        when(toDTO.toMedicalRecordDetailResponseDTO(record))
+                .thenReturn(new MedicalRecordDetailResponseDTO(8L, 42L, true, LocalDateTime.now(), List.of(visit)));
+
+        var result = service.findVisitsForPatient(42L);
+
+        assertThat(result).containsExactly(visit);
+        Mockito.verify(medicalRecordRepository).findByPatientId(42L);
+    }
+
+    @Test
+    void returnsAnEmptyHistoryWhenPatientHasNoMedicalRecord() {
+        MedicalRecordRepository medicalRecordRepository = Mockito.mock(MedicalRecordRepository.class);
+        MedicalRecordService service = new MedicalRecordService(
+                Mockito.mock(UsersClient.class),
+                medicalRecordRepository,
+                Mockito.mock(MedicalVisitRepository.class),
+                Mockito.mock(ToDTO.class));
+        when(medicalRecordRepository.findByPatientId(42L)).thenReturn(java.util.Optional.empty());
+
+        assertThat(service.findVisitsForPatient(42L)).isEmpty();
+    }
+
     @Test
     void testListAll()
     {

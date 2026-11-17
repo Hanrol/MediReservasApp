@@ -153,6 +153,59 @@ public class AuthClient {
         }
     }
 
+    public boolean setUserEnabled(Long authUserId, boolean enabled) {
+        return changeUserEnabled(authUserId, enabled).changed();
+    }
+
+    public UserEnabledChange changeUserEnabled(Long authUserId, boolean enabled) {
+        boolean previousEnabled = getAuthUserById(authUserId).enabled();
+        if (previousEnabled == enabled) {
+            return new UserEnabledChange(previousEnabled, false);
+        }
+        try {
+            webClientBuilder.build().patch()
+                    .uri("http://auth-service/api/v3/auth/users/{authUserId}/{action}",
+                            authUserId, enabled ? "enable" : "disable")
+                    .retrieve().bodyToMono(Void.class).block();
+            return new UserEnabledChange(previousEnabled, true);
+        } catch (Exception ex) {
+            try {
+                if (getAuthUserById(authUserId).enabled() == enabled) {
+                    // The request may have committed even if its response was lost.
+                    return new UserEnabledChange(previousEnabled, true);
+                }
+            } catch (RuntimeException verificationFailure) {
+                ex.addSuppressed(verificationFailure);
+            }
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudo actualizar el estado de la cuenta en Auth Service", ex);
+        }
+    }
+
+    public record UserEnabledChange(boolean previousEnabled, boolean changed) {
+    }
+
+    public AuthUserResponseDTO getAuthUserById(Long authUserId) {
+        try {
+            ApiResponse<AuthUserResponseDTO> response = webClientBuilder.build().get()
+                    .uri("http://auth-service/api/v3/auth/users/{authUserId}", authUserId)
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<ApiResponse<AuthUserResponseDTO>>() {})
+                    .block();
+            if (response == null || response.getData() == null) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                        "Auth Service no devolvió la cuenta solicitada");
+            }
+            return response.getData();
+        } catch (Exception ex) {
+            if (ex instanceof ResponseStatusException statusException) {
+                throw statusException;
+            }
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudo consultar el estado de la cuenta en Auth Service", ex);
+        }
+    }
+
     public boolean authUserExistsByEmail(String email) {
         try {
             ApiResponse<AuthUserResponseDTO> response = webClientBuilder.build()

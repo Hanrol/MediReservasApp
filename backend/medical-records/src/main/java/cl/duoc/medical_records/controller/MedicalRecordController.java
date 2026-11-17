@@ -12,6 +12,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import cl.duoc.medical_records.security.ClinicalOwnershipVerifier;
+import cl.duoc.medical_records.client.AppointmentsClient;
+import cl.duoc.medical_records.client.AppointmentsClient.AppointmentData;
+import cl.duoc.medical_records.client.UsersClient;
+import java.util.Arrays;
+import java.util.Set;
 
 @RestController
 @RequiredArgsConstructor
@@ -20,9 +25,36 @@ public class MedicalRecordController {
 
     @Autowired
     private ClinicalOwnershipVerifier ownershipVerifier;
+
+    @Autowired
+    private AppointmentsClient appointmentsClient;
+
+    @Autowired
+    private UsersClient usersClient;
     
     private final MedicalRecordService medicalRecordService;
     private static final Logger logger = LoggerFactory.getLogger(MedicalRecordController.class);
+
+    @PostMapping("/for-appointment/{appointmentId}")
+    public ResponseEntity<ApiResponse<MedicalRecordResponseDTO>> getOrCreateForAppointment(
+            @PathVariable Long appointmentId,
+            @RequestHeader(value = "X-Authenticated-Email", required = false) String email,
+            @RequestHeader(value = "X-Authenticated-Roles", required = false) String roles) {
+        Set<String> parsedRoles = parseRoles(roles);
+        if (!ownershipVerifier.isDoctorOnly(parsedRoles)) {
+            return ResponseEntity.status(403)
+                    .body(new ApiResponse<>(403, "Solo el médico asignado puede registrar la atención", null));
+        }
+
+        AppointmentData appointment = appointmentsClient.getAppointment(appointmentId);
+        ownershipVerifier.requireDoctor(appointment.doctorId(), email, parsedRoles);
+        if (!"CONFIRMED".equals(appointment.appointmentStatus())) {
+            return ResponseEntity.status(409)
+                    .body(new ApiResponse<>(409, "Solo se puede registrar una atención para citas confirmadas", null));
+        }
+        MedicalRecordResponseDTO record = medicalRecordService.getOrCreateForPatient(appointment.patientUserId());
+        return ResponseEntity.ok(new ApiResponse<>(200, "Ficha médica disponible", record));
+    }
 
     @GetMapping()
     @Operation(summary = "Lista los registros médicos", description = "Permite listar TODOS los registros médicos almacenados")
@@ -136,10 +168,43 @@ public class MedicalRecordController {
         }
     }
 
+    @GetMapping("/me")
+    @Operation(summary = "Consulta el historial clínico propio del paciente")
+    public ResponseEntity<ApiResponse<List<MedicalVisitDetailReponseDTO>>> getMyMedicalHistory(
+            @RequestHeader(value = "X-Authenticated-Email", required = false) String email,
+            @RequestHeader(value = "X-Authenticated-Roles", required = false) String roles) {
+        Set<String> parsedRoles = parseRoles(roles);
+        if (!isPatientOnly(parsedRoles)) {
+            return ResponseEntity.status(403)
+                    .body(new ApiResponse<>(403, "Solo el paciente autenticado puede consultar su historial", null));
+        }
+        try {
+            Long patientUserId = usersClient.getActiveUserIdByEmail(email);
+            List<MedicalVisitDetailReponseDTO> visits = medicalRecordService.findVisitsForPatient(patientUserId);
+            return ResponseEntity.ok(new ApiResponse<>(200, "Historial clínico obtenido correctamente", visits));
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            int status = e.getStatusCode().value();
+            return ResponseEntity.status(status).body(new ApiResponse<>(status, e.getReason(), null));
+        }
+    }
+
     private boolean isDoctor(String roles) {
         if (roles == null) return false;
         java.util.Set<String> roleSet = java.util.Arrays.stream(roles.split(","))
                 .map(String::trim).map(String::toUpperCase).collect(java.util.stream.Collectors.toSet());
         return roleSet.contains("DOCTOR") && !roleSet.contains("ADMIN") && !roleSet.contains("RECEPTIONIST");
+    }
+
+    private boolean isPatientOnly(Set<String> roles) {
+        return roles.contains("PATIENT")
+                && !roles.contains("DOCTOR")
+                && !roles.contains("RECEPTIONIST")
+                && !roles.contains("ADMIN");
+    }
+
+    private Set<String> parseRoles(String roles) {
+        return roles == null ? Set.of() : Arrays.stream(roles.split(","))
+                .map(String::trim).map(String::toUpperCase).filter(role -> !role.isEmpty())
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
     }
 }

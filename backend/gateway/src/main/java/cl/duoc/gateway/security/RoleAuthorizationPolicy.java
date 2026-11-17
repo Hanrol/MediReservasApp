@@ -18,12 +18,26 @@ public class RoleAuthorizationPolicy {
     private final AntPathMatcher paths = new AntPathMatcher();
 
     public boolean isAllowed(String path, HttpMethod method, List<String> roles) {
+        if (("/api/v3/doctors/directory".equals(path)
+                || "/api/v3/schedule-slots/public".equals(path)
+                || "/api/v3/specialties/public/active".equals(path))
+                && !HttpMethod.GET.equals(method)) {
+            return false;
+        }
+
         if (paths.match("/api/v3/appointments/internal/**", path)) {
             return false;
         }
 
         if (paths.match("/api/v3/patient-profiles/internal/**", path)) {
             return false;
+        }
+        if (paths.match("/api/v3/users/internal/**", path)) {
+            return false;
+        }
+
+        if ("/api/v3/contact-messages".equals(path)) {
+            return HttpMethod.GET.equals(method) && hasAny(roles, ADMIN, RECEPTIONIST);
         }
 
         if (HttpMethod.PATCH.equals(method) && paths.match("/api/v3/auth/users/*/roles", path)) {
@@ -42,6 +56,12 @@ public class RoleAuthorizationPolicy {
                 .map(role -> role.toUpperCase(Locale.ROOT))
                 .toList();
 
+        if ("/api/v3/medical-records/me".equals(path)) {
+            return HttpMethod.GET.equals(method)
+                    && normalizedRoles.contains(PATIENT)
+                    && !hasAny(normalizedRoles, ADMIN, RECEPTIONIST, DOCTOR);
+        }
+
         if (normalizedRoles.contains(ADMIN)) {
             return true;
         }
@@ -51,27 +71,57 @@ public class RoleAuthorizationPolicy {
                     && (HttpMethod.GET.equals(method) || HttpMethod.POST.equals(method));
         }
 
-        if (isRead(method) && matches(path, "/api/v3/doctors/**", "/api/v3/specialties/**")) {
+        if ("/api/v3/schedule-slots/public".equals(path) && HttpMethod.GET.equals(method)) {
             return hasAny(normalizedRoles, PATIENT, DOCTOR, RECEPTIONIST);
         }
 
-        if (matches(path, "/api/v3/doctor-schedules/**", "/api/v3/doctor-time-off/**", "/api/v3/schedule-slots/**")) {
-            return hasAny(normalizedRoles, DOCTOR, RECEPTIONIST);
+        if (isRead(method) && matches(path, "/api/v3/doctors/**", "/api/v3/specialties/**")) {
+            if (normalizedRoles.contains(RECEPTIONIST)
+                    && !hasAny(normalizedRoles, ADMIN, DOCTOR, PATIENT)) {
+                return (HttpMethod.GET.equals(method)
+                        && ("/api/v3/doctors/directory".equals(path)
+                                || "/api/v3/specialties/public/active".equals(path)));
+            }
+            return hasAny(normalizedRoles, PATIENT, DOCTOR, RECEPTIONIST);
+        }
+
+        if (matches(path, "/api/v3/doctor-schedules/**", "/api/v3/doctor-time-off/**")) {
+            return normalizedRoles.contains(DOCTOR);
+        }
+
+        if (paths.match("/api/v3/schedule-slots/**", path)) {
+            if (normalizedRoles.contains(RECEPTIONIST)
+                    && !hasAny(normalizedRoles, ADMIN, DOCTOR, PATIENT)) {
+                return false;
+            }
+            return normalizedRoles.contains(DOCTOR) || isRead(method)
+                    && hasAny(normalizedRoles, PATIENT, RECEPTIONIST);
         }
 
         if (matches(path, "/api/v3/appointments/**")) {
             if (normalizedRoles.contains(RECEPTIONIST)) {
-                return true;
+                if (HttpMethod.GET.equals(method)) {
+                    return true;
+                }
+                if (HttpMethod.PUT.equals(method) && paths.match("/api/v3/appointments/*", path)) {
+                    return true;
+                }
+                return HttpMethod.PATCH.equals(method)
+                        && (paths.match("/api/v3/appointments/*/confirm", path)
+                                || paths.match("/api/v3/appointments/*/cancel", path));
             }
             if (normalizedRoles.contains(DOCTOR)) {
                 return (isRead(method) && paths.match("/api/v3/appointments/doctor/**", path))
-                        || path.endsWith("/confirm")
-                        || path.endsWith("/complete") || path.endsWith("/no-show");
+                        || (HttpMethod.PATCH.equals(method)
+                                && (paths.match("/api/v3/appointments/*/complete", path)
+                                        || paths.match("/api/v3/appointments/*/no-show", path)));
             }
             if (normalizedRoles.contains(PATIENT)) {
                 return (isRead(method) && paths.match("/api/v3/appointments/patient/**", path))
-                        || (method == HttpMethod.POST && "/api/v3/appointments".equals(path))
-                        || (method == HttpMethod.PATCH && path.endsWith("/cancel"));
+                        || (method == HttpMethod.POST && "/api/v3/appointments".equals(path)
+                                && !hasAny(normalizedRoles, ADMIN, RECEPTIONIST, DOCTOR))
+                        || (method == HttpMethod.PATCH
+                                && paths.match("/api/v3/appointments/*/cancel", path));
             }
         }
 
@@ -86,17 +136,14 @@ public class RoleAuthorizationPolicy {
             }
             if ("/api/v3/users/me/profile-completion".equals(path)) {
                 return HttpMethod.GET.equals(method)
-                        && hasAny(normalizedRoles, PATIENT, DOCTOR, RECEPTIONIST);
+                        && hasAny(normalizedRoles, PATIENT, DOCTOR);
             }
             if ("/api/v3/users/me/profile".equals(path)) {
                 return HttpMethod.PUT.equals(method)
-                        && hasAny(normalizedRoles, PATIENT, DOCTOR, RECEPTIONIST);
+                        && hasAny(normalizedRoles, PATIENT, DOCTOR);
             }
             if ("/api/v3/patient-profiles/me".equals(path)) {
                 return HttpMethod.PUT.equals(method) && normalizedRoles.contains(PATIENT);
-            }
-            if (normalizedRoles.contains(RECEPTIONIST)) {
-                return true;
             }
             return normalizedRoles.contains(PATIENT)
                     && isRead(method)
@@ -109,7 +156,13 @@ public class RoleAuthorizationPolicy {
                 "/api/v3/diagnoses/**",
                 "/api/v3/vital-signs/**")) {
             if (normalizedRoles.contains(RECEPTIONIST)) {
-                return true;
+                return false;
+            }
+            if (HttpMethod.POST.equals(method)
+                    && paths.match("/api/v3/medical-records/for-appointment/*", path)) {
+                return normalizedRoles.contains(DOCTOR)
+                        && !normalizedRoles.contains(ADMIN)
+                        && !normalizedRoles.contains(RECEPTIONIST);
             }
             if (normalizedRoles.contains(DOCTOR)) {
                 // Clinical controllers enforce ownership for reads and visit/diagnosis/vital-sign writes.

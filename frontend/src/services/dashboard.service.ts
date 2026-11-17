@@ -1,23 +1,36 @@
-import { appointmentsStorage } from '../storage/appointments.storage'
+import type { Appointment } from '../types/appointment'
 import type { User } from '../types/user'
-import { getDoctorForUser } from './doctors.service'
-import { getSpecialties } from './specialties.service'
-import { getUsers } from './users.service'
+import { getDoctorAppointments } from './doctor-workflow.service'
+import { getPatientAppointments } from './patient-appointments.service'
+import { getReceptionData } from './reception-api.service'
 
-interface DashboardSummaryItem {
+export interface DashboardSummaryItem {
   value: number
   label: string
 }
 
-export function getDashboardSummary(user: User): DashboardSummaryItem[] {
-  const appointments = appointmentsStorage.getAll()
-  const today = new Date().toISOString().slice(0, 10)
+export async function getDashboardSummary(
+  token: string,
+  user: User,
+): Promise<DashboardSummaryItem[]> {
+  let appointments: Appointment[]
+  if (user.role === 'RECEPTIONIST') {
+    appointments = (await getReceptionData(token)).appointments
+  } else if (user.role === 'DOCTOR') {
+    const doctorName = `${user.firstName} ${user.lastName}`.trim()
+    appointments = (await getDoctorAppointments(token, doctorName)).appointments
+  } else if (user.role === 'PATIENT') {
+    appointments = await getPatientAppointments(token, user.userId)
+  } else {
+    return []
+  }
 
-  if (user.role === 'ADMIN') return [
-    { value: new Set(getUsers().map((item) => item.role)).size, label: 'Perfiles del sistema' },
-    { value: getUsers().filter((item) => item.active).length, label: 'Usuarios activos' },
-    { value: getSpecialties().filter((item) => item.active).length, label: 'Especialidades activas' },
-  ]
+  const now = new Date()
+  const today = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
 
   if (user.role === 'RECEPTIONIST') return [
     { value: appointments.filter((item) => item.appointmentStatus === 'PENDING').length, label: 'Citas pendientes' },
@@ -26,19 +39,16 @@ export function getDashboardSummary(user: User): DashboardSummaryItem[] {
   ]
 
   if (user.role === 'DOCTOR') {
-    const doctor = getDoctorForUser(user)
-    const ownAppointments = appointments.filter((item) => item.doctorId === doctor?.doctorId)
     return [
-      { value: ownAppointments.filter((item) => item.date === today && item.appointmentStatus !== 'CANCELLED').length, label: 'Atenciones de hoy' },
-      { value: ownAppointments.filter((item) => item.appointmentStatus === 'CONFIRMED' && item.date <= today).length, label: 'Observaciones pendientes' },
-      { value: ownAppointments.filter((item) => item.appointmentStatus === 'COMPLETED').length, label: 'Atenciones completadas' },
+      { value: appointments.filter((item) => item.date === today && item.appointmentStatus !== 'CANCELLED').length, label: 'Atenciones de hoy' },
+      { value: appointments.filter((item) => item.appointmentStatus === 'CONFIRMED' && item.date <= today).length, label: 'Observaciones pendientes' },
+      { value: appointments.filter((item) => item.appointmentStatus === 'COMPLETED').length, label: 'Atenciones completadas' },
     ]
   }
 
-  const ownAppointments = appointments.filter((item) => item.patientUserId === user.userId)
   return [
-    { value: ownAppointments.filter((item) => item.date >= today && !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(item.appointmentStatus)).length, label: 'Próximas citas' },
-    { value: ownAppointments.filter((item) => item.appointmentStatus === 'PENDING').length, label: 'Solicitudes pendientes' },
-    { value: ownAppointments.filter((item) => item.appointmentStatus === 'COMPLETED').length, label: 'Atenciones realizadas' },
+    { value: appointments.filter((item) => item.date >= today && !['CANCELLED', 'COMPLETED', 'NO_SHOW'].includes(item.appointmentStatus)).length, label: 'Próximas citas' },
+    { value: appointments.filter((item) => item.appointmentStatus === 'PENDING').length, label: 'Solicitudes pendientes' },
+    { value: appointments.filter((item) => item.appointmentStatus === 'COMPLETED').length, label: 'Atenciones realizadas' },
   ]
 }
