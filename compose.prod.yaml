@@ -112,7 +112,7 @@ services:
     environment:
       <<: *java-environment
       EUREKA_URL: http://eureka:8761/eureka/
-      CORS_ALLOWED_ORIGINS: https://hanrol.github.io
+      CORS_ALLOWED_ORIGINS: "https://hanrol.github.io,https://hanrol-server.duckdns.org"
     ports:
       - "127.0.0.1:9013:9013"
 
