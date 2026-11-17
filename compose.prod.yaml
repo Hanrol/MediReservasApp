@@ -2,11 +2,16 @@ name: medireservas-backend-prod
 
 x-backend: &backend
   restart: unless-stopped
+  mem_limit: 640m
+  mem_reservation: 384m
   depends_on:
     eureka:
       condition: service_started
     mysql:
       condition: service_healthy
+
+x-java-environment: &java-environment
+  JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=60.0 -XX:+ExitOnOutOfMemoryError"
 
 services:
   mysql:
@@ -37,11 +42,16 @@ services:
 
   eureka:
     image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-eureka:${IMAGE_TAG:-latest}
+    mem_limit: 384m
+    mem_reservation: 256m
+    environment:
+      <<: *java-environment
 
   auth:
     <<: *backend
     image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-auth:${IMAGE_TAG:-latest}
     environment:
+      <<: *java-environment
       EUREKA_URL: http://eureka:8761/eureka/
       DB_URL: jdbc:mysql://mysql:3306/auth_db
       DB_USER: auth_app
@@ -53,6 +63,7 @@ services:
     <<: *backend
     image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-users:${IMAGE_TAG:-latest}
     environment:
+      <<: *java-environment
       EUREKA_URL: http://eureka:8761/eureka/
       DB_URL: jdbc:mysql://mysql:3306/users_db
       DB_USER: users_app
@@ -69,6 +80,7 @@ services:
     <<: *backend
     image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-doctors:${IMAGE_TAG:-latest}
     environment:
+      <<: *java-environment
       EUREKA_URL: http://eureka:8761/eureka/
       DB_URL: jdbc:mysql://mysql:3306/doctors_db
       DB_USER: doctors_app
@@ -78,6 +90,7 @@ services:
     <<: *backend
     image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-appointments:${IMAGE_TAG:-latest}
     environment:
+      <<: *java-environment
       EUREKA_URL: http://eureka:8761/eureka/
       DB_URL: jdbc:mysql://mysql:3306/appointments_db
       DB_USER: appointments_app
@@ -87,6 +100,7 @@ services:
     <<: *backend
     image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-medical-records:${IMAGE_TAG:-latest}
     environment:
+      <<: *java-environment
       EUREKA_URL: http://eureka:8761/eureka/
       DB_URL: jdbc:mysql://mysql:3306/medical_records_db
       DB_USER: medical_records_app
@@ -95,8 +109,11 @@ services:
   gateway:
     <<: *backend
     image: ${DOCKERHUB_USER:?Set DOCKERHUB_USER in .env}/medireservas-gateway:${IMAGE_TAG:-latest}
+    environment:
+      <<: *java-environment
+      EUREKA_URL: http://eureka:8761/eureka/
     ports:
-      - "9013:9013"
+      - "127.0.0.1:9013:9013"
 
 volumes:
   medireservas_mysql_data:

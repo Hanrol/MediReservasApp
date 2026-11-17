@@ -73,6 +73,8 @@ jobs:
           retention-days: 14
 
       - name: Compilar frontend
+        env:
+          VITE_API_URL: https://hanrol-server.duckdns.org/api/v3
         run: npm run build
 
       - name: Configurar GitHub Pages
