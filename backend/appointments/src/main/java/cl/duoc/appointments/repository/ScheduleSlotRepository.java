@@ -1,6 +1,10 @@
 package cl.duoc.appointments.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import jakarta.persistence.LockModeType;
 
 import cl.duoc.appointments.model.ScheduleSlot;
 import cl.duoc.appointments.model.SlotStatus;
@@ -10,6 +14,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ScheduleSlotRepository extends JpaRepository<ScheduleSlot, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select s from ScheduleSlot s where s.scheduleSlotId = :slotId")
+    Optional<ScheduleSlot> findByIdForUpdate(@Param("slotId") Long slotId);
     boolean existsByDoctorIdAndSlotDateAndStartTimeLessThanAndEndTimeGreaterThan(
             Long doctorId, LocalDate slotDate, LocalTime endTime, LocalTime startTime);
     List<ScheduleSlot> findByDoctorIdAndSlotStatusAndAppointmentIdIsNullAndSlotDateGreaterThanEqualOrderBySlotDateAscStartTimeAsc(

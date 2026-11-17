@@ -71,12 +71,31 @@ public class RoleAuthorizationPolicy {
                     && (HttpMethod.GET.equals(method) || HttpMethod.POST.equals(method));
         }
 
-        if (isRead(method) && matches(path, "/api/v3/doctors/**", "/api/v3/specialties/**")) {
+        if ("/api/v3/schedule-slots/public".equals(path) && HttpMethod.GET.equals(method)) {
             return hasAny(normalizedRoles, PATIENT, DOCTOR, RECEPTIONIST);
         }
 
-        if (matches(path, "/api/v3/doctor-schedules/**", "/api/v3/doctor-time-off/**", "/api/v3/schedule-slots/**")) {
-            return hasAny(normalizedRoles, DOCTOR, RECEPTIONIST);
+        if (isRead(method) && matches(path, "/api/v3/doctors/**", "/api/v3/specialties/**")) {
+            if (normalizedRoles.contains(RECEPTIONIST)
+                    && !hasAny(normalizedRoles, ADMIN, DOCTOR, PATIENT)) {
+                return (HttpMethod.GET.equals(method)
+                        && ("/api/v3/doctors/directory".equals(path)
+                                || "/api/v3/specialties/public/active".equals(path)));
+            }
+            return hasAny(normalizedRoles, PATIENT, DOCTOR, RECEPTIONIST);
+        }
+
+        if (matches(path, "/api/v3/doctor-schedules/**", "/api/v3/doctor-time-off/**")) {
+            return normalizedRoles.contains(DOCTOR);
+        }
+
+        if (paths.match("/api/v3/schedule-slots/**", path)) {
+            if (normalizedRoles.contains(RECEPTIONIST)
+                    && !hasAny(normalizedRoles, ADMIN, DOCTOR, PATIENT)) {
+                return false;
+            }
+            return normalizedRoles.contains(DOCTOR) || isRead(method)
+                    && hasAny(normalizedRoles, PATIENT, RECEPTIONIST);
         }
 
         if (matches(path, "/api/v3/appointments/**")) {
@@ -117,17 +136,14 @@ public class RoleAuthorizationPolicy {
             }
             if ("/api/v3/users/me/profile-completion".equals(path)) {
                 return HttpMethod.GET.equals(method)
-                        && hasAny(normalizedRoles, PATIENT, DOCTOR, RECEPTIONIST);
+                        && hasAny(normalizedRoles, PATIENT, DOCTOR);
             }
             if ("/api/v3/users/me/profile".equals(path)) {
                 return HttpMethod.PUT.equals(method)
-                        && hasAny(normalizedRoles, PATIENT, DOCTOR, RECEPTIONIST);
+                        && hasAny(normalizedRoles, PATIENT, DOCTOR);
             }
             if ("/api/v3/patient-profiles/me".equals(path)) {
                 return HttpMethod.PUT.equals(method) && normalizedRoles.contains(PATIENT);
-            }
-            if (normalizedRoles.contains(RECEPTIONIST)) {
-                return true;
             }
             return normalizedRoles.contains(PATIENT)
                     && isRead(method)

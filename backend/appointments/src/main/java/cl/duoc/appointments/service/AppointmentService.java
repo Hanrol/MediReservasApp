@@ -129,6 +129,28 @@ public class AppointmentService {
                 .toList();
     }
 
+    public List<AppointmentResponseDTO> getAllAppointments(String email, Set<String> roles) {
+        List<Appointment> appointments = appointmentRepository.findAll();
+        boolean includePatientSummary = roles != null
+                && (roles.contains("RECEPTIONIST") || roles.contains("ADMIN"));
+        if (!includePatientSummary) {
+            return appointments.stream().map(this::toResponseDTO).toList();
+        }
+        var patientsById = usersClient.getUserSummaries(
+                        appointments.stream().map(Appointment::getPatientUserId).distinct().toList())
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(PatientSummaryDTO::userId, patient -> patient));
+        return appointments.stream().map(appointment -> {
+            AppointmentResponseDTO response = toResponseDTO(appointment);
+            PatientSummaryDTO patient = patientsById.get(appointment.getPatientUserId());
+            if (patient != null) {
+                response.setPatientName(patient.fullName());
+                response.setPatientRun(patient.run());
+            }
+            return response;
+        }).toList();
+    }
+
     public List<AppointmentResponseDTO> getByDoctorId(Long doctorId, String email, Set<String> roles) {
         assertDoctorOwnsResourceIfDoctor(email, doctorId, roles);
         List<Appointment> appointments = appointmentRepository.findByDoctorId(doctorId);
@@ -158,7 +180,7 @@ public class AppointmentService {
         }
         requireBeforeConfirmationDeadline(appointment);
 
-        ScheduleSlot oldSlot = scheduleSlotRepository.findById(appointment.getScheduleSlotId())
+        ScheduleSlot oldSlot = scheduleSlotRepository.findByIdForUpdate(appointment.getScheduleSlotId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
                         "El horario actual de la cita no existe"));
         if (!oldSlot.getDoctorId().equals(dto.getDoctorId())) {
@@ -352,7 +374,7 @@ public class AppointmentService {
     }
 
     private ScheduleSlot findAvailableSlot(Long slotId, Long doctorId) {
-        ScheduleSlot slot = scheduleSlotRepository.findById(slotId)
+        ScheduleSlot slot = scheduleSlotRepository.findByIdForUpdate(slotId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
                         "El horario seleccionado ya no está disponible"));
         boolean availableStatus = slot.getSlotStatus() == SlotStatus.DISPONIBLE
@@ -376,7 +398,7 @@ public class AppointmentService {
     }
 
     private void releaseSlot(Long slotId) {
-        ScheduleSlot slot = scheduleSlotRepository.findById(slotId)
+        ScheduleSlot slot = scheduleSlotRepository.findByIdForUpdate(slotId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT,
                         "No se pudo liberar el horario asociado a la cita"));
         slot.setSlotStatus(SlotStatus.LIBERADO_POR_CANCELACION);

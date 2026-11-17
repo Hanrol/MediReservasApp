@@ -144,6 +144,38 @@ class RoleAuthorizationPolicyTest {
     }
 
     @Test
+    void receptionistCanOnlyReadMinimumAppointmentSupportData() {
+        for (String path : List.of(
+                "/api/v3/users", "/api/v3/users/12", "/api/v3/users/email/a@example.test",
+                "/api/v3/user-profiles", "/api/v3/user-profiles/12",
+                "/api/v3/patient-profiles", "/api/v3/patient-profiles/user/12",
+                "/api/v3/receptionist-profiles", "/api/v3/administrator-profiles")) {
+            for (HttpMethod method : List.of(HttpMethod.GET, HttpMethod.HEAD, HttpMethod.POST,
+                    HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE)) {
+                assertFalse(policy.isAllowed(path, method, List.of("RECEPTIONIST")),
+                        path + " " + method + " must be denied to Reception");
+            }
+        }
+        assertFalse(policy.isAllowed("/api/v3/users/me/profile-completion", HttpMethod.GET, List.of("RECEPTIONIST")));
+        assertFalse(policy.isAllowed("/api/v3/users/me/profile", HttpMethod.PUT, List.of("RECEPTIONIST")));
+
+        assertFalse(policy.isAllowed("/api/v3/schedule-slots", HttpMethod.GET, List.of("RECEPTIONIST")));
+        assertFalse(policy.isAllowed("/api/v3/schedule-slots/12", HttpMethod.GET, List.of("RECEPTIONIST")));
+        assertTrue(policy.isAllowed("/api/v3/schedule-slots/public", HttpMethod.GET, List.of("RECEPTIONIST")));
+        assertTrue(policy.isAllowed("/api/v3/doctors/directory", HttpMethod.GET, List.of("RECEPTIONIST")));
+        assertTrue(policy.isAllowed("/api/v3/specialties/public/active", HttpMethod.GET, List.of("RECEPTIONIST")));
+        for (String path : List.of("/api/v3/schedule-slots/12", "/api/v3/doctor-schedules/12",
+                "/api/v3/doctor-time-off/12")) {
+            for (HttpMethod method : List.of(HttpMethod.POST, HttpMethod.PUT, HttpMethod.PATCH, HttpMethod.DELETE)) {
+                assertFalse(policy.isAllowed(path, method, List.of("RECEPTIONIST")),
+                        path + " " + method + " must be denied to Reception");
+            }
+        }
+        assertFalse(policy.isAllowed("/api/v3/doctor-schedules", HttpMethod.GET, List.of("RECEPTIONIST")));
+        assertTrue(policy.isAllowed("/api/v3/schedule-slots/public", HttpMethod.GET, List.of("PATIENT")));
+    }
+
+    @Test
     void patientCreatesAndReadsOwnAppointmentsButCannotConfirmOrComplete() {
         assertTrue(policy.isAllowed("/api/v3/appointments", HttpMethod.POST, List.of("PATIENT")));
         assertTrue(policy.isAllowed("/api/v3/appointments/patient/12", HttpMethod.GET, List.of("PATIENT")));

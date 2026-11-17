@@ -63,7 +63,7 @@ class AppointmentServiceTest {
                 appointmentRepository, statusHistoryRepository, cancellationRepository, usersClient, Mockito.mock(DoctorsClient.class), scheduleSlotRepository);
 
         Mockito.when(usersClient.userExists(1L)).thenReturn(true);
-        Mockito.when(scheduleSlotRepository.findById(4L)).thenReturn(java.util.Optional.of(availableSlot()));
+        Mockito.when(scheduleSlotRepository.findByIdForUpdate(4L)).thenReturn(java.util.Optional.of(availableSlot()));
         Mockito.when(appointmentRepository.save(Mockito.any(Appointment.class))).thenReturn(savedEntity());
 
         AppointmentResponseDTO result = appointmentService.createAppointment(buildRequest(1L));
@@ -160,7 +160,7 @@ class AppointmentServiceTest {
                 Mockito.mock(AppointmentCancellationRepository.class), usersClient, Mockito.mock(DoctorsClient.class), scheduleSlotRepository);
         Mockito.when(usersClient.getUserIdByEmail("patient@test.cl")).thenReturn(20L);
         Mockito.when(usersClient.userExists(20L)).thenReturn(true);
-        Mockito.when(scheduleSlotRepository.findById(4L)).thenReturn(java.util.Optional.of(availableSlot()));
+        Mockito.when(scheduleSlotRepository.findByIdForUpdate(4L)).thenReturn(java.util.Optional.of(availableSlot()));
         Mockito.when(appointmentRepository.save(Mockito.any())).thenReturn(savedEntity());
 
         appointmentService.createAppointment(buildRequest(20L), "patient@test.cl", Set.of("PATIENT"));
@@ -193,7 +193,8 @@ class AppointmentServiceTest {
         Mockito.when(appointments.findByIdForUpdate(10L)).thenReturn(java.util.Optional.of(appointment));
         Mockito.when(appointments.save(Mockito.any())).thenAnswer(invocation -> invocation.getArgument(0));
         Mockito.when(slots.findById(4L)).thenReturn(java.util.Optional.of(oldSlot));
-        Mockito.when(slots.findById(5L)).thenReturn(java.util.Optional.of(newSlot));
+        Mockito.when(slots.findByIdForUpdate(4L)).thenReturn(java.util.Optional.of(oldSlot));
+        Mockito.when(slots.findByIdForUpdate(5L)).thenReturn(java.util.Optional.of(newSlot));
         AppointmentService service = new AppointmentService(
                 appointments, Mockito.mock(AppointmentStatusHistoryRepository.class),
                 Mockito.mock(AppointmentCancellationRepository.class), Mockito.mock(UsersClient.class),
@@ -225,6 +226,7 @@ class AppointmentServiceTest {
         Mockito.when(appointments.findByIdForUpdate(10L)).thenReturn(java.util.Optional.of(appointment));
         Mockito.when(appointments.save(Mockito.any())).thenAnswer(invocation -> invocation.getArgument(0));
         Mockito.when(slots.findById(4L)).thenReturn(java.util.Optional.of(slot));
+        Mockito.when(slots.findByIdForUpdate(4L)).thenReturn(java.util.Optional.of(slot));
         AppointmentService service = new AppointmentService(
                 appointments, Mockito.mock(AppointmentStatusHistoryRepository.class),
                 Mockito.mock(AppointmentCancellationRepository.class), Mockito.mock(UsersClient.class),
@@ -238,6 +240,37 @@ class AppointmentServiceTest {
         assertThat(slot.getSlotStatus()).isEqualTo(SlotStatus.LIBERADO_POR_CANCELACION);
         assertThat(slot.getAppointmentId()).isNull();
         assertThat(appointment.getAppointmentStatus()).isEqualTo(AppointmentStatus.CANCELLED);
+    }
+
+    @Test
+    void cancelledAppointmentSlotCanBeReservedAgain() {
+        AppointmentRepository appointments = Mockito.mock(AppointmentRepository.class);
+        ScheduleSlotRepository slots = Mockito.mock(ScheduleSlotRepository.class);
+        Appointment cancelled = savedEntity();
+        cancelled.setAppointmentStatus(AppointmentStatus.PENDING);
+        ScheduleSlot slot = availableSlot();
+        slot.setSlotStatus(SlotStatus.RESERVADO);
+        slot.setAppointmentId(cancelled.getAppointmentId());
+        Mockito.when(appointments.findByIdForUpdate(10L)).thenReturn(java.util.Optional.of(cancelled));
+        Mockito.when(appointments.save(Mockito.any())).thenAnswer(invocation -> {
+            Appointment saved = invocation.getArgument(0);
+            if (saved.getAppointmentId() == null) saved.setAppointmentId(11L);
+            return saved;
+        });
+        UsersClient users = Mockito.mock(UsersClient.class);
+        Mockito.when(users.userExists(1L)).thenReturn(true);
+        Mockito.when(slots.findByIdForUpdate(4L)).thenReturn(java.util.Optional.of(slot));
+        AppointmentService service = new AppointmentService(
+                appointments, Mockito.mock(AppointmentStatusHistoryRepository.class),
+                Mockito.mock(AppointmentCancellationRepository.class), users,
+                Mockito.mock(DoctorsClient.class), slots);
+
+        service.cancelAppointment(10L, new AppointmentCancelRequestDTO());
+        service.createAppointment(buildRequest(1L));
+
+        assertThat(slot.getSlotStatus()).isEqualTo(SlotStatus.RESERVADO);
+        assertThat(slot.getAppointmentId()).isEqualTo(11L);
+        Mockito.verify(appointments, Mockito.times(2)).save(Mockito.any(Appointment.class));
     }
 
     @Test
@@ -277,6 +310,7 @@ class AppointmentServiceTest {
                 .thenReturn(java.util.List.of(appointment));
         Mockito.when(appointments.findByIdForUpdate(10L)).thenReturn(java.util.Optional.of(appointment));
         Mockito.when(slots.findById(4L)).thenReturn(java.util.Optional.of(slot));
+        Mockito.when(slots.findByIdForUpdate(4L)).thenReturn(java.util.Optional.of(slot));
         AppointmentService service = new AppointmentService(
                 appointments, history, cancellations, Mockito.mock(UsersClient.class),
                 Mockito.mock(DoctorsClient.class), slots);
