@@ -60,6 +60,26 @@ async function loginAdminWithRetry() {
   throw new Error(`E2E seed: el admin inicial no estuvo listo en cinco minutos: ${lastError}`)
 }
 
+async function waitForAdminInvitationsService(token) {
+  const deadline = Date.now() + 180_000
+  let lastError
+
+  while (Date.now() < deadline) {
+    try {
+      await api('/admin/invitations', { token })
+      return
+    } catch (error) {
+      lastError = error
+      if (!String(error).includes('respondió HTTP 503')) throw error
+      await new Promise((resolve) => setTimeout(resolve, 2_000))
+    }
+  }
+
+  throw new Error(
+    `E2E seed: users-service no quedó disponible a través del Gateway en tres minutos: ${lastError}`,
+  )
+}
+
 function clinicDateAfter(days) {
   const date = new Date(Date.now() + days * 24 * 60 * 60 * 1000)
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -73,6 +93,7 @@ function clinicDateAfter(days) {
 }
 
 const adminToken = await loginAdminWithRetry()
+await waitForAdminInvitationsService(adminToken)
 const invitation = await api('/admin/invitations', {
   token: adminToken,
   body: { email: doctor.email, role: 'DOCTOR' },
