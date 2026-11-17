@@ -22,6 +22,7 @@ import cl.duoc.users.dto.ProfileCompletionResponseDTO;
 import cl.duoc.users.dto.UpdateUserRequestDTO;
 import cl.duoc.users.dto.UpdateUserProfileRequestDTO;
 import cl.duoc.users.dto.UserResponseDTO;
+import cl.duoc.users.dto.SetUserStatusRequestDTO;
 import cl.duoc.users.dto.UserSummaryInternalResponseDTO;
 import cl.duoc.users.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -167,5 +168,14 @@ public class UserController {
 						200,
 						"Usuario desactivado correctamente",
 						response));
+	}
+
+	@PatchMapping("/{userId}/status")
+	@Operation(summary = "Sincronizar estado de usuario", description = "Actualiza el estado en Users y Auth coordinadamente.")
+	public ResponseEntity<ApiResponse<UserResponseDTO>> setUserStatus(
+			@PathVariable Long userId,
+			@Valid @RequestBody SetUserStatusRequestDTO request) {
+		UserResponseDTO response = userService.setUserStatus(userId, request.active());
+		return ResponseEntity.ok(new ApiResponse<>(200, "Estado de usuario sincronizado correctamente", response));
 	}
 }

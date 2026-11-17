@@ -96,6 +96,34 @@ class UserServiceTest {
         verify(userRepository, never()).save(any());
     }
 
+    @Test
+    void setUserStatusUpdatesAuthAndUsers() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(authClient.changeUserEnabled(10L, false)).thenReturn(new AuthClient.UserEnabledChange(true, true));
+        when(userRepository.save(user)).thenReturn(user);
+
+        UserResponseDTO response = userService.setUserStatus(1L, false);
+
+        assertFalse(response.active());
+        verify(authClient).changeUserEnabled(10L, false);
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void setUserStatusCompensatesAuthWhenUsersPersistenceFails() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(authClient.changeUserEnabled(10L, false)).thenReturn(new AuthClient.UserEnabledChange(true, true));
+        when(userRepository.save(user)).thenThrow(new RuntimeException("database unavailable"));
+
+        org.springframework.web.server.ResponseStatusException error = assertThrows(
+                org.springframework.web.server.ResponseStatusException.class,
+                () -> userService.setUserStatus(1L, false));
+
+        assertTrue(error.getReason().contains("Auth fue revertido"));
+        assertTrue(user.isActive());
+        verify(authClient).setUserEnabled(10L, true);
+    }
+
     // =========================================================
     // CREATE
     // =========================================================
@@ -520,6 +548,7 @@ class UserServiceTest {
     void deactivateUser_deberiaDesactivarUsuario() {
         when(userRepository.findById(1L))
                 .thenReturn(Optional.of(user));
+        when(authClient.changeUserEnabled(10L, false)).thenReturn(new AuthClient.UserEnabledChange(true, true));
 
         when(userRepository.save(user))
                 .thenReturn(user);
@@ -539,25 +568,22 @@ class UserServiceTest {
 
         when(userRepository.findById(1L))
                 .thenReturn(Optional.of(user));
+        when(authClient.changeUserEnabled(10L, false)).thenReturn(new AuthClient.UserEnabledChange(true, true));
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> userService.deactivateUser(1L));
+        UserResponseDTO response = userService.deactivateUser(1L);
 
-        assertEquals(
-                "El usuario ya está desactivado",
-                exception.getMessage());
-
+        assertFalse(response.active());
         verify(userRepository, never())
                 .save(any(User.class));
+        verify(authClient).changeUserEnabled(10L, false);
     }
 
     @Test
     void activateUser_deberiaActivarUsuario() {
         user.setActive(false);
-
         when(userRepository.findById(1L))
                 .thenReturn(Optional.of(user));
+        when(authClient.changeUserEnabled(10L, true)).thenReturn(new AuthClient.UserEnabledChange(false, true));
 
         when(userRepository.save(user))
                 .thenReturn(user);
@@ -576,14 +602,10 @@ class UserServiceTest {
         when(userRepository.findById(1L))
                 .thenReturn(Optional.of(user));
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> userService.activateUser(1L));
+        when(authClient.changeUserEnabled(10L, true)).thenReturn(new AuthClient.UserEnabledChange(true, false));
+        UserResponseDTO response = userService.activateUser(1L);
 
-        assertEquals(
-                "El usuario ya está activado",
-                exception.getMessage());
-
+        assertTrue(response.active());
         verify(userRepository, never())
                 .save(any(User.class));
     }

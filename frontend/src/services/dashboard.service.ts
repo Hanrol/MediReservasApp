@@ -25,7 +25,12 @@ export async function getDashboardSummary(
     return []
   }
 
-  const today = new Date().toISOString().slice(0, 10)
+  const now = new Date()
+  const today = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
 
   if (user.role === 'RECEPTIONIST') return [
     { value: appointments.filter((item) => item.appointmentStatus === 'PENDING').length, label: 'Citas pendientes' },

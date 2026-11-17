@@ -25,10 +25,8 @@ export async function getPatientClinicalHistory(
   patientName: string,
   patientRun: string,
 ): Promise<ClinicalConsultation[]> {
-  const [visitsResponse, appointments] = await Promise.all([
-    apiRequest<ApiResponse<ApiVisit[]>>('/medical-records/me', { token }),
-    getPatientAppointments(token, patientUserId),
-  ])
+  const visitsResponse = await apiRequest<ApiResponse<ApiVisit[]>>('/medical-records/me', { token })
+  const appointments = await getPatientAppointments(token, patientUserId).catch(() => [])
   const appointmentsById = new Map(appointments.map((appointment) => [
     appointment.appointmentId,
     appointment,
@@ -41,7 +39,7 @@ export async function getPatientClinicalHistory(
       patientName,
       patientRun,
       doctorName: appointment?.doctorName ?? 'Médico no disponible',
-      specialtyName: appointment?.specialtyName ?? '',
+      specialtyName: appointment?.specialtyName ?? 'Especialidad no disponible',
       date: visit.visitDate,
       reason: visit.visitReason,
       diagnosis: visit.diagnoses?.map((diagnosis) => diagnosis.diagnosisDescription).join(', ') || 'Sin diagnóstico',

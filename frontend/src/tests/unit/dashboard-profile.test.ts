@@ -15,7 +15,7 @@ vi.mock('../../services/patient-appointments.service', () => ({ getPatientAppoin
 describe('Resumen de dashboard y perfil', () => {
   beforeEach(() => {
     vi.useFakeTimers()
-    vi.setSystemTime(new Date('2026-10-11T12:00:00Z'))
+    vi.setSystemTime(new Date(2026, 9, 11, 12, 0, 0))
     vi.clearAllMocks()
   })
 
@@ -44,6 +44,7 @@ describe('Resumen de dashboard y perfil', () => {
     vi.mocked(getDoctorAppointments).mockResolvedValue({ doctor: { doctorId: 1, userId: 3, medicalLicenseNumber: '', active: true, specialtyIds: [] }, appointments })
     const summary = await getDashboardSummary('token', mockUsers[2])
 
+    expect(summary[0].value).toBe(2)
     expect(summary.map((item) => item.label)).toEqual([
       'Atenciones de hoy',
       'Observaciones pendientes',

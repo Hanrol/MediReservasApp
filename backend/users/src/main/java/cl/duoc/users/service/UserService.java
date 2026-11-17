@@ -17,6 +17,7 @@ import cl.duoc.users.dto.CreateUserRequestDTO;
 import cl.duoc.users.dto.ProfileCompletionResponseDTO;
 import cl.duoc.users.dto.UpdateUserRequestDTO;
 import cl.duoc.users.dto.UpdateUserProfileRequestDTO;
+import cl.duoc.users.dto.SetUserStatusRequestDTO;
 import cl.duoc.users.dto.UserResponseDTO;
 import cl.duoc.users.dto.UserSummaryInternalResponseDTO;
 import cl.duoc.users.model.User;
@@ -247,37 +248,46 @@ public class UserService {
     }
 
     public UserResponseDTO activateUser(Long userId) {
-        User user = findUserEntityById(userId);
-
-        if (user.isActive()) {
-            logger.warn("Activación rechazada: usuario ya estaba activo. userId={}", userId);
-            throw new RuntimeException("El usuario ya está activado");
-        }
-
-        user.setActive(true);
-
-        User savedUser = userRepository.save(user);
-
-        return toResponseDTO(savedUser);
+        return setUserStatus(userId, true);
     }
 
     public UserResponseDTO deactivateUser(Long userId) {
+        return setUserStatus(userId, false);
+    }
+
+    public UserResponseDTO setUserStatus(Long userId, boolean active) {
         User user = findUserEntityById(userId);
-
-        if (isMasterAdmin(user)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "No se puede desactivar el administrador maestro");
+        if (!active && isMasterAdmin(user)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No se puede desactivar el administrador maestro");
         }
 
-        if (!user.isActive()) {
-            logger.warn("Desactivación rechazada: usuario ya estaba desactivado. userId={}", userId);
-            throw new RuntimeException("El usuario ya está desactivado");
+        boolean previousUserStatus = user.isActive();
+        AuthClient.UserEnabledChange authChange = authClient.changeUserEnabled(user.getAuthUserId(), active);
+        boolean previousAuthStatus = authChange.previousEnabled();
+        boolean authChanged = authChange.changed();
+        if (previousUserStatus == active) {
+            return toResponseDTO(user);
         }
 
-        user.setActive(false);
-
-        User savedUser = userRepository.save(user);
-
-        return toResponseDTO(savedUser);
+        user.setActive(active);
+        try {
+            return toResponseDTO(userRepository.save(user));
+        } catch (RuntimeException saveFailure) {
+            user.setActive(previousUserStatus);
+            if (authChanged) {
+                try {
+                    authClient.setUserEnabled(user.getAuthUserId(), previousAuthStatus);
+                } catch (RuntimeException compensationFailure) {
+                    saveFailure.addSuppressed(compensationFailure);
+                    throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                            "No se pudo guardar el estado del usuario ni revertir Auth; requiere reconciliación",
+                            saveFailure);
+                }
+            }
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "No se pudo guardar el estado del usuario; Auth fue revertido", saveFailure);
+        }
     }
 
     public UserResponseDTO ensureMasterAdminActive(Long userId) {
