@@ -17,6 +17,13 @@ async function mockDashboardApi(page: Page) {
     if (pathname === '/api/v3/appointments') {
       data = appointments.map(({ appointmentId, patientUserId, doctorId, specialtyId, scheduleSlotId, appointmentStatus, reason }) => ({
         appointmentId, patientUserId, doctorId, specialtyId, scheduleSlotId, appointmentStatus, reason,
+        slotDate: appointments.find((item) => item.appointmentId === appointmentId)?.slotDate ?? '',
+        startTime: appointments.find((item) => item.appointmentId === appointmentId)?.startTime ?? '',
+        endTime: appointments.find((item) => item.appointmentId === appointmentId)?.endTime ?? '',
+        patientName: mockUsers.find((user) => user.userId === patientUserId)
+          ? `${mockUsers.find((user) => user.userId === patientUserId)!.firstName} ${mockUsers.find((user) => user.userId === patientUserId)!.lastName}`
+          : null,
+        patientRun: mockUsers.find((user) => user.userId === patientUserId)?.run ?? null,
       }))
     } else if (pathname === '/api/v3/appointments/doctor/1' || pathname === '/api/v3/appointments/patient/4') {
       data = appointments.filter((item) => pathname.endsWith('/doctor/1')
@@ -42,6 +49,16 @@ async function mockDashboardApi(page: Page) {
         lastName: mockUsers.find((user) => user.userId === doctor.userId)?.lastName ?? '',
         specialties: mockSpecialties.filter((item) => doctor.specialtyIds.includes(item.specialtyId)),
       }))
+    } else if (pathname === '/api/v3/specialties/public/active') {
+      data = mockSpecialties.filter((item) => item.active)
+    } else if (pathname === '/api/v3/schedule-slots/public') {
+      data = []
+    } else if (pathname === '/api/v3/users/me/profile-completion') {
+      await route.fulfill({
+        status: 403,
+        json: { code: 403, message: 'Recepción no puede consultar perfiles', data: null },
+      })
+      return
     } else if (pathname === '/api/v3/specialties') {
       data = mockSpecialties.map(({ specialtyId, specialtyName }) => ({ specialtyId, specialtyName }))
     } else {

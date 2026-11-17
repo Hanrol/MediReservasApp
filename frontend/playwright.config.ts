@@ -1,9 +1,11 @@
 import { defineConfig, devices } from '@playwright/test'
+import { env } from 'node:process'
 
 const baseURL = 'http://127.0.0.1:4173'
 
 export default defineConfig({
   testDir: './e2e',
+  testIgnore: ['**/real/**'],
   fullyParallel: true,
   reporter: [
     ['list'],
@@ -23,7 +25,7 @@ export default defineConfig({
   webServer: {
     command: 'npm run dev -- --host 127.0.0.1 --port 4173 --strictPort',
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: !env.CI,
     timeout: 120_000,
   },
 })

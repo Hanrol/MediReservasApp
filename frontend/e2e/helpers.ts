@@ -507,8 +507,15 @@ export async function mockReceptionApi(page: Page) {
     doctorId: appointment.doctorId,
     specialtyId: appointment.specialtyId,
     scheduleSlotId: appointment.scheduleSlotId,
+    slotDate: mockSchedules.find((schedule) => schedule.id === appointment.scheduleSlotId)?.date ?? '',
+    startTime: `${mockSchedules.find((schedule) => schedule.id === appointment.scheduleSlotId)?.time ?? '00:00'}:00`,
+    endTime: `${mockSchedules.find((schedule) => schedule.id === appointment.scheduleSlotId)?.time ?? '00:00'}:30`,
     appointmentStatus: appointment.appointmentStatus,
     reason: appointment.reason,
+    patientName: mockUsers.find((user) => user.userId === appointment.patientUserId)
+      ? `${mockUsers.find((user) => user.userId === appointment.patientUserId)!.firstName} ${mockUsers.find((user) => user.userId === appointment.patientUserId)!.lastName}`.trim()
+      : null,
+    patientRun: mockUsers.find((user) => user.userId === appointment.patientUserId)?.run ?? null,
   }))
   const slots = mockSchedules.map((schedule) => {
     const appointment = appointments.find((item) => item.scheduleSlotId === schedule.id)
@@ -573,34 +580,39 @@ export async function mockReceptionApi(page: Page) {
       return
     } else if (method === 'GET' && pathname === '/api/v3/appointments') {
       responseData = appointments
-    } else if (method === 'GET' && pathname === '/api/v3/schedule-slots') {
+    } else if (method === 'GET' && pathname === '/api/v3/schedule-slots/public') {
+      const doctorId = Number(new URL(route.request().url()).searchParams.get('doctorId'))
       responseData = slots
-    } else if (method === 'GET' && pathname === '/api/v3/users') {
-      responseData = mockUsers.map(({ userId, run }) => ({ userId, run }))
-    } else if (method === 'GET' && pathname === '/api/v3/user-profiles') {
-      responseData = mockUsers.map(({ userId, firstName, lastName }) => ({
-        userProfileId: userId,
-        userId,
-        firstName,
-        lastName,
-        phone: '',
-        birthDate: null,
-        address: '',
-      }))
-    } else if (method === 'GET' && pathname === '/api/v3/doctors') {
-      responseData = mockDoctors.map(({ doctorId, userId, specialtyIds, medicalLicenseNumber, active }) => ({
-        doctorId,
-        userId,
-        specialtyIds,
-        medicalLicenseNumber,
-        active,
-      }))
-    } else if (method === 'GET' && pathname === '/api/v3/specialties') {
-      responseData = {
-        code: 200,
-        message: 'Especialidades obtenidas',
-        data: mockSpecialties.map(({ specialtyId, specialtyName }) => ({ specialtyId, specialtyName })),
-      }
+        .filter((slot) => slot.doctorId === doctorId
+          && (slot.slotStatus === 'DISPONIBLE' || slot.slotStatus === 'LIBERADO_POR_CANCELACION')
+          && slot.appointmentId == null)
+        .map(({ scheduleSlotId, doctorId: slotDoctorId, slotDate, startTime, endTime }) => ({
+          scheduleSlotId,
+          doctorId: slotDoctorId,
+          slotDate,
+          startTime,
+          endTime,
+        }))
+    } else if (method === 'GET' && pathname === '/api/v3/doctors/directory') {
+      responseData = mockDoctors.filter((doctor) => doctor.active).map((doctor) => {
+        const profile = mockUsers.find((user) => user.userId === doctor.userId)
+        return {
+          doctorId: doctor.doctorId,
+          firstName: profile?.firstName ?? '',
+          lastName: profile?.lastName ?? '',
+          medicalLicenseNumber: doctor.medicalLicenseNumber,
+          specialties: doctor.specialtyIds
+            .map((specialtyId) => mockSpecialties.find((specialty) => specialty.specialtyId === specialtyId))
+            .filter((specialty) => specialty?.active)
+            .map((specialty) => ({
+              specialtyId: specialty!.specialtyId,
+              specialtyName: specialty!.specialtyName,
+              description: specialty!.description,
+            })),
+        }
+      })
+    } else if (method === 'GET' && pathname === '/api/v3/specialties/public/active') {
+      responseData = mockSpecialties.filter((specialty) => specialty.active)
     } else if (method === 'PATCH' && pathname.endsWith('/confirm')) {
       const appointmentId = Number(pathname.split('/').at(-2))
       const appointment = appointments.find((item) => item.appointmentId === appointmentId)
@@ -633,6 +645,9 @@ export async function mockReceptionApi(page: Page) {
         if (newSlot) {
           newSlot.slotStatus = 'RESERVADO'
           newSlot.appointmentId = appointment.appointmentId
+          appointment.slotDate = newSlot.slotDate
+          appointment.startTime = newSlot.startTime
+          appointment.endTime = newSlot.endTime
         }
       }
       message = 'Cita actualizada'
@@ -641,12 +656,7 @@ export async function mockReceptionApi(page: Page) {
       return
     }
 
-    const wrappedData = method === 'GET' && pathname === '/api/v3/doctors'
-      ? responseData
-      : method === 'GET' && pathname === '/api/v3/specialties'
-        ? responseData
-        : { code: 200, message, data: responseData }
-    await route.fulfill({ status: 200, json: wrappedData })
+    await route.fulfill({ status: 200, json: { code: 200, message, data: responseData } })
   })
 
   return { appointments, slots }
