@@ -47,7 +47,7 @@ async function login(credentials) {
 }
 
 async function loginAdminWithRetry() {
-  const deadline = Date.now() + 120_000
+  const deadline = Date.now() + 300_000
   let lastError
   while (Date.now() < deadline) {
     try {
@@ -57,7 +57,7 @@ async function loginAdminWithRetry() {
       await new Promise((resolve) => setTimeout(resolve, 2_000))
     }
   }
-  throw new Error(`E2E seed: el admin inicial no estuvo listo a tiempo: ${lastError}`)
+  throw new Error(`E2E seed: el admin inicial no estuvo listo en cinco minutos: ${lastError}`)
 }
 
 function clinicDateAfter(days) {
