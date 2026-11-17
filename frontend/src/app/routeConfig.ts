@@ -20,6 +20,8 @@ import GestionCitas from '../pages/recepcion/GestionCitas'
 import Registro from '../pages/public/Registro'
 import ActivateInvitation from '../pages/public/ActivateInvitation'
 import HistorialClinico from '../pages/shared/HistorialClinico'
+import Disponibilidad from '../pages/medico/Disponibilidad'
+import MensajesContacto from '../pages/recepcion/MensajesContacto'
 
 export interface AppRoute {
   path: string
@@ -43,7 +45,9 @@ export const routeConfig: readonly AppRoute[] = [
   { path: ROUTES.adminDoctors, component: Medicos, allowedRoles: ['ADMIN'] },
   { path: ROUTES.adminSpecialties, component: Especialidades, allowedRoles: ['ADMIN'] },
   { path: ROUTES.appointmentManagement, component: GestionCitas, allowedRoles: ['ADMIN', 'RECEPTIONIST'] },
+  { path: ROUTES.contactMessages, component: MensajesContacto, allowedRoles: ['RECEPTIONIST'] },
   { path: ROUTES.medicalSchedule, component: Agenda, allowedRoles: ['DOCTOR'] },
+  { path: ROUTES.doctorAvailability, component: Disponibilidad, allowedRoles: ['DOCTOR'] },
   { path: ROUTES.clinicalObservation, component: ObservacionClinica, allowedRoles: ['DOCTOR'] },
   { path: ROUTES.clinicalHistory, component: HistorialClinico, allowedRoles: ['DOCTOR', 'PATIENT'] },
   { path: ROUTES.requestAppointment, component: SolicitarCita, allowedRoles: ['PATIENT'] },

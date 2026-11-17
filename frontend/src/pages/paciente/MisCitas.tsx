@@ -1,26 +1,40 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import Breadcrumbs from "../../components/layout/Breadcrumbs";
-import { useAppointments } from "../../hooks/useAppointments";
 import { useAuth } from "../../hooks/useAuth";
 import { APPOINTMENT_STATUS_OPTIONS } from "../../constants/appointmentStatuses";
 import { AppointmentCard } from "../../components/appointments/AppointmentCard";
 import type { AppointmentStatus } from "../../types/appointment";
 import { ROUTES } from "../../constants/routes";
+import type { Appointment } from "../../types/appointment";
+import { cancelPatientAppointment, getPatientAppointments } from "../../services/patient-appointments.service";
 
 function MisCitas() {
-  const { user } = useAuth();
-  const {
-    appointments,
-    loading,
-    error,
-    refresh,
-    cancelAppointment,
-  } = useAppointments({
-    filters: { patientUserId: user?.userId },
-  });
+  const { user, session } = useAuth();
+  const token = session?.token;
+  const patientUserId = user?.userId;
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const refresh = useCallback(async () => {
+    if (!token || !patientUserId) return;
+    try {
+      const data = await getPatientAppointments(token, patientUserId);
+      setAppointments(data);
+      setError(null);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudieron cargar tus citas.");
+    } finally {
+      setLoading(false);
+    }
+  }, [token, patientUserId]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void refresh() }, 0);
+    return () => window.clearTimeout(timer);
+  }, [refresh]);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedStatus, setSelectedStatus] =
@@ -73,11 +87,15 @@ function MisCitas() {
 
     if (!confirmed) return;
 
-    const cancelled = cancelAppointment(appointmentId);
-
-    if (cancelled) {
-      setActionMessage("La cita se canceló correctamente.");
-    }
+    if (!token || !patientUserId) return;
+    void cancelPatientAppointment(token, appointmentId, patientUserId)
+      .then(async () => {
+        setActionMessage("La cita se canceló correctamente.");
+        await refresh();
+      })
+      .catch((cause: unknown) => setActionMessage(
+        cause instanceof Error ? cause.message : "No se pudo cancelar la cita.",
+      ));
   };
 
   const clearFilters = () => {

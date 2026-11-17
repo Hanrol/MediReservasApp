@@ -1,14 +1,14 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import DashboardLayout from "../../components/layout/DashboardLayout";
 import Breadcrumbs from "../../components/layout/Breadcrumbs";
-import { useAppointments } from "../../hooks/useAppointments";
-import { useSchedules } from "../../hooks/useSchedules";
 import { useAuth } from "../../hooks/useAuth";
-import { schedulesService } from "../../services/schedules.service";
-import { getDoctors, initializeDoctors } from "../../services/doctors.service";
-import { getSpecialties, initializeSpecialties } from "../../services/specialties.service";
+import { apiRequest } from "../../services/api-client";
+import { getPublicDoctorDirectory, getPublicDoctorSchedules } from "../../services/public-doctor-directory.service";
+import type { Doctor } from "../../types/doctor";
+import type { Specialty } from "../../types/specialty";
+import type { Schedule } from "../../types/schedule";
 import { ScheduleSelector } from "../../components/appointments/ScheduleSelector";
 import { ROUTES } from "../../constants/routes";
 import { getLocalDateString } from "../../utils/validations";
@@ -24,52 +24,61 @@ const INITIAL_VALUES: AppointmentFormValues = {
 };
 
 function SolicitarCita() {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const [searchParams] = useSearchParams();
   const requestedDoctorId = searchParams.get("medico");
-  const {
-    createAppointment,
-    loading: creatingAppointment,
-    error: appointmentError,
-  } = useAppointments({
-    filters: { patientUserId: user?.userId },
-    autoLoad: false,
-  });
-
-  const { getAvailableTimes } = useSchedules({ autoLoad: false });
-
-  const [specialties] = useState(() => {
-    initializeSpecialties();
-    return getSpecialties().filter((specialty) => specialty.active);
-  });
-  const [doctors] = useState(() => {
-    initializeDoctors();
-    return getDoctors().filter((doctor) => doctor.active);
-  });
-  const [values, setValues] = useState<AppointmentFormValues>(() => {
-    if (!requestedDoctorId) return INITIAL_VALUES;
-
-    const requestedDoctor = doctors.find(
-      (doctor) => doctor.doctorId === Number(requestedDoctorId),
-    );
-    const requestedSpecialty = requestedDoctor?.specialtyIds.find((id) =>
-      specialties.some((specialty) => specialty.specialtyId === id),
-    );
-
-    if (!requestedDoctor || !requestedSpecialty) return INITIAL_VALUES;
-
-    return {
-      ...INITIAL_VALUES,
-      specialtyId: String(requestedSpecialty),
-      doctorId: String(requestedDoctor.doctorId),
-    };
-  });
+  const [specialties, setSpecialties] = useState<Specialty[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [values, setValues] = useState<AppointmentFormValues>(INITIAL_VALUES);
   const [errors, setErrors] = useState<AppointmentFormErrors>({});
+  const [availableSlots, setAvailableSlots] = useState<Schedule[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [creatingAppointment, setCreatingAppointment] = useState(false);
 
   const [successMessage, setSuccessMessage] = useState("");
   const [formError, setFormError] = useState("");
 
   const today = getLocalDateString();
+
+  useEffect(() => {
+    let active = true;
+    void getPublicDoctorDirectory().then((directory) => {
+      if (!active) return;
+      setDoctors(directory.doctors);
+      setSpecialties(directory.specialties);
+      if (requestedDoctorId) {
+        const doctor = directory.doctors.find((item) => item.doctorId === Number(requestedDoctorId));
+        const specialtyId = doctor?.specialtyIds.find((id) =>
+          directory.specialties.some((specialty) => specialty.specialtyId === id));
+        if (doctor && specialtyId) {
+          setValues((current) => ({
+            ...current,
+            specialtyId: String(specialtyId),
+            doctorId: String(doctor.doctorId),
+          }));
+        }
+      }
+    }).catch((cause: unknown) => {
+      if (active) setFormError(cause instanceof Error ? cause.message : "No se pudo cargar el catálogo médico.");
+    });
+    return () => { active = false; };
+  }, [requestedDoctorId]);
+
+  useEffect(() => {
+    if (!values.doctorId) return;
+    let active = true;
+    void getPublicDoctorSchedules(Number(values.doctorId)).then((slots) => {
+      if (active) setAvailableSlots(slots);
+    }).catch((cause: unknown) => {
+      if (active) {
+        setAvailableSlots([]);
+        setFormError(cause instanceof Error ? cause.message : "No se pudieron cargar los horarios.");
+      }
+    }).finally(() => {
+      if (active) setLoadingSlots(false);
+    });
+    return () => { active = false; };
+  }, [values.doctorId]);
 
   const availableDoctors = useMemo(() => {
     if (!values.specialtyId) return [];
@@ -84,8 +93,10 @@ function SolicitarCita() {
       return [];
     }
 
-    return getAvailableTimes(Number(values.doctorId), values.date);
-  }, [values.doctorId, values.date, today, getAvailableTimes]);
+    return availableSlots
+      .filter((slot) => slot.date === values.date)
+      .map((slot) => slot.time);
+  }, [availableSlots, values.doctorId, values.date, today]);
 
   const updateField = <K extends keyof AppointmentFormValues>(
     field: K,
@@ -124,6 +135,7 @@ function SolicitarCita() {
   };
 
   const handleSpecialtyChange = (specialtyId: string) => {
+    setAvailableSlots([]);
     setValues((previous) => ({
       ...previous,
       specialtyId,
@@ -145,6 +157,8 @@ function SolicitarCita() {
   };
 
   const handleDoctorChange = (doctorId: string) => {
+    setAvailableSlots([]);
+    if (doctorId) setLoadingSlots(true);
     setValues((previous) => ({
       ...previous,
       doctorId,
@@ -163,7 +177,7 @@ function SolicitarCita() {
     setFormError("");
   };
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     setSuccessMessage("");
@@ -184,37 +198,35 @@ function SolicitarCita() {
       (specialty) => specialty.specialtyId === Number(values.specialtyId),
     );
 
-    const schedule = schedulesService.getAll({ doctorId: selectedDoctor?.doctorId, date: values.date, available: true })
-      .find((item) => item.time === values.time);
+    const schedule = availableSlots
+      .find((item) => item.date === values.date && item.time === values.time);
 
-    if (!user || !selectedSpecialty || !selectedDoctor || !schedule || !values.modality) {
+    if (!user || !session?.token || !selectedSpecialty || !selectedDoctor || !schedule || !values.modality) {
       setFormError(
         "No fue posible validar los datos. Revisa el formulario.",
       );
       return;
     }
 
-    const createdAppointment = createAppointment({
-      patientUserId: user.userId,
-      patientName: `${user.firstName} ${user.lastName}`,
-      doctorId: selectedDoctor.doctorId,
-      doctorName: `${selectedDoctor.firstName} ${selectedDoctor.lastName}`,
-      specialtyId: selectedSpecialty.specialtyId,
-      specialtyName: selectedSpecialty.specialtyName,
-      scheduleSlotId: schedule.id,
-      date: values.date,
-      time: values.time,
-      reason: values.reason.trim(),
-      modality: values.modality,
-    });
-
-    if (!createdAppointment) {
-      setFormError(
-        appointmentError ??
-          "No fue posible registrar la cita. Inténtalo nuevamente.",
-      );
+    setCreatingAppointment(true);
+    try {
+      await apiRequest("/appointments", {
+        method: "POST",
+        token: session.token,
+        body: {
+          patientUserId: user.userId,
+          doctorId: selectedDoctor.doctorId,
+          specialtyId: selectedSpecialty.specialtyId,
+          scheduleSlotId: schedule.id,
+          reason: values.reason.trim(),
+        },
+      });
+    } catch (cause) {
+      setFormError(cause instanceof Error ? cause.message : "No fue posible registrar la cita. Inténtalo nuevamente.");
+      setCreatingAppointment(false);
       return;
     }
+    setCreatingAppointment(false);
 
     setValues(INITIAL_VALUES);
     setErrors({});
@@ -391,7 +403,7 @@ function SolicitarCita() {
               time={values.time}
               availableTimes={availableTimes}
               minDate={today}
-              disabled={!values.doctorId}
+              disabled={!values.doctorId || loadingSlots}
               onDateChange={(date) => updateField("date", date)}
               onTimeChange={(time) => updateField("time", time)}
               dateError={errors.date}

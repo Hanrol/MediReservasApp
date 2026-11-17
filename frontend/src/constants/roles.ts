@@ -31,6 +31,7 @@ export const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
     description: 'Revisa y gestiona las solicitudes de atención de los pacientes.',
     actions: [
       { icon: 'CI', title: 'Gestionar citas', description: 'Consulta, confirma, reagenda o cancela las solicitudes de atención.', href: ROUTES.appointmentManagement, reactRoute: true },
+      { icon: 'MC', title: 'Mensajes de contacto', description: 'Revisa los mensajes enviados desde el formulario de contacto.', href: ROUTES.contactMessages, reactRoute: true },
     ],
   },
   DOCTOR: {
@@ -38,6 +39,7 @@ export const DASHBOARD_CONFIG: Record<Role, DashboardConfig> = {
     description: 'Consulta tu agenda y registra la información de tus atenciones.',
     actions: [
       { icon: 'AG', title: 'Mi agenda', description: 'Revisa tus citas y registra observaciones de las atenciones confirmadas.', href: ROUTES.medicalSchedule, reactRoute: true },
+      { icon: 'DI', title: 'Mi disponibilidad', description: 'Configura tus horarios semanales para recibir reservas.', href: ROUTES.doctorAvailability, reactRoute: true },
       { icon: 'HI', title: 'Historial clínico', description: 'Consulta antecedentes asociados a tus atenciones.', href: ROUTES.clinicalHistory, reactRoute: true },
     ],
   },

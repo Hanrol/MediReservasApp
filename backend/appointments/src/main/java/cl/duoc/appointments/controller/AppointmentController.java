@@ -54,8 +54,10 @@ public class AppointmentController {
     @GetMapping
     @Operation(summary = "Listar todas las reservas médicas",
                description = "Retorna una lista con todas las citas médicas registradas.")
-    public ResponseEntity<ApiResponse<List<AppointmentResponseDTO>>> getAllAppointments() {
-        List<AppointmentResponseDTO> appointments = appointmentService.getAllAppointments();
+    public ResponseEntity<ApiResponse<List<AppointmentResponseDTO>>> getAllAppointments(
+            @RequestHeader("X-Authenticated-Email") String email,
+            @RequestHeader("X-Authenticated-Roles") String roleHeader) {
+        List<AppointmentResponseDTO> appointments = appointmentService.getAllAppointments(email, parseRoles(roleHeader));
         return ResponseEntity.ok(
                 new ApiResponse<>(200, "Citas obtenidas exitosamente", appointments));
     }

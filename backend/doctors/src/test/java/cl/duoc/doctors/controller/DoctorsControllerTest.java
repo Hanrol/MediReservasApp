@@ -1,6 +1,8 @@
 package cl.duoc.doctors.controller;
 
 import cl.duoc.doctors.dto.DoctorsDTO;
+import cl.duoc.doctors.dto.PublicDoctorDirectoryDTO;
+import cl.duoc.doctors.dto.PublicDoctorSpecialtyDTO;
 import cl.duoc.doctors.exception.GlobalExceptionHandler;
 import cl.duoc.doctors.service.DoctorsService;
 import org.junit.jupiter.api.BeforeEach;
@@ -142,6 +144,26 @@ class DoctorsControllerTest {
     }
 
     @Test
+    void getPublicDirectory_ShouldReturnOnlyPublicDoctorFields() throws Exception {
+        org.mockito.Mockito.when(doctorsService.findPublicDirectory()).thenReturn(List.of(
+                new PublicDoctorDirectoryDTO(
+                        1L,
+                        "Daniela",
+                        "Rojas",
+                        "LIC-12345",
+                        List.of(new PublicDoctorSpecialtyDTO(2L, "Cardiología", "Atención cardíaca")))));
+
+        mockMvc.perform(get("/api/v3/doctors/directory"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].doctorId").value(1L))
+                .andExpect(jsonPath("$.data[0].firstName").value("Daniela"))
+                .andExpect(jsonPath("$.data[0].medicalLicenseNumber").value("LIC-12345"))
+                .andExpect(jsonPath("$.data[0].specialties[0].specialtyName").value("Cardiología"))
+                .andExpect(jsonPath("$.data[0].userId").doesNotExist())
+                .andExpect(jsonPath("$.data[0].email").doesNotExist());
+    }
+
+    @Test
     void createDoctor_ShouldRejectNonAdministrator() throws Exception {
         mockMvc.perform(post("/api/v3/doctors")
                 .header("X-Authenticated-Roles", "DOCTOR")
@@ -174,6 +196,7 @@ class DoctorsControllerTest {
 
         // Act & Assert
         mockMvc.perform(put("/api/v3/doctors/{id}", doctorId)
+                .header("X-Authenticated-Roles", "ADMIN")
                 .contentType("application/json")
                 .content("""
                         {
@@ -196,7 +219,8 @@ class DoctorsControllerTest {
         org.mockito.Mockito.doNothing().when(doctorsService).delete(doctorId);
 
         // Act & Assert
-        mockMvc.perform(delete("/api/v3/doctors/{id}", doctorId))
+        mockMvc.perform(delete("/api/v3/doctors/{id}", doctorId)
+                .header("X-Authenticated-Roles", "ADMIN"))
                 .andExpect(status().isNoContent());
     }
 
@@ -208,8 +232,32 @@ class DoctorsControllerTest {
                 .when(doctorsService).delete(doctorId);
 
         // Act & Assert
-        mockMvc.perform(delete("/api/v3/doctors/{id}", doctorId))
+        mockMvc.perform(delete("/api/v3/doctors/{id}", doctorId)
+                .header("X-Authenticated-Roles", "ADMIN"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Doctor no encontrado"));
+    }
+
+    @Test
+    void updateDoctor_ShouldRejectNonAdministrator() throws Exception {
+        mockMvc.perform(put("/api/v3/doctors/{id}", 1L)
+                .header("X-Authenticated-Roles", "DOCTOR")
+                .contentType("application/json")
+                .content("""
+                        {
+                            "userId": 200,
+                            "medicalLicenseNumber": "LIC-UPDATED",
+                            "active": true,
+                            "specialtyIds": [1]
+                        }
+                        """))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void deleteDoctor_ShouldRejectNonAdministrator() throws Exception {
+        mockMvc.perform(delete("/api/v3/doctors/{id}", 1L)
+                .header("X-Authenticated-Roles", "DOCTOR"))
+                .andExpect(status().isForbidden());
     }
 }

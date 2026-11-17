@@ -54,7 +54,7 @@ test('CP-137 · RF-22 · recepción cancela una cita confirmada y libera el hora
   await loginAs(page, 'recepcion@medireservas.cl', 'Recepcion123')
   await page.goto('/#/gestion-citas')
 
-  const appointmentRow = page.getByRole('row').filter({ hasText: 'Control general' })
+  const appointmentRow = page.getByRole('row').filter({ hasText: 'Dolor de cabeza frecuente' })
   page.once('dialog', async (dialog) => {
     await dialog.accept()
   })
@@ -62,8 +62,8 @@ test('CP-137 · RF-22 · recepción cancela una cita confirmada y libera el hora
 
   await expect(page.getByRole('status')).toContainText('fue cancelada')
   await expect(appointmentRow).toContainText('Cancelada')
-  expect(api.appointments.find((appointment) => appointment.appointmentId === 1)?.appointmentStatus).toBe('CANCELLED')
-  expect(api.slots.find((slot) => slot.scheduleSlotId === 1)).toMatchObject({
+  expect(api.appointments.find((appointment) => appointment.appointmentId === 3)?.appointmentStatus).toBe('CANCELLED')
+  expect(api.slots.find((slot) => slot.scheduleSlotId === 2)).toMatchObject({
     slotStatus: 'LIBERADO_POR_CANCELACION',
     appointmentId: null,
   })

@@ -1,9 +1,13 @@
 package cl.duoc.users.config;
 
+import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ResponseStatusException;
 
 import cl.duoc.users.client.AuthClient;
 import cl.duoc.users.dto.CreateAdministratorProfileRequestDTO;
@@ -20,6 +24,8 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Slf4j
 public class MasterAdminBootstrap implements ApplicationRunner {
+    private static final Duration AUTH_STARTUP_TIMEOUT = Duration.ofMinutes(3);
+    private static final Duration AUTH_RETRY_INTERVAL = Duration.ofSeconds(2);
 
     private final AuthClient authClient;
     private final UserRepository userRepository;
@@ -49,7 +55,7 @@ public class MasterAdminBootstrap implements ApplicationRunner {
             return;
         }
 
-        boolean authExists = authClient.authUserExistsByEmail(email);
+        boolean authExists = waitForAuthService();
         if (!authExists) {
             authClient.registerUser(email, password);
             log.info("Cuenta de autenticación del ADMIN maestro creada");
@@ -81,6 +87,35 @@ public class MasterAdminBootstrap implements ApplicationRunner {
             authClient.assignRole(authUser.authUserId(), "ADMIN");
         }
         log.info("Bootstrap ADMIN maestro verificado y activo");
+    }
+
+    private boolean waitForAuthService() {
+        long deadline = System.nanoTime() + AUTH_STARTUP_TIMEOUT.toNanos();
+        int attempts = 0;
+
+        while (true) {
+            try {
+                return authClient.authUserExistsByEmail(email);
+            } catch (ResponseStatusException exception) {
+                if (exception.getStatusCode().value() != HttpStatus.SERVICE_UNAVAILABLE.value()
+                        || System.nanoTime() >= deadline) {
+                    throw exception;
+                }
+
+                attempts++;
+                if (attempts == 1 || attempts % 15 == 0) {
+                    log.warn("Auth Service todavía no está disponible; se reintentará (intento {}).", attempts);
+                }
+
+                try {
+                    Thread.sleep(AUTH_RETRY_INTERVAL.toMillis());
+                } catch (InterruptedException interruptedException) {
+                    Thread.currentThread().interrupt();
+                    throw new IllegalStateException(
+                            "Se interrumpió la espera inicial del Auth Service", interruptedException);
+                }
+            }
+        }
     }
 
     private cl.duoc.users.model.User userServiceEntity(String userEmail, String userRun, Long authUserId) {

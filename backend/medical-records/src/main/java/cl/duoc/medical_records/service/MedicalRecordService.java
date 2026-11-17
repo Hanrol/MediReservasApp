@@ -5,6 +5,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import cl.duoc.medical_records.client.UsersClient;
 import cl.duoc.medical_records.dto.CreateMedicalRecordRequestDTO;
@@ -61,6 +62,12 @@ public class MedicalRecordService {
         return toDTO.toMedicalRecordResponseDTO(saved);
     }
 
+    public MedicalRecordResponseDTO getOrCreateForPatient(Long patientId) {
+        return medicalRecordRepository.findByPatientId(patientId)
+                .map(toDTO::toMedicalRecordResponseDTO)
+                .orElseGet(() -> create(new CreateMedicalRecordRequestDTO(patientId)));
+    }
+
     public List<MedicalRecordDetailResponseDTO> listAll() {
         return medicalRecordRepository.findAll()
                 .stream()
@@ -89,6 +96,13 @@ public class MedicalRecordService {
 
         return toDTO.toMedicalRecordDetailResponseDTO(
                 medicalRecord);
+    }
+
+    @Transactional(readOnly = true)
+    public List<cl.duoc.medical_records.dto.MedicalVisitDetailReponseDTO> findVisitsForPatient(Long patientId) {
+        return medicalRecordRepository.findByPatientId(patientId)
+                .map(record -> toDTO.toMedicalRecordDetailResponseDTO(record).visits())
+                .orElseGet(List::of);
     }
 
     public MedicalRecordDetailResponseDTO findByPatientIdForDoctor(Long patientId, Long doctorId) {

@@ -1,14 +1,14 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import PublicLayout from '../../components/layout/PublicLayout'
 import EmptyState from '../../components/ui/EmptyState'
 import Modal from '../../components/ui/Modal'
 import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
-import { getDoctors, initializeDoctors } from '../../services/doctors.service'
-import { schedulesService } from '../../services/schedules.service'
-import { getSpecialties, initializeSpecialties } from '../../services/specialties.service'
+import { getPublicDoctorDirectory, getPublicDoctorSchedules } from '../../services/public-doctor-directory.service'
 import type { Doctor } from '../../types/doctor'
+import type { Specialty } from '../../types/specialty'
+import type { Schedule } from '../../types/schedule'
 import { getLocalDateString } from '../../utils/validations'
 
 function formatScheduleDate(date: string) {
@@ -27,11 +27,37 @@ function MedicosEspecialidades() {
   const [doctorSearch, setDoctorSearch] = useState('')
   const [specialtyId, setSpecialtyId] = useState('')
   const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null)
+  const [doctors, setDoctors] = useState<Doctor[]>([])
+  const [specialties, setSpecialties] = useState<Specialty[]>([])
+  const [selectedDoctorSchedules, setSelectedDoctorSchedules] = useState<Schedule[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadingSchedules, setLoadingSchedules] = useState(false)
+  const [error, setError] = useState('')
+  const [scheduleError, setScheduleError] = useState('')
 
   useEffect(() => {
     document.title = 'Médicos y especialidades | MediReservas'
-    initializeSpecialties()
-    initializeDoctors()
+    let active = true
+    const timer = window.setTimeout(() => {
+      setLoading(true)
+      setError('')
+      void getPublicDoctorDirectory()
+        .then((directory) => {
+          if (!active) return
+          setDoctors(directory.doctors)
+          setSpecialties(directory.specialties)
+        })
+        .catch((cause: unknown) => {
+          if (active) setError(cause instanceof Error ? cause.message : 'No se pudo cargar el directorio médico.')
+        })
+        .finally(() => {
+          if (active) setLoading(false)
+        })
+    }, 0)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
   }, [])
 
   useEffect(() => {
@@ -41,21 +67,43 @@ function MedicosEspecialidades() {
     })
   }, [location.hash])
 
-  const specialties = getSpecialties().filter((specialty) => specialty.active)
-  const doctors = getDoctors().filter((doctor) => doctor.active)
-  const specialtyById = new Map(specialties.map((specialty) => [specialty.specialtyId, specialty]))
+  const activeSpecialties = useMemo(() => specialties.filter((specialty) => specialty.active), [specialties])
+  const activeDoctors = useMemo(() => doctors.filter((doctor) => doctor.active), [doctors])
+  const specialtyById = new Map(activeSpecialties.map((specialty) => [specialty.specialtyId, specialty]))
   const specialtySearchTerm = specialtySearch.trim().toLowerCase()
   const doctorSearchTerm = doctorSearch.trim().toLowerCase()
   const selectedSpecialtyId = Number(specialtyId)
-  const visibleSpecialties = specialties.filter((specialty) => specialty.specialtyName.toLowerCase().includes(specialtySearchTerm))
-  const visibleDoctors = doctors
+  const visibleSpecialties = activeSpecialties.filter((specialty) => specialty.specialtyName.toLowerCase().includes(specialtySearchTerm))
+  const visibleDoctors = activeDoctors
     .filter((doctor) => `${doctor.firstName} ${doctor.lastName}`.toLowerCase().includes(doctorSearchTerm))
     .filter((doctor) => !selectedSpecialtyId || doctor.specialtyIds.includes(selectedSpecialtyId))
-  const selectedDoctorSchedules = selectedDoctor
-    ? schedulesService.getAll({ doctorId: selectedDoctor.doctorId, available: true })
-      .filter((schedule) => schedule.date >= getLocalDateString())
-      .slice(0, 3)
-    : []
+  useEffect(() => {
+    if (!selectedDoctor) return
+    let active = true
+    const timer = window.setTimeout(() => {
+      setLoadingSchedules(true)
+      setScheduleError('')
+      void getPublicDoctorSchedules(selectedDoctor.doctorId)
+        .then((schedules) => {
+          if (active) setSelectedDoctorSchedules(
+            schedules.filter((schedule) => schedule.date >= getLocalDateString()).slice(0, 3),
+          )
+        })
+        .catch((cause: unknown) => {
+          if (active) {
+            setSelectedDoctorSchedules([])
+            setScheduleError(cause instanceof Error ? cause.message : 'No se pudieron cargar los horarios disponibles.')
+          }
+        })
+        .finally(() => {
+          if (active) setLoadingSchedules(false)
+        })
+    }, 0)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [selectedDoctor])
 
   function filterDoctors(selectedSpecialtyId: number) {
     setSpecialtyId(String(selectedSpecialtyId))
@@ -89,7 +137,9 @@ function MedicosEspecialidades() {
                 <input className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 font-normal outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" type="search" value={specialtySearch} onChange={(event) => setSpecialtySearch(event.target.value)} placeholder="Ej.: Cardiología" />
               </label>
             </div>
-            {visibleSpecialties.length ? (
+            {loading ? <p role="status" className="mt-6 text-muted">Cargando directorio médico...</p> : error ? (
+              <p role="alert" className="mt-6 text-red-700">{error}</p>
+            ) : visibleSpecialties.length ? (
               <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
                 {visibleSpecialties.map((specialty) => (
                   <article className="flex flex-col rounded-2xl border border-line bg-white p-6 shadow-sm transition hover:-translate-y-1 hover:border-primary hover:shadow-lg" key={specialty.specialtyId}>
@@ -115,22 +165,25 @@ function MedicosEspecialidades() {
               <label className="text-sm font-semibold">Filtrar por especialidad
                 <select className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 font-normal outline-none transition focus:border-primary focus:ring-3 focus:ring-emerald-100" value={specialtyId} onChange={(event) => setSpecialtyId(event.target.value)}>
                   <option value="">Todas las especialidades</option>
-                  {specialties.map((specialty) => <option value={specialty.specialtyId} key={specialty.specialtyId}>{specialty.specialtyName}</option>)}
+                   {activeSpecialties.map((specialty) => <option value={specialty.specialtyId} key={specialty.specialtyId}>{specialty.specialtyName}</option>)}
                 </select>
               </label>
             </div>
-            {visibleDoctors.length ? (
+            {!loading && !error && visibleDoctors.length ? (
               <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
                 {visibleDoctors.map((doctor) => (
                   <article className="flex flex-col rounded-2xl border border-line bg-white p-6 shadow-sm" key={doctor.doctorId}>
                     <h3 className="text-xl font-bold">{doctor.firstName} {doctor.lastName}</h3>
                     <p className="mt-3 text-primary-dark">Especialidad: {doctorSpecialties(doctor).map((item) => item?.specialtyName).join(', ')}</p>
                     <p className="mt-1 text-sm text-muted">Registro médico: {doctor.medicalLicenseNumber}</p>
-                    <button className="mt-5 self-start rounded-xl border border-primary px-4 py-2 font-semibold text-primary-dark transition hover:bg-primary-light" type="button" onClick={() => setSelectedDoctor(doctor)}>Ver detalle</button>
+                    <button className="mt-5 self-start rounded-xl border border-primary px-4 py-2 font-semibold text-primary-dark transition hover:bg-primary-light" type="button" onClick={() => {
+                      setSelectedDoctorSchedules([])
+                      setSelectedDoctor(doctor)
+                    }}>Ver detalle</button>
                   </article>
                 ))}
               </div>
-            ) : <EmptyState>No se encontraron médicos.</EmptyState>}
+            ) : !loading && !error ? <EmptyState>No se encontraron médicos.</EmptyState> : null}
           </div>
         </section>
       </PublicLayout>
@@ -139,7 +192,10 @@ function MedicosEspecialidades() {
         <Modal
           eyebrow="Profesional"
           title={`${selectedDoctor.firstName} ${selectedDoctor.lastName}`}
-          onClose={() => setSelectedDoctor(null)}
+          onClose={() => {
+            setSelectedDoctor(null)
+            setSelectedDoctorSchedules([])
+          }}
           footer={<Link className="inline-flex w-full justify-center rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-dark" to={isAuthenticated ? `${ROUTES.requestAppointment}?medico=${selectedDoctor.doctorId}` : ROUTES.login}>{isAuthenticated ? 'Solicitar cita' : 'Iniciar sesión para reservar'}</Link>}
         >
             <dl className="space-y-4">
@@ -148,7 +204,7 @@ function MedicosEspecialidades() {
               <div>
                 <dt className="text-sm font-semibold text-muted">Próximos horarios disponibles</dt>
                 <dd className="mt-2">
-                  {selectedDoctorSchedules.length ? (
+                  {loadingSchedules ? 'Cargando horarios disponibles...' : scheduleError ? scheduleError : selectedDoctorSchedules.length ? (
                     <ul className="flex flex-wrap gap-2">
                       {selectedDoctorSchedules.map((schedule) => (
                         <li className="rounded-lg bg-primary-light px-3 py-2 text-sm font-semibold text-primary-dark" key={schedule.id}>

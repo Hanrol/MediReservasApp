@@ -42,7 +42,7 @@ public class MedicalVisitServiceTest {
         Mockito.when(visits.existsByAppointmentId(55L)).thenReturn(false);
         Mockito.when(records.existsById(80L)).thenReturn(true);
         Mockito.when(appointments.getAppointment(55L))
-                .thenReturn(new AppointmentsClient.AppointmentData(55L, 101L, 22L));
+                .thenReturn(new AppointmentsClient.AppointmentData(55L, 101L, 22L, "CONFIRMED"));
 
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> service.create(new CreateMedicalVisitRequestDTO(80L, 55L, 33L,
@@ -66,7 +66,7 @@ public class MedicalVisitServiceTest {
         Mockito.when(visits.existsByAppointmentId(55L)).thenReturn(false);
         Mockito.when(records.existsById(80L)).thenReturn(true);
         Mockito.when(appointments.getAppointment(55L))
-                .thenReturn(new AppointmentsClient.AppointmentData(55L, 101L, 33L));
+                .thenReturn(new AppointmentsClient.AppointmentData(55L, 101L, 33L, "CONFIRMED"));
         Mockito.when(doctors.doctorIdVerification(33L)).thenReturn(true);
         MedicalRecord record = new MedicalRecord();
         record.setPatientId(202L);

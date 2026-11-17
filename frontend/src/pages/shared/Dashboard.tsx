@@ -7,17 +7,16 @@ import { Navigate } from 'react-router-dom'
 import { ROUTES } from '../../constants/routes'
 import { useAuth } from '../../hooks/useAuth'
 import { DASHBOARD_CONFIG } from '../../constants/roles'
-import { getDashboardSummary } from '../../services/dashboard.service'
+import { getDashboardSummary, type DashboardSummaryItem } from '../../services/dashboard.service'
 import { getProfileCompletion, type ProfileCompletion } from '../../services/profile-onboarding.service'
 import { getAdminDashboardSummary } from '../../services/admin-api.service'
-
-interface DashboardSummaryItem { value: number; label: string }
 
 function Dashboard() {
   const { user, session } = useAuth()
   const [completion, setCompletion] = useState<ProfileCompletion | null>(null)
-  const [adminSummary, setAdminSummary] = useState<DashboardSummaryItem[]>([])
+  const [summary, setSummary] = useState<DashboardSummaryItem[]>([])
   const [summaryError, setSummaryError] = useState('')
+  const [summaryLoading, setSummaryLoading] = useState(true)
   const config = user ? DASHBOARD_CONFIG[user.role] : null
 
   useEffect(() => {
@@ -36,19 +35,20 @@ function Dashboard() {
   }, [session, user])
 
   useEffect(() => {
-    if (!session?.token || user?.role !== 'ADMIN') return
+    if (!session?.token || !user) return
     let active = true
-    void getAdminDashboardSummary(session.token)
-      .then((summary) => { if (active) { setAdminSummary(summary); setSummaryError('') } })
+    const summaryRequest = user.role === 'ADMIN'
+      ? getAdminDashboardSummary(session.token)
+      : getDashboardSummary(session.token, user)
+    void summaryRequest
+      .then((items) => { if (active) { setSummary(items); setSummaryError('') } })
       .catch(() => { if (active) setSummaryError('No se pudo cargar el resumen desde el servidor.') })
+      .finally(() => { if (active) setSummaryLoading(false) })
     return () => { active = false }
-  }, [session?.token, user?.role])
+  }, [session?.token, user])
 
 
   if (!user || !config) return <Navigate to={ROUTES.login} replace />
-
-  const summary = user.role === 'ADMIN' ? adminSummary : getDashboardSummary(user)
-
 
   return (
     <DashboardLayout currentPath={ROUTES.dashboard} mainClassName="px-4 py-8 sm:px-6 sm:py-10 lg:px-10 lg:py-12">
@@ -82,6 +82,7 @@ function Dashboard() {
       <section className="mt-10" aria-labelledby="summary-title">
         <h2 className="text-2xl font-bold" id="summary-title">Resumen</h2>
         {summaryError && <p className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-800" role="alert">{summaryError}</p>}
+        {summaryLoading && <p className="mt-4 text-sm text-muted" role="status">Cargando resumen...</p>}
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
           {summary.map((item) => (
             <SummaryCard key={item.label} value={item.value} label={item.label} />

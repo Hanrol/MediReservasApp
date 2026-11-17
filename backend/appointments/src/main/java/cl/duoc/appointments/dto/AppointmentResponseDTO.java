@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 
 @Data
@@ -21,8 +23,13 @@ public class AppointmentResponseDTO {
     private Long doctorId;
     private Long specialtyId;
     private Long scheduleSlotId;
+    private LocalDate slotDate;
+    private LocalTime startTime;
+    private LocalTime endTime;
     private AppointmentStatus appointmentStatus;
     private String reason;
+    private String patientName;
+    private String patientRun;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private LocalDateTime createdAt;

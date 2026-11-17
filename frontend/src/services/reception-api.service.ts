@@ -14,8 +14,13 @@ interface ApiAppointment {
   doctorId: number
   specialtyId: number
   scheduleSlotId: number
+  slotDate: string
+  startTime: string
+  endTime: string
   appointmentStatus: AppointmentStatus
   reason: string | null
+  patientName: string | null
+  patientRun: string | null
 }
 
 interface ApiScheduleSlot {
@@ -24,25 +29,13 @@ interface ApiScheduleSlot {
   slotDate: string
   startTime: string
   endTime: string
-  slotStatus: string
-  appointmentId: number | null
-}
-
-interface ApiUser {
-  userId: number
-  run: string
-}
-
-interface ApiUserProfile {
-  userId: number
-  firstName: string
-  lastName: string
 }
 
 interface ApiDoctor {
   doctorId: number
-  userId: number
-  specialtyIds: number[]
+  firstName: string
+  lastName: string
+  specialties: Array<{ specialtyId: number; specialtyName: string }>
 }
 
 interface ApiSpecialty {
@@ -57,41 +50,37 @@ export interface ReceptionData {
 }
 
 export async function getReceptionData(token: string): Promise<ReceptionData> {
-  const [appointmentResponse, slotResponse, userResponse, profileResponse, doctors, specialtyResponse] = await Promise.all([
+  const [appointmentResponse, doctors, specialtyResponse] = await Promise.all([
     apiRequest<ApiResponse<ApiAppointment[]>>('/appointments', { token }),
-    apiRequest<ApiResponse<ApiScheduleSlot[]>>('/schedule-slots', { token }),
-    apiRequest<ApiResponse<ApiUser[]>>('/users', { token }),
-    apiRequest<ApiResponse<ApiUserProfile[]>>('/user-profiles', { token }),
-    apiRequest<ApiDoctor[]>('/doctors', { token }),
-    apiRequest<ApiResponse<ApiSpecialty[]>>('/specialties', { token }),
+    apiRequest<ApiResponse<ApiDoctor[]>>('/doctors/directory', { token }),
+    apiRequest<ApiResponse<ApiSpecialty[]>>('/specialties/public/active', { token }),
   ])
 
-  const slots = slotResponse.data
-  const slotsById = new Map(slots.map((slot) => [slot.scheduleSlotId, slot]))
-  const profilesByUserId = new Map(profileResponse.data.map((profile) => [profile.userId, profile]))
-  const doctorNames = new Map(doctors.map((doctor) => {
-    const profile = profilesByUserId.get(doctor.userId)
-    return [doctor.doctorId, profile ? `${profile.firstName} ${profile.lastName}`.trim() : `Médico #${doctor.doctorId}`]
-  }))
+  const slotsByDoctor = await Promise.all(doctors.data.map((doctor) =>
+    apiRequest<ApiResponse<ApiScheduleSlot[]>>(
+      `/schedule-slots/public?doctorId=${doctor.doctorId}`,
+      { token },
+    )))
+  const slots = slotsByDoctor.flatMap((response) => response.data)
+  const doctorNames = new Map(doctors.data.map((doctor) =>
+    [doctor.doctorId, `${doctor.firstName} ${doctor.lastName}`.trim()]))
   const specialtyNames = new Map(specialtyResponse.data.map((specialty) => [
     specialty.specialtyId,
     specialty.specialtyName,
   ]))
 
   const appointments = appointmentResponse.data.map((appointment): Appointment => {
-    const slot = slotsById.get(appointment.scheduleSlotId)
-    const patient = profilesByUserId.get(appointment.patientUserId)
     return {
       appointmentId: appointment.appointmentId,
       patientUserId: appointment.patientUserId,
-      patientName: patient ? `${patient.firstName} ${patient.lastName}`.trim() : `Paciente #${appointment.patientUserId}`,
+      patientName: appointment.patientName ?? `Paciente #${appointment.patientUserId}`,
       doctorId: appointment.doctorId,
       doctorName: doctorNames.get(appointment.doctorId) ?? `Médico #${appointment.doctorId}`,
       specialtyId: appointment.specialtyId,
       specialtyName: specialtyNames.get(appointment.specialtyId) ?? `Especialidad #${appointment.specialtyId}`,
       scheduleSlotId: appointment.scheduleSlotId,
-      date: slot?.slotDate ?? '',
-      time: slot?.startTime?.slice(0, 5) ?? '',
+      date: appointment.slotDate || '',
+      time: appointment.startTime?.slice(0, 5) ?? '',
       reason: appointment.reason ?? '',
       appointmentStatus: appointment.appointmentStatus,
     }
@@ -102,14 +91,15 @@ export async function getReceptionData(token: string): Promise<ReceptionData> {
     doctorId: slot.doctorId,
     date: slot.slotDate,
     time: slot.startTime.slice(0, 5),
-    available: (slot.slotStatus === 'DISPONIBLE' || slot.slotStatus === 'LIBERADO_POR_CANCELACION')
-      && slot.appointmentId == null,
+    available: true,
   }))
 
   return {
     appointments,
     schedules,
-    patientRunById: new Map(userResponse.data.map((user) => [user.userId, user.run])),
+    patientRunById: new Map(appointmentResponse.data
+      .filter((appointment) => appointment.patientRun)
+      .map((appointment) => [appointment.patientUserId, appointment.patientRun!])),
   }
 }
 

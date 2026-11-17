@@ -7,6 +7,7 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 
 import cl.duoc.doctors.dto.ApiResponse;
 import cl.duoc.doctors.dto.UserInternalResponseDTO;
+import cl.duoc.doctors.dto.UserProfileInternalResponseDTO;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -67,6 +68,23 @@ public class UsersClient {
             return response.getData();
         } catch (WebClientResponseException ex) {
             throw new RuntimeException("No se pudo resolver el usuario autenticado", ex);
+        }
+    }
+
+    public UserProfileInternalResponseDTO getUserProfileByUserId(Long userId) {
+        try {
+            ApiResponse<UserProfileInternalResponseDTO> response = webClientBuilder.build()
+                    .get()
+                    .uri("http://users-service/api/v3/user-profiles/user/{userId}", userId)
+                    .retrieve()
+                    .bodyToMono(new ParameterizedTypeReference<ApiResponse<UserProfileInternalResponseDTO>>() {})
+                    .block();
+            if (response == null || response.getData() == null) {
+                throw new RuntimeException("Perfil de usuario no encontrado");
+            }
+            return response.getData();
+        } catch (WebClientResponseException ex) {
+            throw new RuntimeException("No se pudo consultar el perfil público del médico", ex);
         }
     }
 

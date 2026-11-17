@@ -100,6 +100,402 @@ export async function mockAdminApi(page: Page) {
   })
 }
 
+export async function mockPublicDirectoryApi(page: Page) {
+  await page.route('**/api/v3/doctors/directory', (route) => route.fulfill({
+    status: 200,
+    json: {
+      code: 200,
+      message: 'Directorio médico obtenido correctamente',
+      data: mockDoctors.filter((doctor) => doctor.active).map((doctor) => ({
+        doctorId: doctor.doctorId,
+        firstName: doctor.firstName,
+        lastName: doctor.lastName,
+        medicalLicenseNumber: doctor.medicalLicenseNumber,
+        specialties: doctor.specialtyIds
+          .map((specialtyId) => mockSpecialties.find((specialty) => specialty.specialtyId === specialtyId))
+          .filter((specialty) => specialty?.active)
+          .map((specialty) => ({
+            specialtyId: specialty!.specialtyId,
+            specialtyName: specialty!.specialtyName,
+            description: specialty!.description,
+          })),
+      })),
+    },
+  }))
+
+  await page.route('**/api/v3/specialties/public/active', (route) => route.fulfill({
+    status: 200,
+    json: {
+      code: 200,
+      message: 'Especialidades activas',
+      data: mockSpecialties.filter((specialty) => specialty.active),
+    },
+  }))
+
+  await page.route('**/api/v3/schedule-slots/public**', async (route) => {
+    const doctorId = Number(new URL(route.request().url()).searchParams.get('doctorId'))
+    const data = mockSchedules
+      .filter((schedule) => schedule.doctorId === doctorId && schedule.available)
+      .map((schedule) => ({
+        scheduleSlotId: schedule.id,
+        doctorId: schedule.doctorId,
+        slotDate: schedule.date,
+        startTime: `${schedule.time}:00`,
+        endTime: `${schedule.time}:30`,
+      }))
+    await route.fulfill({ status: 200, json: { code: 200, message: 'Horarios disponibles', data } })
+  })
+}
+
+export async function mockPatientBookingApi(page: Page) {
+  let appointments = [...mockAppointments]
+  const directory = mockDoctors.filter((doctor) => doctor.active).map((doctor) => ({
+    doctorId: doctor.doctorId,
+    firstName: doctor.firstName,
+    lastName: doctor.lastName,
+    medicalLicenseNumber: doctor.medicalLicenseNumber,
+    specialties: doctor.specialtyIds
+      .map((specialtyId) => mockSpecialties.find((specialty) => specialty.specialtyId === specialtyId))
+      .filter((specialty) => specialty?.active)
+      .map((specialty) => ({
+        specialtyId: specialty!.specialtyId,
+        specialtyName: specialty!.specialtyName,
+        description: specialty!.description,
+      })),
+  }))
+
+  await page.route('**/api/v3/doctors/directory', (route) => route.fulfill({
+    status: 200,
+    json: { code: 200, message: 'Directorio médico', data: directory },
+  }))
+  await page.route('**/api/v3/specialties/public/active', (route) => route.fulfill({
+    status: 200,
+    json: { code: 200, message: 'Especialidades activas', data: mockSpecialties.filter((item) => item.active) },
+  }))
+  await page.route('**/api/v3/schedule-slots/public**', async (route) => {
+    const doctorId = Number(new URL(route.request().url()).searchParams.get('doctorId'))
+    const data = mockSchedules.filter((item) => item.doctorId === doctorId && item.available).map((item) => ({
+      scheduleSlotId: item.id,
+      doctorId: item.doctorId,
+      slotDate: item.date,
+      startTime: `${item.time}:00`,
+      endTime: `${item.time}:30`,
+    }))
+    await route.fulfill({ status: 200, json: { code: 200, message: 'Disponibilidad', data } })
+  })
+  await page.route('**/api/v3/schedule-slots', (route) => route.fulfill({
+    status: 200,
+    json: {
+      code: 200,
+      message: 'Slots',
+      data: mockSchedules.map((item) => ({
+        scheduleSlotId: item.id,
+        slotDate: item.date,
+        startTime: `${item.time}:00`,
+      })),
+    },
+  }))
+  await page.route('**/api/v3/appointments**', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() === 'POST' && url.pathname.endsWith('/appointments')) {
+      const input = request.postDataJSON() as { patientUserId: number; doctorId: number; specialtyId: number; scheduleSlotId: number; reason: string }
+      const appointment = {
+        appointmentId: 100,
+        patientUserId: input.patientUserId,
+        doctorId: input.doctorId,
+        specialtyId: input.specialtyId,
+        scheduleSlotId: input.scheduleSlotId,
+        appointmentStatus: 'PENDING',
+        reason: input.reason,
+      }
+      appointments = [...appointments, appointment as typeof appointments[number]]
+      await route.fulfill({ status: 201, json: { code: 201, message: 'Cita creada', data: appointment } })
+      return
+    }
+    if (request.method() === 'GET' && url.pathname.includes('/appointments/patient/')) {
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Citas', data: appointments } })
+      return
+    }
+    if (request.method() === 'PATCH' && url.pathname.endsWith('/cancel')) {
+      const id = Number(url.pathname.split('/').at(-2))
+      appointments = appointments.map((appointment) => appointment.appointmentId === id
+        ? { ...appointment, appointmentStatus: 'CANCELLED' }
+        : appointment)
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Cancelada', data: null } })
+      return
+    }
+    await route.continue()
+  })
+}
+
+export async function mockDoctorAvailabilityApi(page: Page) {
+  const doctor = mockDoctors.find((item) => item.userId === 3)!
+  let schedules = [
+    {
+      doctorScheduleId: 41,
+      doctorId: doctor.doctorId,
+      dayOfWeek: 'LUNES',
+      startTime: '09:00:00',
+      endTime: '12:00:00',
+      active: true,
+    },
+  ]
+  await page.route('**/api/v3/doctors/me', (route) => route.fulfill({
+    status: 200,
+    json: { doctorId: doctor.doctorId, userId: doctor.userId, active: true, specialtyIds: doctor.specialtyIds },
+  }))
+  await page.route('**/api/v3/doctor-schedules**', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() === 'GET') {
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Horarios', data: schedules } })
+      return
+    }
+    if (request.method() === 'POST') {
+      const input = request.postDataJSON() as Omit<typeof schedules[number], 'doctorScheduleId'>
+      const created = { ...input, doctorScheduleId: 42 }
+      schedules = [...schedules, created]
+      await route.fulfill({ status: 201, json: { code: 201, message: 'Creado', data: created } })
+      return
+    }
+    if (request.method() === 'DELETE') {
+      if (url.pathname.endsWith('/me')) {
+        schedules = []
+        await route.fulfill({ status: 200, json: { code: 200, message: 'Recurrencias eliminadas', data: null } })
+        return
+      }
+      const id = Number(url.pathname.split('/').at(-1))
+      schedules = schedules.filter((schedule) => schedule.doctorScheduleId !== id)
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Eliminado', data: null } })
+      return
+    }
+    await route.continue()
+  })
+  let slots: Array<{
+    scheduleSlotId: number
+    doctorId: number
+    slotDate: string
+    startTime: string
+    endTime: string
+    slotStatus: string
+    appointmentId: number | null
+  }> = []
+  await page.route('**/api/v3/schedule-slots**', async (route) => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (url.pathname.endsWith('/public')) {
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Disponibilidad', data: [] } })
+      return
+    }
+    if (request.method() === 'GET') {
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Slots', data: slots } })
+      return
+    }
+    if (request.method() === 'POST') {
+      const input = request.postDataJSON() as Omit<typeof slots[number], 'scheduleSlotId'>
+      const created = { ...input, scheduleSlotId: 99 }
+      slots = [...slots, created]
+      await route.fulfill({ status: 201, json: { code: 201, message: 'Slot creado', data: created } })
+      return
+    }
+    if (request.method() === 'DELETE') {
+      const id = Number(url.pathname.split('/').at(-1))
+      slots = slots.filter((slot) => slot.scheduleSlotId !== id)
+      await route.fulfill({ status: 200, json: { code: 200, message: 'Slot eliminado', data: null } })
+      return
+    }
+    await route.continue()
+  })
+}
+
+export async function mockContactMessagesApi(
+  page: Page,
+  initialMessages: Array<{
+    contactMessageId: number
+    name: string
+    email: string
+    subject: string
+    message: string
+    createdAt: string
+  }> = [],
+) {
+  const messages = [...initialMessages]
+  await page.route('**/api/v3/contact-messages', async (route) => {
+    const request = route.request()
+    if (request.method() === 'POST') {
+      const input = request.postDataJSON() as {
+        name: string
+        email: string
+        subject: string
+        message: string
+      }
+      const created = {
+        ...input,
+        contactMessageId: messages.length + 1,
+        createdAt: new Date().toISOString(),
+      }
+      messages.splice(0, 0, created)
+      await route.fulfill({
+        status: 201,
+        json: { code: 201, message: 'Mensaje recibido', data: created },
+      })
+      return
+    }
+    if (request.method() === 'GET') {
+      await route.fulfill({
+        status: 200,
+        json: { code: 200, message: 'Mensajes', data: messages },
+      })
+      return
+    }
+    await route.fulfill({ status: 405, json: { code: 405, message: 'Método no permitido', data: null } })
+  })
+  return { messages }
+}
+
+export async function mockDoctorApi(page: Page) {
+  const visits: Array<{
+    medicalVisitId: number
+    appointmentId: number
+    doctorId: number
+    visitDate: string
+    visitReason: string
+    observations: string
+    treatment: string
+    createdAt: string
+    diagnoses: Array<{ diagnosisId: number; diagnosisDescription: string; diagnosisNotes: string }>
+  }> = []
+  let diagnosisId = 1
+
+  await page.route('**/api/v3/**', async (route) => {
+    const { pathname } = new URL(route.request().url())
+    const method = route.request().method()
+    let data: unknown
+    let message = 'OK'
+
+    if (method === 'GET' && pathname === '/api/v3/doctors/me') {
+      await route.fulfill({
+        status: 200,
+        json: { doctorId: 1, userId: 3, medicalLicenseNumber: 'RUM-E2E', active: true, specialtyIds: [1] },
+      })
+      return
+    } else if (method === 'GET' && pathname === '/api/v3/appointments/doctor/1') {
+      data = mockAppointments.map((appointment) => ({
+        appointmentId: appointment.appointmentId,
+        patientUserId: appointment.patientUserId,
+        patientName: appointment.patientName,
+        patientRun: mockUsers.find((user) => user.userId === appointment.patientUserId)?.run ?? '',
+        doctorId: appointment.doctorId,
+        specialtyId: appointment.specialtyId,
+        scheduleSlotId: appointment.scheduleSlotId,
+        slotDate: appointment.date,
+        startTime: `${appointment.time}:00`,
+        endTime: `${appointment.time}:30`,
+        appointmentStatus: appointment.appointmentStatus,
+        reason: appointment.reason,
+      })).filter((appointment) => appointment.doctorId === 1)
+    } else if (method === 'GET' && pathname === '/api/v3/specialties') {
+      data = mockSpecialties.map(({ specialtyId, specialtyName, description, active }) => ({
+        specialtyId, specialtyName, description, active,
+      }))
+    } else if (method === 'POST' && pathname === '/api/v3/medical-records/for-appointment/1') {
+      data = { medicalRecordId: 1, patientId: 4, active: true }
+    } else if (method === 'GET' && /^\/api\/v3\/medical-visit\/\d+$/.test(pathname)) {
+      data = visits
+    } else if (method === 'POST' && pathname === '/api/v3/medical-visit') {
+      const body = route.request().postDataJSON() as {
+        appointmentId: number
+        doctorId: number
+        visitDate: string
+        visitReason: string
+        observations: string
+        treatment: string
+      }
+      const visit = {
+        medicalVisitId: visits.length + 1,
+        ...body,
+        createdAt: '2026-10-11 12:00:00',
+        diagnoses: [],
+      }
+      visits.push(visit)
+      data = visit
+      message = 'Visita médica creada'
+    } else if (method === 'POST' && pathname === '/api/v3/diagnoses') {
+      const body = route.request().postDataJSON() as {
+        medicalVisitId: number
+        diagnosisDescription: string
+        diagnosisNotes: string
+      }
+      const visit = visits.find((item) => item.medicalVisitId === body.medicalVisitId)
+      if (visit) visit.diagnoses.push({ diagnosisId: diagnosisId++, ...body })
+      data = null
+      message = 'Diagnóstico creado'
+    } else if (method === 'PATCH' && pathname === '/api/v3/appointments/1/complete') {
+      const appointment = mockAppointments.find((item) => item.appointmentId === 1)
+      if (appointment) appointment.appointmentStatus = 'COMPLETED'
+      data = null
+      message = 'Cita completada'
+    } else if (method === 'GET' && pathname === '/api/v3/medical-records') {
+      data = visits.length
+        ? [{ medicalRecordId: 1, patientUserId: 4, active: true, visits }]
+        : []
+    } else {
+      await route.fulfill({ status: 404, json: { code: 404, message: `Ruta doctor no simulada: ${method} ${pathname}`, data: null } })
+      return
+    }
+
+    await route.fulfill({ status: 200, json: { code: 200, message, data } })
+  })
+}
+
+export async function mockPatientClinicalHistoryApi(page: Page) {
+  await mockPublicDirectoryApi(page)
+  await page.route('**/api/v3/appointments/patient/4', (route) => {
+    const data = mockAppointments
+      .filter((appointment) => appointment.patientUserId === 4)
+      .map((appointment) => ({
+        appointmentId: appointment.appointmentId,
+        patientUserId: appointment.patientUserId,
+        doctorId: appointment.doctorId,
+        specialtyId: appointment.specialtyId,
+        scheduleSlotId: appointment.scheduleSlotId,
+        slotDate: appointment.date,
+        startTime: `${appointment.time}:00`,
+        endTime: `${appointment.time}:30`,
+        appointmentStatus: appointment.appointmentStatus,
+        reason: appointment.reason,
+      }))
+    return route.fulfill({
+      status: 200,
+      json: { code: 200, message: 'Citas del paciente', data },
+    })
+  })
+  await page.route('**/api/v3/medical-records/me', (route) => route.fulfill({
+    status: 200,
+    json: {
+      code: 200,
+      message: 'Historial clínico obtenido correctamente',
+      data: [{
+        medicalVisitId: 15,
+        appointmentId: 1,
+        doctorId: 1,
+        visitDate: '2026-10-09 09:00:00',
+        visitReason: 'Control general',
+        observations: 'Seguimiento clínico de prueba.',
+        treatment: 'Control en cuatro semanas.',
+        diagnoses: [{
+          diagnosisId: 4,
+          medicalVisitId: 15,
+          diagnosisDescription: 'Migraña persistente',
+          diagnosisNotes: 'E2E simulado',
+        }],
+        vitalSigns: [],
+      }],
+    },
+  }))
+}
+
 export async function freezeMockDate(page: Page) {
   await page.clock.install({ time: new Date('2026-10-11T12:00:00') })
 }
@@ -111,8 +507,15 @@ export async function mockReceptionApi(page: Page) {
     doctorId: appointment.doctorId,
     specialtyId: appointment.specialtyId,
     scheduleSlotId: appointment.scheduleSlotId,
+    slotDate: mockSchedules.find((schedule) => schedule.id === appointment.scheduleSlotId)?.date ?? '',
+    startTime: `${mockSchedules.find((schedule) => schedule.id === appointment.scheduleSlotId)?.time ?? '00:00'}:00`,
+    endTime: `${mockSchedules.find((schedule) => schedule.id === appointment.scheduleSlotId)?.time ?? '00:00'}:30`,
     appointmentStatus: appointment.appointmentStatus,
     reason: appointment.reason,
+    patientName: mockUsers.find((user) => user.userId === appointment.patientUserId)
+      ? `${mockUsers.find((user) => user.userId === appointment.patientUserId)!.firstName} ${mockUsers.find((user) => user.userId === appointment.patientUserId)!.lastName}`.trim()
+      : null,
+    patientRun: mockUsers.find((user) => user.userId === appointment.patientUserId)?.run ?? null,
   }))
   const slots = mockSchedules.map((schedule) => {
     const appointment = appointments.find((item) => item.scheduleSlotId === schedule.id)
@@ -177,34 +580,39 @@ export async function mockReceptionApi(page: Page) {
       return
     } else if (method === 'GET' && pathname === '/api/v3/appointments') {
       responseData = appointments
-    } else if (method === 'GET' && pathname === '/api/v3/schedule-slots') {
+    } else if (method === 'GET' && pathname === '/api/v3/schedule-slots/public') {
+      const doctorId = Number(new URL(route.request().url()).searchParams.get('doctorId'))
       responseData = slots
-    } else if (method === 'GET' && pathname === '/api/v3/users') {
-      responseData = mockUsers.map(({ userId, run }) => ({ userId, run }))
-    } else if (method === 'GET' && pathname === '/api/v3/user-profiles') {
-      responseData = mockUsers.map(({ userId, firstName, lastName }) => ({
-        userProfileId: userId,
-        userId,
-        firstName,
-        lastName,
-        phone: '',
-        birthDate: null,
-        address: '',
-      }))
-    } else if (method === 'GET' && pathname === '/api/v3/doctors') {
-      responseData = mockDoctors.map(({ doctorId, userId, specialtyIds, medicalLicenseNumber, active }) => ({
-        doctorId,
-        userId,
-        specialtyIds,
-        medicalLicenseNumber,
-        active,
-      }))
-    } else if (method === 'GET' && pathname === '/api/v3/specialties') {
-      responseData = {
-        code: 200,
-        message: 'Especialidades obtenidas',
-        data: mockSpecialties.map(({ specialtyId, specialtyName }) => ({ specialtyId, specialtyName })),
-      }
+        .filter((slot) => slot.doctorId === doctorId
+          && (slot.slotStatus === 'DISPONIBLE' || slot.slotStatus === 'LIBERADO_POR_CANCELACION')
+          && slot.appointmentId == null)
+        .map(({ scheduleSlotId, doctorId: slotDoctorId, slotDate, startTime, endTime }) => ({
+          scheduleSlotId,
+          doctorId: slotDoctorId,
+          slotDate,
+          startTime,
+          endTime,
+        }))
+    } else if (method === 'GET' && pathname === '/api/v3/doctors/directory') {
+      responseData = mockDoctors.filter((doctor) => doctor.active).map((doctor) => {
+        const profile = mockUsers.find((user) => user.userId === doctor.userId)
+        return {
+          doctorId: doctor.doctorId,
+          firstName: profile?.firstName ?? '',
+          lastName: profile?.lastName ?? '',
+          medicalLicenseNumber: doctor.medicalLicenseNumber,
+          specialties: doctor.specialtyIds
+            .map((specialtyId) => mockSpecialties.find((specialty) => specialty.specialtyId === specialtyId))
+            .filter((specialty) => specialty?.active)
+            .map((specialty) => ({
+              specialtyId: specialty!.specialtyId,
+              specialtyName: specialty!.specialtyName,
+              description: specialty!.description,
+            })),
+        }
+      })
+    } else if (method === 'GET' && pathname === '/api/v3/specialties/public/active') {
+      responseData = mockSpecialties.filter((specialty) => specialty.active)
     } else if (method === 'PATCH' && pathname.endsWith('/confirm')) {
       const appointmentId = Number(pathname.split('/').at(-2))
       const appointment = appointments.find((item) => item.appointmentId === appointmentId)
@@ -237,6 +645,9 @@ export async function mockReceptionApi(page: Page) {
         if (newSlot) {
           newSlot.slotStatus = 'RESERVADO'
           newSlot.appointmentId = appointment.appointmentId
+          appointment.slotDate = newSlot.slotDate
+          appointment.startTime = newSlot.startTime
+          appointment.endTime = newSlot.endTime
         }
       }
       message = 'Cita actualizada'
@@ -245,12 +656,7 @@ export async function mockReceptionApi(page: Page) {
       return
     }
 
-    const wrappedData = method === 'GET' && pathname === '/api/v3/doctors'
-      ? responseData
-      : method === 'GET' && pathname === '/api/v3/specialties'
-        ? responseData
-        : { code: 200, message, data: responseData }
-    await route.fulfill({ status: 200, json: wrappedData })
+    await route.fulfill({ status: 200, json: { code: 200, message, data: responseData } })
   })
 
   return { appointments, slots }

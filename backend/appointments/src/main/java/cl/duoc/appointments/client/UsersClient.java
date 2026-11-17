@@ -4,9 +4,11 @@ import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import java.util.List;
 
 import cl.duoc.appointments.dto.ApiResponse;
 import cl.duoc.appointments.dto.UserResponseDTO;
+import cl.duoc.appointments.dto.PatientSummaryDTO;
 import lombok.RequiredArgsConstructor;
 
 // Cambio: cliente WebClient hacia users-service para validar existencia de IDs externos.
@@ -55,5 +57,19 @@ public class UsersClient {
         } catch (WebClientResponseException ex) {
             throw new RuntimeException("Error al consultar el usuario autenticado");
         }
+    }
+
+    public List<PatientSummaryDTO> getUserSummaries(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) return List.of();
+        ApiResponse<List<PatientSummaryDTO>> response = webClientBuilder.build().post()
+                .uri("http://users-service/api/v3/users/internal/summaries")
+                .bodyValue(userIds)
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<ApiResponse<List<PatientSummaryDTO>>>() {})
+                .block();
+        if (response == null || response.getData() == null) {
+            throw new RuntimeException("No se pudieron consultar los datos de pacientes");
+        }
+        return response.getData();
     }
 }

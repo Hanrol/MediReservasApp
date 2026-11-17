@@ -5,12 +5,15 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
+import org.springframework.transaction.annotation.Transactional;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import cl.duoc.appointments.client.DoctorsClient;
@@ -19,6 +22,7 @@ import cl.duoc.appointments.dto.DoctorScheduleResponse;
 import cl.duoc.appointments.model.DayOfWeek;
 import cl.duoc.appointments.model.DoctorSchedule;
 import cl.duoc.appointments.repository.DoctorScheduleRepository;
+import cl.duoc.appointments.repository.ScheduleSlotRepository;
 
 @ExtendWith(MockitoExtension.class)
 class DoctorScheduleServiceTest {
@@ -31,6 +35,22 @@ class DoctorScheduleServiceTest {
 
     @Mock
     private DoctorsClient doctorsClient;
+
+    @Mock
+    private ScheduleSlotRepository scheduleSlotRepository;
+
+    @Test
+    void ownershipCheckedMutationsMustKeepTransactionAcrossInternalCalls() throws Exception {
+        assertThat(DoctorScheduleService.class
+                .getMethod("create", DoctorScheduleRequest.class, String.class, java.util.Set.class)
+                .isAnnotationPresent(Transactional.class)).isTrue();
+        assertThat(DoctorScheduleService.class
+                .getMethod("update", Long.class, DoctorScheduleRequest.class, String.class, java.util.Set.class)
+                .isAnnotationPresent(Transactional.class)).isTrue();
+        assertThat(DoctorScheduleService.class
+                .getMethod("delete", Long.class, String.class, java.util.Set.class)
+                .isAnnotationPresent(Transactional.class)).isTrue();
+    }
 
     @Test
     void createShouldSaveScheduleAndReturnResponse() {
@@ -50,6 +70,11 @@ class DoctorScheduleServiceTest {
                 true);
 
         when(doctorScheduleRepository.save(any(DoctorSchedule.class))).thenReturn(saved);
+        when(doctorScheduleRepository.findByDoctorId(10L)).thenReturn(java.util.List.of(saved));
+        when(scheduleSlotRepository.findByDoctorIdAndSlotDateBetween(
+                org.mockito.ArgumentMatchers.eq(10L), any(), any())).thenReturn(java.util.List.of());
+        lenient().when(scheduleSlotRepository.save(any(cl.duoc.appointments.model.ScheduleSlot.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
 
         DoctorScheduleResponse response = doctorScheduleService.create(request);
 
@@ -61,6 +86,8 @@ class DoctorScheduleServiceTest {
         assertThat(response.active()).isTrue();
 
         verify(doctorScheduleRepository).save(any(DoctorSchedule.class));
+        verify(scheduleSlotRepository, atLeast(16))
+                .save(any(cl.duoc.appointments.model.ScheduleSlot.class));
     }
 
     @Test
