@@ -4,6 +4,8 @@ x-backend: &backend
   restart: "no"
   environment: &backend-environment
     EUREKA_URL: http://eureka:8761/eureka/
+    SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 3
+    SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE: 1
   depends_on:
     eureka:
       condition: service_started
