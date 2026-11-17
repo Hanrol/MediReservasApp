@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { randomUUID } from 'node:crypto'
+import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import process from 'node:process'
@@ -12,6 +13,8 @@ const patientEmail = 'patient-e2e@medireservas.local'
 const patientPassword = 'E2ePatient123!'
 const docker = process.platform === 'win32' ? 'docker.exe' : 'docker'
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm'
+const testResultsDirectory = path.join(frontendDirectory, 'test-results')
+const composeLogsPath = path.join(testResultsDirectory, 'e2e-compose-logs.txt')
 
 async function findAvailablePort() {
   const server = createServer()
@@ -33,6 +36,26 @@ function run(command, args, { cwd, env = process.env } = {}) {
     child.once('close', (code, signal) => {
       if (signal) return reject(new Error(`${command} terminó por señal ${signal}`))
       resolve(code ?? 1)
+    })
+  })
+}
+
+function capture(command, args, { cwd, env = process.env } = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd,
+      env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+    })
+    let stdout = ''
+    let stderr = ''
+    child.stdout.setEncoding('utf8').on('data', (chunk) => { stdout += chunk })
+    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk })
+    child.once('error', reject)
+    child.once('close', (code, signal) => {
+      if (signal) return reject(new Error(`${command} terminó por señal ${signal}`))
+      resolve({ code: code ?? 1, stdout, stderr })
     })
   })
 }
@@ -65,6 +88,9 @@ const compose = [
 ]
 let composeMayExist = false
 let testExitCode = 1
+
+await mkdir(testResultsDirectory, { recursive: true })
+await rm(composeLogsPath, { force: true })
 
 try {
   console.log(`Iniciando entorno Docker E2E aislado (${projectName}).`)
@@ -106,6 +132,28 @@ try {
   console.error(error instanceof Error ? error.message : error)
 } finally {
   if (composeMayExist) {
+    console.log('Capturando logs del entorno E2E antes de eliminarlo.')
+    try {
+      const logs = await capture(docker, [...compose, 'logs', '--no-color'], {
+        cwd: repositoryRoot,
+        env: testEnvironment,
+      })
+      const diagnostics = [
+        `docker compose logs --no-color (exit code ${logs.code})`,
+        logs.stdout.trim(),
+        logs.stderr.trim(),
+      ].filter(Boolean).join('\n\n')
+      await writeFile(composeLogsPath, `${diagnostics}\n`, 'utf8')
+      if (testExitCode !== 0) {
+        console.error(`Logs de Compose guardados en ${path.relative(frontendDirectory, composeLogsPath)}.`)
+        process.stderr.write(`${diagnostics}\n`)
+      }
+    } catch (error) {
+      const message = `No se pudieron capturar los logs de Compose: ${error instanceof Error ? error.message : error}`
+      await writeFile(composeLogsPath, `${message}\n`, 'utf8')
+      console.error(message)
+    }
+
     console.log(`Eliminando solo el entorno E2E aislado (${projectName}) y su volumen desechable.`)
     const downCode = await run(docker, [...compose, 'down', '--volumes', '--remove-orphans'], {
       cwd: repositoryRoot,
