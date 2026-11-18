@@ -1,0 +1,152 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: MediReservas - EC2 con Docker/Nginx y RDS MySQL privado.
+
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC existente; puedes elegir la VPC por defecto.
+  PublicSubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Description: Subred publica de esa VPC con salida a Internet.
+  RdsSubnetIds:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Dos o mas subredes de la misma VPC en distintas zonas.
+  KeyPairName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Llave existente para entrar por SSH.
+  AllowedSshCidr:
+    Type: String
+    AllowedPattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}/32$'
+    Description: Tu IPv4 publica con /32, no 0.0.0.0/0.
+  InstanceType:
+    Type: String
+    Default: t3.medium
+    AllowedValues: [t3.medium, t2.medium]
+    Description: 4 GiB de RAM para los siete contenedores; comprobar consumo real.
+  DbInstanceClass:
+    Type: String
+    Default: db.t3.micro
+    AllowedValues: [db.t3.micro, db.t3.small, db.t3.medium]
+  DbMasterUsername:
+    Type: String
+    Default: medires_admin
+    AllowedPattern: '^[A-Za-z][A-Za-z0-9_]{0,15}$'
+  DbMasterPassword:
+    Type: String
+    NoEcho: true
+    AllowedPattern: '^[A-Za-z0-9]{16,41}$'
+    Description: Genera con openssl rand -hex 20 y guarda el valor para el .env.
+  DuckDnsSubdomain:
+    Type: String
+    Default: crispardos
+    AllowedPattern: '^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$'
+    Description: Sin .duckdns.org; el token se carga despues por SSH.
+  AmiId:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64
+
+Resources:
+  AppSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: Public HTTP/HTTPS and restricted SSH.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref AllowedSshCidr
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+        - IpProtocol: "-1"
+          CidrIp: 0.0.0.0/0
+
+  DatabaseSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref VpcId
+      GroupDescription: MySQL only from the application security group.
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref AppSecurityGroup
+
+  DatabaseSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: Existing VPC subnets for private RDS.
+      SubnetIds: !Ref RdsSubnetIds
+
+  Database:
+    Type: AWS::RDS::DBInstance
+    # Demo desechable: borrar la pila elimina sus datos, sin snapshot final.
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
+    Properties:
+      Engine: mysql
+      DBInstanceClass: !Ref DbInstanceClass
+      AllocatedStorage: "20"
+      StorageType: gp2
+      StorageEncrypted: true
+      DBSubnetGroupName: !Ref DatabaseSubnetGroup
+      VPCSecurityGroups: [!Ref DatabaseSecurityGroup]
+      PubliclyAccessible: false
+      MultiAZ: false
+      BackupRetentionPeriod: 0
+      DeletionProtection: false
+      MasterUsername: !Ref DbMasterUsername
+      MasterUserPassword: !Ref DbMasterPassword
+
+  AppInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref AmiId
+      InstanceType: !Ref InstanceType
+      KeyName: !Ref KeyPairName
+      MetadataOptions:
+        HttpTokens: required
+        HttpPutResponseHopLimit: 1
+      NetworkInterfaces:
+        - DeviceIndex: "0"
+          AssociatePublicIpAddress: true
+          DeleteOnTermination: true
+          SubnetId: !Ref PublicSubnetId
+          GroupSet: [!Ref AppSecurityGroup]
+      BlockDeviceMappings:
+        - DeviceName: /dev/xvda
+          Ebs:
+            VolumeSize: 20
+            VolumeType: gp2
+            DeleteOnTermination: true
+      Tags:
+        - Key: Name
+          Value: medireservas-cloud
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          set -euo pipefail
+          dnf install -y git
+          git clone --depth 1 --single-branch --branch cloud \
+            https://github.com/Hanrol/MediReservasApp.git /opt/medireservas
+          bash /opt/medireservas/infra/instalar.sh \
+            '${Database.Endpoint.Address}' '${DbMasterUsername}' '${DuckDnsSubdomain}'
+
+Outputs:
+  InstanceId:
+    Value: !Ref AppInstance
+  PublicIp:
+    Value: !GetAtt AppInstance.PublicIp
+  DatabaseEndpoint:
+    Value: !GetAtt Database.Endpoint.Address
+  ApiBaseUrl:
+    Value: !Sub "https://${DuckDnsSubdomain}.duckdns.org/api/v3"
+  SshCommand:
+    Value: !Sub "ssh -i tu-llave.pem ec2-user@${AppInstance.PublicIp}"
