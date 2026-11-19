@@ -34,8 +34,8 @@ Parameters:
   DbMasterPassword:
     Type: String
     NoEcho: true
-    AllowedPattern: '^[A-Za-z0-9]{16,41}$'
-    Description: Genera con openssl rand -hex 20 y guarda el valor para el .env.
+    AllowedPattern: '^[A-Za-z0-9]{8,41}$'
+    Description: Minimo 8 caracteres, solo letras y numeros; guarda el valor para el .env.
   DuckDnsSubdomain:
     Type: String
     Default: crispardos

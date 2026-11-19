@@ -14,11 +14,11 @@ No se compila Java en AWS: la EC2 descarga las imágenes públicas de Docker Hub
 | Archivo | Para qué sirve |
 |---|---|
 | `template.yaml` | CloudFormation crea la EC2, RDS y los Security Groups. Su `UserData` clona `cloud` y ejecuta `instalar.sh`. |
-| `instalar.sh` | Lo ejecuta automáticamente `UserData`: instala Docker, Nginx y Compose. No lo ejecutes tú. |
+| `instalar.sh` | Lo ejecuta automáticamente `UserData`: instala Docker, Nginx y Compose. No crea timers. No lo ejecutes tú. |
 | `.env.example` | Plantilla de configuración. Tiene `CAMBIAR`, nunca pongas aquí las claves reales. |
-| `desplegar.sh` | El único comando de despliegue que ejecutarás manualmente después de completar `.env`. |
+| `desplegar.sh` | El único comando de despliegue manual: prepara RDS, actualiza DuckDNS, configura HTTPS y arranca Compose. |
 | `preparar-rds.sh` | Lo llama `desplegar.sh` para crear las cinco bases y sus usuarios en RDS. |
-| `actualizar-duckdns.sh` | Lo llama `desplegar.sh` y luego un timer para actualizar la IP de `crispardos.duckdns.org`. |
+| `actualizar-duckdns.sh` | Lo llama `desplegar.sh` para asociar `crispardos.duckdns.org` con la IP pública de la EC2. También puedes ejecutarlo solo. |
 | `compose.aws.yaml` | Define los siete servicios y sus conexiones a RDS. |
 | `nginx.conf` | Nginx lo usa para recibir HTTPS y reenviar `/api/v3` al Gateway. |
 | `README.md` | Esta guía. |
@@ -42,14 +42,11 @@ No se compila Java en AWS: la EC2 descarga las imágenes públicas de Docker Hub
    desde GitHub; si no haces el `push`, no podrá encontrarlos.
 3. Ten una **Key Pair de EC2**. Si no tienes una, créala desde EC2 → Key Pairs y guarda el archivo `.pem`.
 4. Averigua tu IP pública. En CloudFormation la ingresarás como `tu.ip.publica/32`; por ejemplo `203.0.113.25/32`. Esto limita SSH a tu computador.
-5. Genera una contraseña para RDS en Git Bash o WSL y guárdala temporalmente:
-
-   ```bash
-   openssl rand -hex 20
-   ```
-
-   Es una clave de 40 caracteres. La ingresarás al crear la pila y luego copiarás
-   **el mismo valor** al `.env` de la EC2. No la pegues en Git ni en un chat.
+5. Elige una contraseña para RDS y guárdala temporalmente. El mínimo de RDS es
+   8 caracteres, solo letras y números; para el lab puede ser corta, por ejemplo
+   `medires123`. La ingresarás al crear la pila y luego copiarás **el mismo
+   valor** al `.env` de la EC2. No la pegues en Git ni en un chat. Para un
+   despliegue real, genera una clave larga con `openssl rand -hex 20`.
 
 ## Paso 1: crear EC2 y RDS con CloudFormation
 
@@ -68,7 +65,7 @@ No se compila Java en AWS: la EC2 descarga las imágenes públicas de Docker Hub
    | `InstanceType` | Deja `t3.medium`, si está permitido por el lab. |
    | `DbInstanceClass` | Deja `db.t3.micro`, si está permitido por el lab. |
    | `DbMasterUsername` | Deja `medires_admin`. |
-   | `DbMasterPassword` | Pega la contraseña que generaste en el paso anterior. |
+   | `DbMasterPassword` | La contraseña de RDS: mínimo 8, solo letras y números. |
    | `DuckDnsSubdomain` | Deja `crispardos` (sin `.duckdns.org`). |
    | `AmiId` | Deja el valor predeterminado: Amazon Linux 2023 x86_64. |
 
@@ -159,16 +156,16 @@ No los cambies. Completa las líneas `CAMBIAR`:
 
 | Variable | Qué valor poner |
 |---|---|
-| `RDS_MASTER_PASSWORD` | La misma contraseña que ingresaste en CloudFormation. |
+| `RDS_MASTER_PASSWORD` | La misma contraseña que ingresaste en CloudFormation (mínimo 8, letras y números). |
 | `DUCKDNS_TOKEN` | Tu token privado de DuckDNS. No lo envíes ni lo subas a Git. |
 | `LETSENCRYPT_EMAIL` | Un correo tuyo para el certificado HTTPS. |
-| `AUTH_DB_PASSWORD`, `USERS_DB_PASSWORD`, `DOCTORS_DB_PASSWORD`, `APPOINTMENTS_DB_PASSWORD`, `MEDICAL_RECORDS_DB_PASSWORD` | Genera una clave distinta para cada una con `openssl rand -hex 24`. |
-| `MASTER_ADMIN_PASSWORD` | Genera otra clave con `openssl rand -hex 24`. |
-| `JWT_SECRET` | Genera una clave con `openssl rand -hex 32`. |
+| `AUTH_DB_PASSWORD`, `USERS_DB_PASSWORD`, `DOCTORS_DB_PASSWORD`, `APPOINTMENTS_DB_PASSWORD`, `MEDICAL_RECORDS_DB_PASSWORD` | Cualquier valor corto con letras, números o `_`; uno distinto por servicio. |
+| `MASTER_ADMIN_PASSWORD` | Cualquier valor; para el lab puede ser corto. |
+| `JWT_SECRET` | Al menos 32 caracteres; el servicio auth lo exige. |
 
-Puedes generar claves desde la EC2: escribe `openssl rand -hex 24` en la
-terminal, copia su resultado y pégalo en una línea de `.env`; repítelo para
-cada variable. El token DuckDNS solo lo usa el script del host, no los
+Si quieres claves largas, puedes generarlas desde la EC2 con
+`openssl rand -hex 12` y pegarlas en `.env`. No es obligatorio: para el lab
+sirven claves cortas. El token DuckDNS solo lo usa el script del host, no los
 contenedores.
 
 Deja `DOCKERHUB_USER=benjamincubillosduoc` e `IMAGE_TAG=latest`. Conserva
@@ -186,16 +183,19 @@ sudo bash desplegar.sh
 
 El script hace automáticamente lo siguiente:
 
-1. Comprueba que completaste `.env`.
+1. Comprueba que `.env` exista y que no queden valores `CAMBIAR`.
 2. `preparar-rds.sh` crea las cinco bases y usuarios en RDS. No crea tablas:
    Flyway las crea cuando arrancan los servicios.
 3. Descarga de Docker Hub las siete imágenes públicas. **No compila Java y no
    requiere `docker login`.**
 4. `actualizar-duckdns.sh` asocia `crispardos.duckdns.org` con la IP pública
    actual de EC2.
-5. Verifica que el dominio llegue a esta EC2, obtiene el certificado y activa
+5. Espera a que el dominio llegue a esta EC2, obtiene el certificado y configura
    Nginx con HTTPS.
 6. Arranca Compose y espera una respuesta del Gateway.
+
+No se crean timers. Si reinicias la EC2 y cambia su IP, ejecuta
+`sudo bash actualizar-duckdns.sh` para actualizar solo el dominio.
 
 Al terminar, la API debería estar disponible en:
 
@@ -210,7 +210,7 @@ En la EC2 puedes revisar los contenedores y sus logs:
 ```bash
 sudo docker compose --env-file .env -f compose.aws.yaml ps
 sudo docker compose --env-file .env -f compose.aws.yaml logs --tail=100
-sudo systemctl list-timers 'medireservas-*'
+sudo systemctl status nginx
 ```
 
 Desde PowerShell en tu computador, comprueba la API:
@@ -229,9 +229,20 @@ un Pull Request). El `git add infra` anterior no incluye ese workflow.
 - **No aparece “Instalación lista”:** ejecuta
   `sudo tail -n 100 /var/log/cloud-init-output.log`.
 - **El despliegue indica que DuckDNS no apunta a EC2:** revisa el subdominio y
-  token en `.env`, y confirma que el SG permite puerto 80.
+  token en `.env`, confirma que el SG permite el puerto 80 y ejecuta
+  `sudo bash actualizar-duckdns.sh`.
 - **RDS no responde:** comprueba que el endpoint y la contraseña en `.env`
   coincidan con CloudFormation y que EC2 y RDS estén en la misma VPC.
+- **Reiniciaste la EC2 y cambió la IP:** ejecuta
+  `sudo bash actualizar-duckdns.sh` (solo DNS) o `sudo bash desplegar.sh` (todo).
+- **Reutilizas una EC2 de un despliegue anterior:** elimina los timers viejos:
+
+  ```bash
+  sudo systemctl disable --now medireservas-duckdns.timer medireservas-renovar.timer
+  sudo rm -f /etc/systemd/system/medireservas-*
+  sudo systemctl daemon-reload
+  ```
+
 - **Un contenedor no inicia:** revisa `docker compose logs --tail=100`.
 - **La web funciona pero el navegador informa un error CORS:** confirma que
   `CORS_ALLOWED_ORIGINS` sea el origen de Pages, normalmente
@@ -239,8 +250,8 @@ un Pull Request). El `git add infra` anterior no incluye ese workflow.
 
 `CREATE_COMPLETE` solo significa que CloudFormation creó los recursos; no
 garantiza que `UserData` haya terminado. Si reinicias EC2, `UserData` no vuelve
-a ejecutarse: Docker y Nginx arrancan como servicios y DuckDNS se actualiza
-cada cinco minutos.
+a ejecutarse: Docker y Nginx arrancan como servicios. Si la IP cambió, ejecuta
+`sudo bash actualizar-duckdns.sh`.
 
 ## Costo y eliminación
 
