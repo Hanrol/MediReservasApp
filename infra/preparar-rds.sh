@@ -29,13 +29,19 @@ mysql_client() {
     mysql:8.0 mysql --defaults-extra-file=/client.cnf "$@"
 }
 
+echo "[RDS] Comprobando el cliente MySQL y el acceso a RDS. La primera vez puede descargarse mysql:8.0..."
 for attempt in {1..30}; do
   mysql_client --execute="SELECT 1" >/dev/null 2>&1 && break
+  # Informar cada 30 segundos sin mostrar errores transitorios del cliente.
+  if (( attempt % 6 == 0 )); then
+    echo "[RDS] Aún esperando acceso (intento $attempt/30)..."
+  fi
   sleep 5
 done
 mysql_client --execute="SELECT 1" >/dev/null 2>&1 ||
-  { echo "RDS no responde; revisa endpoint y credenciales."; exit 1; }
+  { echo "[ERROR] No se pudo verificar RDS. Revisa endpoint, usuario/contraseña y que Docker pueda descargar mysql:8.0."; exit 1; }
 
+echo "[RDS] Conexión verificada. Creando bases de datos y usuarios..."
 service_sql() {
   local name=$1 password=$2
   cat <<EOF
@@ -53,4 +59,4 @@ EOF
   service_sql appointments "$APPOINTMENTS_DB_PASSWORD"
   service_sql medical_records "$MEDICAL_RECORDS_DB_PASSWORD"
 } | mysql_client --batch
-echo "Bases y usuarios preparados. Flyway creará las tablas al iniciar los servicios."
+echo "[RDS] Bases y usuarios preparados. Flyway creará las tablas al iniciar los servicios."
