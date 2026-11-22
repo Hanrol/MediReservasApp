@@ -1,20 +1,13 @@
-# MediReservasApp — Frontend
+# Frontend de MediReservasApp
 
-SPA web para pacientes, médicos, recepción y administración.
-
-## Estado y alcance
-
-- La navegación usa React Router con `HashRouter`, compatible con GitHub Pages.
-- Los servicios usan datos simulados y `localStorage` separados por dominio. **El frontend todavía no está integrado con la API ni con la base de datos del backend.**
-- Los roles y rutas principales están implementados con guards de autenticación y autorización.
-- El detalle del médico permite revisar horarios referenciales y comenzar una reserva con médico/especialidad preseleccionados.
+SPA para pacientes, médicos, recepción y administración. El frontend contiene flujos conectados al backend REST y también datos/almacenamiento local usados por componentes y pruebas de desarrollo; no todos los datos de demostración representan datos de producción.
 
 ## Tecnologías
 
-- React 19, TypeScript 6 y Vite 8.
-- Tailwind CSS 4.
-- Vitest, React Testing Library y cobertura V8.
-- Playwright 1.64 para pruebas E2E en Chromium.
+- React 19, TypeScript 6 y Vite 8
+- React Router con `HashRouter`, compatible con GitHub Pages
+- Tailwind CSS 4
+- Vitest, React Testing Library y Playwright
 
 ## Requisitos y ejecución local
 
@@ -25,72 +18,74 @@ npm ci
 npm run dev
 ```
 
-Vite inicia la aplicación en `http://localhost:5173`. Para generar y revisar la versión de producción:
+Vite inicia en `http://localhost:5173`. En desarrollo, las llamadas `/api` se envían por proxy a `http://localhost:9013`, que debe ser accesible. Para cambiar el destino:
+
+```powershell
+$env:VITE_DEV_API_PROXY_TARGET = "http://localhost:9013"
+npm run dev
+```
+
+El Gateway y los servicios se pueden iniciar siguiendo [`../backend/README.md`](../backend/README.md).
+
+## API y compilación
+
+`src/services/api-client.ts` centraliza las solicitudes REST, el formato JSON, los errores y el encabezado Bearer para operaciones autenticadas.
+
+- Si `VITE_API_URL` no está definida, el cliente usa `/api/v3` relativo al mismo dominio.
+- GitHub Pages necesita una URL absoluta; el workflow de despliegue define `VITE_API_URL` al compilar la app.
+- El `base` de Vite para producción es `/MediReservasApp/`.
+- No pongas contraseñas, tokens privados ni secretos en variables `VITE_*`: sus valores quedan incluidos en los archivos públicos del frontend.
+
+Compilar y revisar el build:
 
 ```bash
 npm run build
 npm run preview
 ```
 
-## Estructura de `src`
+Para desplegar una copia local detrás de Nginx, compila sin `VITE_API_URL` para que use `/api/v3` y consulta [`../docs/deploy-local-server.md`](../docs/deploy-local-server.md).
 
-```text
-src/
-├── app/          # App y registro de rutas
-├── components/   # Layout, navegación, citas, formularios y UI compartida
-├── constants/    # Rutas, roles y estados de citas
-├── contexts/     # Contexto de autenticación
-├── data/         # Datos simulados
-├── guards/       # Protección de rutas por sesión y rol
-├── hooks/        # Hooks de autenticación y dominios
-├── pages/        # public, shared, admin, recepcion, medico y paciente
-├── services/     # Lógica de aplicación por dominio
-├── storage/      # Persistencia local temporal
-├── tests/        # Unitarias, componentes, hooks y rutas
-├── types/        # Tipos TypeScript
-└── utils/        # Validaciones y transformaciones
-```
+## Sesión y rutas
 
-`main.tsx` monta `AuthProvider` dentro de `HashRouter`. Las rutas, nombres y roles se centralizan en `src/constants/routes.ts`, `src/constants/roles.ts` y `src/app/routeConfig.ts`.
+- `AuthContext` mantiene el estado de sesión en la aplicación.
+- La sesión del navegador se guarda bajo `medireservas_session`; no se guarda la contraseña.
+- `AuthGuard` protege rutas autenticadas y `RoleGuard` comprueba los roles permitidos.
+- La API también aplica autorización en el Gateway; ocultar o proteger una ruta en el frontend no sustituye la autorización del backend.
 
-## Pruebas y cobertura
+## Pruebas y calidad
+
+Desde `frontend/`:
 
 ```bash
-npm test                 # Suite Vitest
-npm run test:coverage    # Vitest + reporte V8 en coverage/
-npm run test:e2e         # Playwright E2E en Chromium
-npm run lint             # ESLint
+npm run lint
+npm test
+npm run test:coverage
+npm run test:e2e
 ```
 
-Los tests usan identificadores CP trazables al Excel. En el último corte se ejecutaron **128 tests Vitest y 12 E2E Playwright**; el reporte de cobertura registró **95,11 % de líneas**, 90,55 % de sentencias, 95,29 % de funciones y 78,66 % de ramas. Vitest aplica umbrales mínimos globales de 95 % líneas, 90 % sentencias, 95 % funciones y 75 % ramas.
-
-Las pruebas Playwright arrancan Vite automáticamente en el puerto 4173 mediante `playwright.config.ts`. Para instalar el navegador localmente:
+Instala Chromium para Playwright si hace falta:
 
 ```bash
 npx playwright install chromium
 ```
 
-Los E2E cubren reserva de paciente, administración/recepción, observación e historial, control de acceso y responsive en vistas seleccionadas. Trabajan con los datos simulados del frontend; **no son pruebas de integración con el backend**. Los reportes de Playwright quedan en `playwright-report/` y `test-results/`.
+`npm run test:e2e` usa los datos simulados del frontend. La suite E2E real usa un backend y una base aislados, escribe datos sintéticos y tiene precauciones propias: consulta [`e2e/real/README.md`](e2e/real/README.md) antes de ejecutarla.
+
+## Estructura principal
+
+```text
+src/
+├── app/          # Aplicación y rutas
+├── components/   # Componentes compartidos
+├── contexts/     # Estado global, incluida autenticación
+├── guards/       # Protección por sesión y rol
+├── pages/        # Vistas por dominio y perfil
+├── services/     # Cliente API y lógica de aplicación
+├── storage/      # Persistencia local de sesión/datos de desarrollo
+├── tests/        # Tests unitarios y de componentes
+└── types/        # Tipos TypeScript
+```
 
 ## Integración continua
 
-`.github/workflows/frontend-ci.yml` ejecuta en GitHub Actions:
-
-1. `npm ci` y ESLint.
-2. Vitest con cobertura y umbrales.
-3. Instalación de Chromium y suite Playwright.
-4. Publicación de reportes de pruebas como artefactos.
-5. Build de producción y despliegue en GitHub Pages al hacer push a `main`.
-
-La ejecución del workflow remoto debe verificarse en la pestaña **Actions** del repositorio.
-
-## Usuarios de demostración
-
-Estas credenciales solo sirven para la versión local con datos simulados; no son cuentas de producción.
-
-| Rol | Correo | Contraseña |
-|---|---|---|
-| Administrador | `administrador@medireservas.cl` | `Admin123` |
-| Recepción | `recepcion@medireservas.cl` | `Recepcion123` |
-| Médico | `medico@medireservas.cl` | `Medico123` |
-| Paciente | `paciente@medireservas.cl` | `Paciente123` |
+`.github/workflows/frontend-ci.yml` ejecuta lint, tests unitarios, E2E, build y, en la rama configurada, despliegue a GitHub Pages. La URL de API para Pages se define durante el build en ese workflow; consulta la configuración de la rama antes de cambiar el destino.
