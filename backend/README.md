@@ -1,285 +1,134 @@
-# MediReservas
+# Backend de MediReservasApp
 
-## Descripción del proyecto
+Backend Java 21 organizado en microservicios Spring Boot. Cada servicio de dominio mantiene su lógica y sus modelos; el Gateway enruta las solicitudes REST y aplica autenticación/autorización. Eureka permite descubrir los servicios y MySQL contiene bases lógicas separadas por dominio.
 
-MediReservas es un sistema de reservas médicas desarrollado bajo una arquitectura de microservicios con Spring Boot. El objetivo del proyecto es permitir la gestión modular de procesos médicos como autenticación, administración de usuarios, médicos, especialidades, horarios, reservas, pagos, fichas médicas, recetas, notificaciones y reportes administrativos.
+## Servicios activos
 
-El sistema utiliza una arquitectura distribuida donde cada microservicio posee su propia base de datos, manteniendo independencia de datos y separación de responsabilidades. Además, se incorporan componentes de infraestructura como Eureka Server para descubrimiento de servicios y API Gateway como punto de entrada centralizado con validación JWT.
+| Módulo | Puerto al ejecutarlo en el host | Base lógica | Responsabilidad |
+| --- | ---: | --- | --- |
+| `auth` | 9001 | `auth_db` | Login, usuarios de autenticación, roles y JWT |
+| `users` | 9002 | `users_db` | Usuarios y perfiles |
+| `doctors` | 9003 | `doctors_db` | Médicos y especialidades |
+| `appointments` | 9006 | `appointments_db` | Citas, horarios, bloques y ausencias |
+| `medical-records` | 9008 | `medical_records_db` | Fichas, visitas, diagnósticos y signos vitales |
+| `eureka` | 8761 | — | Registro y descubrimiento de servicios |
+| `gateway` | 9013 | — | Entrada REST, enrutamiento y autorización |
 
-## Integrantes
+El Compose local inicia una instancia MySQL con las cinco bases lógicas. No hay microservicios activos independientes para especialidades, pagos, recetas, notificaciones o reportes en la configuración actual.
 
-* Benjamín Cubillos
-* Renato Troncoso
-* Cristóbal Pardo
+## Requisitos
 
+- Java 21
+- Maven
+- Docker Compose v2
 
-## Microservicios implementados
+## Ejecutar todo con Docker Compose
 
-| Servicio                | Puerto | Base de datos      | Responsabilidad                                                 |
-| ----------------------- | -----: | ------------------ | --------------------------------------------------------------- |
-| Auth Service            |   9001 | auth_db            | Autenticación, roles y generación/validación de tokens JWT.     |
-| Users Service           |   9002 | users_db           | Gestión de usuarios, perfiles generales y perfiles específicos. |
-| Doctors Service         |   9003 | doctors_db         | Gestión profesional de médicos y especialidades asociadas.      |
-| Specialties Service     |   9004 | specialties_db     | Catálogo de especialidades médicas.                             |
-| Schedule Service        |   9005 | schedules_db       | Horarios médicos, ausencias y bloques de agenda.                |
-| Appointments Service    |   9006 | appointments_db    | Gestión de reservas médicas y estados de cita.                  |
-| Payments Service        |   9007 | payments_db        | Pagos, comprobantes y reembolsos.                               |
-| Medical Records Service |   9008 | medical_records_db | Fichas médicas, visitas, diagnósticos y signos vitales.         |
-| Prescriptions Service   |   9009 | prescriptions_db   | Prescripciones médicas e ítems de receta.                       |
-| Notifications Service   |   9010 | notifications_db   | Notificaciones y plantillas de notificación.                    |
-| Reports Service         |   9011 | reports_db         | Solicitudes y reportes generados.                               |
-| Eureka Server           |   8761 | No aplica          | Descubrimiento y registro de microservicios.                    |
-| API Gateway             |   9013 | No aplica          | Punto de entrada, enrutamiento y validación JWT.                |
-
-## Rutas principales del API Gateway
-
-El API Gateway se ejecuta en:
+Desde la raíz del repositorio:
 
 ```bash
-http://localhost:9013
-```
-
-Rutas principales:
-
-| Servicio               | Ruta por Gateway                    |
-| ---------------------- | ----------------------------------- |
-| Auth                   | `/api/v3/auth/**`                   |
-| Users                  | `/api/v3/users/**`                  |
-| User Profiles          | `/api/v3/user-profiles/**`          |
-| Patient Profiles       | `/api/v3/patient-profiles/**`       |
-| Receptionist Profiles  | `/api/v3/receptionist-profiles/**`  |
-| Administrator Profiles | `/api/v3/administrator-profiles/**` |
-| Doctors                | `/api/v3/doctors/**`                |
-| Specialties            | `/api/v3/specialties/**`            |
-| Doctor Schedules       | `/api/v3/doctor-schedules/**`       |
-| Doctor Time Off        | `/api/v3/doctor-time-off/**`        |
-| Schedule Slots         | `/api/v3/schedule-slots/**`         |
-| Appointments           | `/api/v3/appointments/**`           |
-| Payments               | `/api/payments/**`                  |
-| Medical Records        | `/api/v3/medical-records/**`        |
-| Medical Visits         | `/api/v3/medical-visit/**`          |
-| Diagnoses              | `/api/v3/diagnoses/**`              |
-| Vital Signs            | `/api/v3/vital-signs/**`            |
-| Prescriptions          | `/api/v3/prescriptions/**`          |
-| Prescription Items     | `/api/v3/prescription-items/**`     |
-| Notifications          | `/api/v3/notifications/**`          |
-| Notification Templates | `/api/v3/notification-templates/**` |
-| Reports Request        | `/api/v3/reports-request/**`        |
-| Generated Reports      | `/api/v3/generated-reports/**`      |
-
-Rutas públicas principales:
-
-```bash
-POST /api/v3/auth/login
-POST /api/v3/auth/register
-GET  /actuator/health
-```
-
-El resto de rutas protegidas requiere token JWT en el header:
-
-```bash
-Authorization: Bearer <token>
-```
-
-El Gateway responde `401` cuando falta o no es válido el token y `403` cuando el rol no está autorizado. La matriz inicial permite a `ADMIN` todas las rutas; `RECEPTIONIST` gestiona usuarios/perfiles y citas; `DOCTOR` usa agenda, citas médicas y registros clínicos; `PATIENT` consulta el catálogo y las rutas de citas/perfil de paciente. Las rutas no incluidas en la matriz se deniegan por defecto.
-
-La autorización del Gateway es por ruta, método y rol. Appointments valida la propiedad del paciente al crear/cancelar citas y consultar su lista, y la propiedad del médico al listar/actualizar el estado de sus citas y gestionar su agenda/horarios. Users valida la propiedad al consultar el perfil de paciente por `userId`. Medical Records verifica las relaciones paciente/médico/cita al crear visitas, aplica comprobaciones por médico a visitas y datos clínicos anidados, y filtra los detalles de registros por médico. Tras una prueba E2E temporal por Gateway con dos JWT de médicos, se habilitaron lecturas clínicas filtradas y escrituras de visitas, diagnósticos y signos vitales protegidas por ownership. La administración de fichas (crear/activar/desactivar/eliminar) sigue restringida a `ADMIN`/`RECEPTIONIST`. El detalle interno de citas para comunicación entre servicios está denegado explícitamente en Gateway para todos los roles. Revisar todas las rutas que acepten IDs de usuario/recurso antes de producción.
-
-## Documentación Swagger
-
-Cada microservicio expone documentación Swagger de forma local mediante:
-
-```bash
-http://localhost:<PUERTO>/swagger-ui/index.html
-```
-
-Enlaces locales principales:
-
-* Auth Service: http://localhost:9001/swagger-ui/index.html
-* Users Service: http://localhost:9002/swagger-ui/index.html
-* Doctors Service: http://localhost:9003/swagger-ui/index.html
-* Specialties Service: http://localhost:9004/swagger-ui/index.html
-* Schedule Service: http://localhost:9005/swagger-ui/index.html
-* Appointments Service: http://localhost:9006/swagger-ui/index.html
-* Payments Service: http://localhost:9007/swagger-ui/index.html
-* Medical Records Service: http://localhost:9008/swagger-ui/index.html
-* Prescriptions Service: http://localhost:9009/swagger-ui/index.html
-* Notifications Service: http://localhost:9010/swagger-ui/index.html
-* Reports Service: http://localhost:9011/swagger-ui/index.html
-
-Eureka Server:
-
-```bash
-http://localhost:8761
-```
-
-API Gateway:
-
-```bash
-http://localhost:9013
-```
-
-## Instrucciones de ejecución local
-
-### Requisitos previos
-
-* Java 21
-* Maven
-* Docker Desktop
-* MySQL mediante contenedores Docker
-* IDE recomendado: Visual Studio Code o IntelliJ IDEA
-
-### 1. Clonar el repositorio
-
-```bash
-git clone https://github.com/GabFloresLuna/MediReservas.git
-cd MediReservas
-```
-
-### 2. Configuración Docker del backend
-
-Desde la raíz del repositorio, copiar `.env.example` a `.env` y cambiar las credenciales antes de usarlo fuera del entorno local:
-
-```bash
-cp .env.example .env
-```
-
-En el Compose local, `users` crea automáticamente la cuenta ADMIN maestra al iniciar y repara sus perfiles/estado en reinicios. Valores locales iniciales: `admin@medireservas.local` / `Admin123!` (configurables con `MASTER_ADMIN_EMAIL` y `MASTER_ADMIN_PASSWORD`). Son credenciales solo de desarrollo: cámbialas en `.env` antes de compartir o desplegar. En `compose.prod.yaml`, correo, contraseña y RUN de la cuenta se exigen como variables; usa secretos propios y únicos.
-
-Levantar solo MySQL (útil para el flujo de desarrollo con Maven):
-
-```bash
-docker compose up -d mysql
-```
-
-El Compose maestro construye e inicia MySQL, Eureka, los cinco servicios activos y Gateway:
-
-```bash
+if [ ! -f .env ]; then cp .env.example .env; fi
 docker compose up --build -d
+docker compose ps
 ```
 
-Para bajar los contenedores sin borrar los datos de MySQL:
+En PowerShell, crea `.env` solo si aún no existe: `if (-not (Test-Path .env)) { Copy-Item .env.example .env }`. No sobrescribas un `.env` existente. Los valores del ejemplo son para desarrollo; utiliza secretos propios en cualquier entorno compartido y no subas `.env`.
+
+El Compose local publica MySQL en el puerto `3311`, Eureka en `8761` y Gateway en `9013`. Los puertos de los servicios de dominio permanecen internos a la red Docker.
+
+Para detener los contenedores sin borrar el volumen de datos:
 
 ```bash
 docker compose down
 ```
 
-El Compose de producción usa imágenes publicadas en Docker Hub, incluyendo `DOCKERHUB_USER` e `IMAGE_TAG` del `.env`:
+No uses `docker compose down -v` salvo que quieras eliminar también los datos de MySQL.
+
+## Ejecutar un microservicio desde Maven y abrir Swagger
+
+Para inspeccionar directamente Swagger de un servicio en desarrollo, inicia MySQL y Eureka con Compose:
 
 ```bash
-docker compose -f compose.prod.yaml pull
-docker compose -f compose.prod.yaml up -d
+docker compose up -d mysql eureka
 ```
 
-Las imágenes de producción deben publicarse previamente con los nombres definidos en `compose.prod.yaml`. No ejecutar `down -v` salvo que se quiera borrar permanentemente el volumen de la base de datos.
-
-### 3. Levantar Eureka Server
-
-Eureka debe iniciarse antes que los microservicios, ya que permite el registro y descubrimiento de servicios.
+En otra terminal, inicia el módulo deseado desde su carpeta. Ejemplo para Doctors:
 
 ```bash
-cd eureka
+cd backend/doctors
 mvn spring-boot:run
 ```
 
-Panel de Eureka:
+Swagger UI de Doctors: `http://localhost:9003/swagger-ui/index.html`
 
-```bash
-http://localhost:8761
+OpenAPI JSON: `http://localhost:9003/v3/api-docs`
+
+Otros servicios con Swagger usan el mismo sufijo `/swagger-ui/index.html` en su puerto local. El Compose de producción no publica esos puertos ni expone Swagger por el Gateway.
+
+En Windows también existe `backend/start-backend.ps1`, que inicia MySQL y los servicios Spring en procesos Maven locales. Desde `backend/`:
+
+```powershell
+.\start-backend.ps1
 ```
 
-### 4. Levantar los microservicios
+Para detener los procesos Spring sin borrar la base:
 
-Desde la carpeta de cada microservicio:
-
-```bash
-mvn spring-boot:run
+```powershell
+.\start-backend.ps1 -Stop
 ```
 
-Ejemplo:
+## Rutas del Gateway
 
-```bash
-cd auth
-mvn spring-boot:run
+El Gateway local responde en `http://localhost:9013`. Las rutas principales conservan el prefijo `/api/v3`:
+
+| Dominio | Prefijo |
+| --- | --- |
+| Auth | `/api/v3/auth/**` |
+| Users, perfiles y registros | `/api/v3/users/**`, `/api/v3/user-profiles/**`, `/api/v3/patient-profiles/**`, `/api/v3/receptionist-profiles/**`, `/api/v3/administrator-profiles/**`, `/api/v3/patient-registrations/**` |
+| Doctors y especialidades | `/api/v3/doctors/**`, `/api/v3/specialties/**` |
+| Citas y agenda | `/api/v3/appointments/**`, `/api/v3/doctor-schedules/**`, `/api/v3/doctor-time-off/**`, `/api/v3/schedule-slots/**` |
+| Registros clínicos | `/api/v3/medical-records/**`, `/api/v3/medical-visit/**`, `/api/v3/diagnoses/**`, `/api/v3/vital-signs/**` |
+
+Ejemplo de endpoint:
+
+```text
+GET http://localhost:9013/api/v3/doctors/directory
 ```
 
-Se recomienda iniciar primero:
+Las rutas protegidas requieren `Authorization: Bearer <token>`. El Gateway valida el JWT con Auth y autoriza la operación según el rol, la ruta y el método HTTP.
 
-1. Eureka Server
-2. Auth Service
-3. Users Service
-4. Servicios dependientes
-5. API Gateway
+## Configuración
 
-### 5. Levantar API Gateway
+Las variables se pasan en tiempo de ejecución mediante `.env` y Compose; no se incluyen secretos en las imágenes.
 
-```bash
-cd gateway
-mvn spring-boot:run
-```
+| Variable | Uso |
+| --- | --- |
+| `DB_ROOT_PASSWORD` | Contraseña root de MySQL |
+| `*_DB_PASSWORD` | Credencial de cada base lógica |
+| `JWT_SECRET` | Firma de tokens JWT |
+| `MASTER_ADMIN_EMAIL`, `MASTER_ADMIN_PASSWORD`, `MASTER_ADMIN_RUN` | Cuenta ADMIN inicial |
+| `DOCKERHUB_USER`, `IMAGE_TAG` | Namespace y tag de imágenes en Compose de producción |
 
-El Gateway estará disponible en:
+Consulta `.env.example` para ver los nombres disponibles y reemplaza los valores de ejemplo antes de compartir o publicar el sistema.
 
-```bash
-http://localhost:9013
-```
+## Pruebas
 
-### 6. Ejecutar pruebas automatizadas
-
-Desde la carpeta de cada microservicio:
+Ejecuta las pruebas desde la carpeta del módulo correspondiente:
 
 ```bash
+cd backend/appointments
 mvn test
 ```
 
-Ejemplo:
+GitHub Actions ejecuta los tests Maven para los siete módulos activos. El workflow de imágenes publica los contenedores en Docker Hub al actualizar los módulos backend en la rama configurada.
+
+## Despliegue
+
+El Compose de producción descarga imágenes ya construidas:
 
 ```bash
-cd appointments
-mvn test
+docker compose --env-file .env -f compose.prod.yaml pull
+docker compose --env-file .env -f compose.prod.yaml up -d
 ```
 
-Las pruebas fueron desarrolladas con JUnit y Mockito, validando lógica de servicios, controladores REST, respuestas HTTP y casos de error.
-
-## Ejecución remota
-
-Para ejecución remota o despliegue en servidor, se deben considerar los siguientes puntos:
-
-1. Configurar las variables de conexión a base de datos de cada microservicio.
-2. Configurar la URL de Eureka Server en cada `application.yml`.
-3. Exponer únicamente el API Gateway hacia el exterior.
-4. Mantener los microservicios internos accesibles mediante Eureka y red privada.
-5. Configurar certificados HTTPS si el sistema será publicado en producción.
-6. Usar Docker Compose o contenedores independientes para levantar bases de datos y servicios.
-
-En un entorno remoto, el flujo recomendado es:
-
-```bash
-Eureka Server → Microservicios → API Gateway
-```
-
-## Tecnologías utilizadas
-
-* Java 21
-* Spring Boot
-* Spring Cloud Gateway
-* Spring Cloud Netflix Eureka
-* Spring Security
-* JWT
-* Spring Data JPA
-* MySQL
-* Flyway
-* Docker Compose
-* WebClient
-* Swagger / OpenAPI
-* JUnit
-* Mockito
-* Maven
-
-## Repositorio
-
-Repositorio oficial del proyecto:
-
-```bash
-https://github.com/Hanrol/MediReservasApp
-```
+El Gateway queda ligado a `127.0.0.1:9013` para que Nginx sea el punto de entrada. Para los pasos específicos del servidor local, incluida la integración con el Nginx existente, consulta [`../docs/deploy-local-server.md`](../docs/deploy-local-server.md). AWS se documenta aparte en la rama `cloud`, dentro de `infra/README.md`.
